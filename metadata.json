@@ -1,0 +1,6 @@
+{
+  "name": "STUDY HUB",
+  "description": "An interactive study helper featuring an AI Doubt Solver, Note Manager, Study Flashcards, and a Focus Timer.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
