@@ -24,7 +24,6 @@ import AppLogo from "./components/AppLogo";
 import WelcomePage from "./components/WelcomePage";
 import VideoPortal from "./components/VideoPortal";
 import AdminPanel from "./components/AdminPanel";
-import AppUpdates from "./components/AppUpdates";
 import InstallAppButton from "./components/InstallAppButton";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
@@ -91,7 +90,7 @@ export default function App() {
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
 
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "updates" | "admin">("dashboard");
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin">("dashboard");
   
   // App States initialized with preloaded educational notes
   const [notes, setNotes] = useState<StudyNote[]>(() => {
@@ -416,21 +415,6 @@ export default function App() {
                 {lang === "bn" ? "ভিডিও লেকচার" : "Video Lectures"}
               </button>
 
-              <button
-                onClick={() => {
-                  setCurrentTab("updates");
-                  setSelectedNote(null);
-                }}
-                id="nav-tab-updates"
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  currentTab === "updates"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText}`
-                    : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                }`}
-              >
-                {lang === "bn" ? "অ্যাপ আপডেট" : "App Updates"}
-              </button>
-
               {profile.role === "Admin" && (
                 <button
                   onClick={() => {
@@ -622,10 +606,6 @@ export default function App() {
                 <VideoPortal lang={lang} profile={profile} theme={theme} onVideosCountChange={setVideosCount} />
               )}
 
-              {currentTab === "updates" && (
-                <AppUpdates lang={lang} theme={theme} />
-              )}
-
               {currentTab === "admin" && profile.role === "Admin" && (
                 <AdminPanel
                   lang={lang}
@@ -711,23 +691,6 @@ export default function App() {
             <Video className="h-5 w-5 mb-1" style={{ color: currentTab === "videos" ? "currentColor" : "#94a3b8" }} />
             <span className="text-[10px] tracking-tight">
               {lang === "bn" ? "ভিডিও" : "Videos"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentTab("updates");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
-              currentTab === "updates"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <RefreshCcw className="h-5 w-5 mb-1" style={{ color: currentTab === "updates" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
-              {lang === "bn" ? "আপডেট" : "Updates"}
             </span>
           </button>
 
