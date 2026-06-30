@@ -13,9 +13,9 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         injectRegister: 'script',
         manifest: {
-          name: 'STUDY HUB Educational Assistant',
+          name: 'StudyHub',
           short_name: 'StudyHub',
-          description: 'An interactive study helper featuring an AI Doubt Solver, Note Manager, Study Flashcards, and a Focus Timer.',
+          description: 'Educational Assistant',
           theme_color: '#0d9488',
           background_color: '#ffffff',
           display: 'standalone',
