@@ -342,12 +342,12 @@ export default function App() {
     <div className={`h-full flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}>
       {/* Visual Navigation Header Banner */}
       <header className={`shrink-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
-        <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-2 sm:px-6">
           
           {/* Logo brand title */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <AppLogo size="md" />
-            <div className="text-left">
+            <div className="hidden min-[400px]:block text-left">
               <span className={`font-extrabold text-sm tracking-tight ${theme.textHeading} block`}>{t.brandName}</span>
               <span className="text-5xs text-slate-400 uppercase font-black tracking-wider">
                 {lang === "bn" ? "শিক্ষা পোর্টাল" : "Academic Portal"}
@@ -435,11 +435,11 @@ export default function App() {
           )}
 
           {/* Theme & Language Selectors container */}
-          <div className="flex items-center gap-1.5 ml-auto mr-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 ml-auto mr-1 sm:mr-3">
             <InstallAppButton lang={lang} />
             
             {/* Dynamic Theme Picker Selector */}
-            <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
+            <div className="hidden md:flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
               {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
                 const tConfig = THEMES[tid];
                 const isActive = themeId === tid;
@@ -492,7 +492,7 @@ export default function App() {
 
           {/* User profile identifier */}
           {profile ? (
-            <div className="flex items-center gap-2 md:gap-3 bg-slate-100/30 dark:bg-slate-800/20 border border-slate-200/40 dark:border-slate-700/40 rounded-xl p-1 md:p-1.5 md:pr-3">
+            <div className="flex items-center gap-1.5 md:gap-3 bg-slate-100/30 dark:bg-slate-800/20 border border-slate-200/40 dark:border-slate-700/40 rounded-xl p-1 md:p-1.5 md:pr-3">
               <div className={`h-8 w-8 rounded-full ${theme.primaryBg} border ${theme.borderCard} flex items-center justify-center text-sm shadow-3xs shrink-0 overflow-hidden`}>
                 {profile.avatarUrl && (profile.avatarUrl.startsWith("data:image") || profile.avatarUrl.startsWith("http")) ? (
                   <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />

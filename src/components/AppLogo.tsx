@@ -9,7 +9,7 @@ export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
   // Configurable dimensions
   const dims = {
     sm: "h-8 w-8",
-    md: "h-12 w-12",
+    md: "h-10 w-10 sm:h-12 sm:w-12",
     lg: "h-20 w-20",
     xl: "h-36 w-36"
   };
