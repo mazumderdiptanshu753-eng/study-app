@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import { 
@@ -238,12 +239,18 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
         </div>
       )}
 
-      {/* Input / Problem Form */}
-      {!solution && !isLoading && (
-        <div className="space-y-4 animate-fade-in">
-          
-          {inputMode === "text" ? (
-            /* Input Area for TEXT TYPING */
+      <AnimatePresence mode="wait">
+        {!solution && !isLoading && (
+          <motion.div
+            key="input-form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            {inputMode === "text" ? (
+              /* Input Area for TEXT TYPING */
             <div className="space-y-2">
               <textarea
                 value={problem}
@@ -357,13 +364,20 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
               </div>
             </div>
           )}
-        </div>
-      )}
+        </motion.div>
+        )}
 
-      {/* Loading animation state */}
-      {isLoading && (
-        <div className="py-12 text-center space-y-4">
-          <div className="relative inline-block">
+        {/* Loading animation state */}
+        {isLoading && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="py-12 text-center space-y-4"
+          >
+            <div className="relative inline-block">
             <div className={`h-12 w-12 rounded-full border-4 ${theme.isDark ? "border-slate-800" : "border-slate-100"} animate-spin`} style={{ borderTopColor: "rgb(16, 185, 129)" }}></div>
             <Sparkles className="h-5 w-5 text-emerald-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
@@ -375,28 +389,42 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
                 : "Gemini is performing rigorous step-by-step mathematical derivations on your request..."}
             </p>
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
 
-      {/* Error state */}
-      {error && !isLoading && (
-        <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
-          <div className="flex-1 space-y-2">
-            <p className="text-xs font-bold text-rose-800 dark:text-rose-200">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="text-[10px] font-bold text-rose-600 dark:text-rose-400 underline hover:no-underline cursor-pointer"
-            >
-              {isBengali ? "পুনরায় চেষ্টা করুন" : "Dismiss and retry"}
-            </button>
-          </div>
-        </div>
-      )}
+        {/* Error state */}
+        {error && !isLoading && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-4 flex items-start gap-3"
+          >
+            <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-xs font-bold text-rose-800 dark:text-rose-200">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="text-[10px] font-bold text-rose-600 dark:text-rose-400 underline hover:no-underline cursor-pointer"
+              >
+                {isBengali ? "পুনরায় চেষ্টা করুন" : "Dismiss and retry"}
+              </button>
+            </div>
+          </motion.div>
+        )}
 
-      {/* Beautiful formatted solution card output */}
-      {solution && !isLoading && (
-        <div className="space-y-5 animate-fade-in">
+        {/* Beautiful formatted solution card output */}
+        {solution && !isLoading && (
+          <motion.div
+            key="solution"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-5"
+          >
           
           {/* Main query copy */}
           <div className={`${theme.isDark ? "bg-slate-900/60" : "bg-slate-50"} border ${theme.borderCard} rounded-xl p-4`}>
@@ -459,8 +487,9 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
             </button>
           </div>
 
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Tip footer */}
       {!solution && !isLoading && (

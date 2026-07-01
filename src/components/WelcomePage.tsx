@@ -57,7 +57,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
 
   return (
     <div 
-      className="min-h-screen w-full relative bg-slate-950 text-white flex flex-col items-center justify-center overflow-hidden px-4 md:px-8 py-12"
+      className="min-h-[100dvh] w-full relative bg-slate-950 text-white flex flex-col items-center justify-center overflow-hidden px-4 md:px-8 py-12"
       style={{
         background: "radial-gradient(circle at 50% 50%, #0b1528 0%, #030712 100%)"
       }}
@@ -152,7 +152,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
-            className="grid grid-cols-3 gap-4 w-full max-w-md pt-4"
+            className="grid grid-cols-2 gap-4 w-full max-w-sm pt-4"
           >
             <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-center backdrop-blur-sm">
               <BookOpen className="h-5 w-5 text-teal-400 mx-auto mb-1.5" />
@@ -161,10 +161,6 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
             <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-center backdrop-blur-sm">
               <Compass className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
               <div className="text-2xs text-slate-400 font-bold">{t.aiSummaries}</div>
-            </div>
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-center backdrop-blur-sm">
-              <Award className="h-5 w-5 text-rose-400 mx-auto mb-1.5" />
-              <div className="text-2xs text-slate-400 font-bold">{t.quizPrep}</div>
             </div>
           </motion.div>
 
@@ -200,8 +196,10 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
           </motion.div>
         </div>
 
-        {/* Right Side: Interactive 3D Parallax Displacement Card */}
-        <div 
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, delay: 0.3 }}
           className="lg:col-span-6 flex items-center justify-center perspective-[1000px] h-[360px] sm:h-[450px]"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -250,7 +248,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
             </div>
 
           </motion.div>
-        </div>
+        </motion.div>
 
       </div>
 

@@ -19,7 +19,7 @@ import {
   Copy,
   Check
 } from "lucide-react";
-import { StudyNote, Subject, Flashcard, QuizQuestion } from "../types";
+import { StudyNote, Subject, Flashcard } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 
@@ -33,7 +33,6 @@ interface NotesManagerProps {
   isLoadingAI: boolean;
   onTriggerSummary: (note: StudyNote) => Promise<void>;
   onTriggerFlashcards: (note: StudyNote) => Promise<void>;
-  onTriggerQuiz: (note: StudyNote) => Promise<void>;
   role: "Admin" | "Student";
   lang: Language;
   theme: ThemeConfig;
@@ -53,7 +52,6 @@ export default function NotesManager({
   isLoadingAI,
   onTriggerSummary,
   onTriggerFlashcards,
-  onTriggerQuiz,
   role,
   lang,
   theme
@@ -73,13 +71,8 @@ export default function NotesManager({
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // Interactive Quiz state
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [quizChecked, setQuizChecked] = useState(false);
-  const [quizScore, setQuizScore] = useState<number | null>(null);
-
   // Custom study tool tab state
-  const [activeStudyTab, setActiveStudyTab] = useState<"content" | "summary" | "flashcards" | "quiz">("content");
+  const [activeStudyTab, setActiveStudyTab] = useState<"content" | "summary" | "flashcards">("content");
 
   // Share note / Copying state
   const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
@@ -174,21 +167,6 @@ export default function NotesManager({
     setActiveStudyTab("content");
     setCurrentFlashcardIndex(0);
     setIsFlipped(false);
-    setQuizAnswers({});
-    setQuizChecked(false);
-    setQuizScore(null);
-  };
-
-  // Quiz submission
-  const handleCheckQuiz = (questions: QuizQuestion[]) => {
-    let score = 0;
-    questions.forEach((q, idx) => {
-      if (quizAnswers[idx] === q.correctIndex) {
-        score++;
-      }
-    });
-    setQuizScore(score);
-    setQuizChecked(true);
   };
 
   return (
@@ -531,17 +509,6 @@ export default function NotesManager({
                   <Layers className="h-3 w-3" />
                   {lang === "bn" ? "ফ্ল্যাশকার্ড" : "Flashcards"} {selectedNote.flashcards ? `(${selectedNote.flashcards.length})` : ""}
                 </button>
-                <button
-                  onClick={() => setActiveStudyTab("quiz")}
-                  className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    activeStudyTab === "quiz"
-                      ? "bg-teal-600 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <HelpCircle className="h-3 w-3" />
-                  {lang === "bn" ? "অনুশীলน কুইজ" : "Practice Quiz"} {selectedNote.quiz ? `(${selectedNote.quiz.length})` : ""}
-                </button>
               </div>
 
               {/* Note Share code widget */}
@@ -772,170 +739,19 @@ export default function NotesManager({
                         </button>
                       </div>
                     </div>
-
-                    <div className="pt-2 text-right">
-                      <button
-                        onClick={() => onTriggerFlashcards(selectedNote)}
-                        className="inline-flex items-center gap-1.5 text-3xs font-semibold text-slate-500 hover:text-indigo-600 hover:underline cursor-pointer"
-                      >
-                        <RefreshCw className="h-3 w-3" /> {lang === "bn" ? "এআই দিয়ে পুনরায় কার্ড তৈরি করুন" : "Re-generate cards with AI"}
-                      </button>
-                    </div>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-slate-100 bg-white p-10 text-center space-y-4">
                     <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-                      {lang === "bn" ? "স্মরণশক্তি উন্নত করতে এই স্টাডি নোটকে ইন্টারেক্টিভ ফ্ল্যাশকার্ডে রূপান্তর করুন।" : "Turn this study note into visual flashcards to memorize formulas, biology definitions, or key historic dates."}
+                      {lang === "bn" ? "এই নোটের জন্য কোনো ফ্ল্যাশকার্ড নেই।" : "No flashcards generated for this note."}
                     </p>
                     <button
                       onClick={() => onTriggerFlashcards(selectedNote)}
-                      id="btn-generate-flashcards"
+                      id="btn-generate-flashcards-empty"
                       className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 shadow-sm cursor-pointer"
                     >
                       <Layers className="h-3.5 w-3.5" />
-                      {lang === "bn" ? "এআই ফ্ল্যাশকার্ড তৈরি করুন" : "Generate AI Flashcards"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB CONTENT: 4. Practice Quiz */}
-            {activeStudyTab === "quiz" && (
-              <div className="space-y-4">
-                {isLoadingAI ? (
-                  <div className="rounded-xl border border-slate-100 bg-white p-12 text-center space-y-3">
-                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
-                    <p className="text-xs text-slate-500 font-semibold animate-pulse">
-                      {lang === "bn" ? "আপনার নোটের উপর ভিত্তি করে এমসিকিউ প্রশ্ন তৈরি করা হচ্ছে..." : "Formulating multiple choice questions based on your note..."}
-                    </p>
-                  </div>
-                ) : selectedNote.quiz && selectedNote.quiz.length > 0 ? (
-                  <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-xs space-y-6">
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-2.5">
-                      <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                        <GraduationCap className="h-5 w-5 text-teal-600" />
-                        {lang === "bn" ? "অনুশীলন কুইজ" : "Practice Quiz"}
-                      </h3>
-                      {quizChecked && quizScore !== null && (
-                        <div className="text-xs font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100 animate-bounce">
-                          {lang === "bn" ? `প্রাপ্ত স্কোর: ${quizScore} / ${selectedNote.quiz.length}` : `Score: ${quizScore} / ${selectedNote.quiz.length}`}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quiz Questions */}
-                    <div className="space-y-5">
-                      {selectedNote.quiz.map((question, qIdx) => {
-                        const isCorrectAnswer = quizAnswers[qIdx] === question.correctIndex;
-                        return (
-                          <div key={qIdx} className="space-y-2.5 border-b border-slate-50 pb-5 last:border-0 last:pb-0">
-                            <h4 className="text-xs font-bold text-slate-800">
-                              {qIdx + 1}. {question.question}
-                            </h4>
-
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              {question.options.map((option, optIdx) => {
-                                const isSelected = quizAnswers[qIdx] === optIdx;
-                                const isThisCorrect = optIdx === question.correctIndex;
-                                
-                                let optStyle = "border-slate-100 bg-slate-50/40 text-slate-700 hover:bg-slate-50 hover:border-slate-200";
-                                if (isSelected) {
-                                  optStyle = "border-teal-300 bg-teal-50/50 text-teal-900 font-semibold";
-                                }
-                                if (quizChecked) {
-                                  if (isThisCorrect) {
-                                    optStyle = "border-emerald-200 bg-emerald-50 text-emerald-900 font-semibold";
-                                  } else if (isSelected) {
-                                    optStyle = "border-rose-200 bg-rose-50 text-rose-900 font-semibold";
-                                  } else {
-                                    optStyle = "border-slate-100 bg-slate-50/20 text-slate-400 cursor-not-allowed";
-                                  }
-                                }
-
-                                return (
-                                  <button
-                                    key={optIdx}
-                                    type="button"
-                                    disabled={quizChecked}
-                                    onClick={() => setQuizAnswers(prev => ({ ...prev, [qIdx]: optIdx }))}
-                                    className={`flex items-center gap-2 rounded-lg border p-2.5 text-left text-xs transition-all cursor-pointer ${optStyle}`}
-                                  >
-                                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-4xs font-bold ${
-                                      isSelected
-                                        ? "bg-teal-600 text-white"
-                                        : quizChecked && isThisCorrect
-                                          ? "bg-emerald-600 text-white"
-                                          : "bg-slate-200/60 text-slate-600"
-                                    }`}>
-                                      {String.fromCharCode(65 + optIdx)}
-                                    </span>
-                                    <span>{option}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            {/* Question Feedback if Checked */}
-                            {quizChecked && (
-                              <div className="rounded-lg bg-slate-50 p-3 text-4xs font-medium text-slate-600 animate-fade-in border border-slate-100 leading-relaxed">
-                                <span className="font-bold text-slate-800 block mb-0.5">
-                                  {isCorrectAnswer 
-                                    ? (lang === "bn" ? "✓ সঠিক উত্তর!" : "✓ Correct!") 
-                                    : (lang === "bn" ? "✗ ভুল উত্তর।" : "✗ Incorrect.")}{" "}
-                                  {lang === "bn" ? "ব্যাখ্যা:" : "Explainer:"}
-                                </span>
-                                {question.explanation}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Quiz Controls */}
-                    <div className="pt-2 flex justify-between items-center">
-                      <button
-                        onClick={() => onTriggerQuiz(selectedNote)}
-                        className="inline-flex items-center gap-1.5 text-3xs font-semibold text-slate-500 hover:text-teal-600 hover:underline cursor-pointer"
-                      >
-                        <RefreshCw className="h-3 w-3" /> {lang === "bn" ? "কুইজ পুনরায় তৈরি করুন" : "Regenerate Quiz"}
-                      </button>
-
-                      {!quizChecked ? (
-                        <button
-                          disabled={Object.keys(quizAnswers).length < selectedNote.quiz.length}
-                          onClick={() => handleCheckQuiz(selectedNote.quiz!)}
-                          className="rounded-lg bg-teal-600 px-5 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-45 disabled:pointer-events-none cursor-pointer"
-                        >
-                          {lang === "bn" ? "উত্তর জমা দিন" : "Submit Answers"}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setQuizAnswers({});
-                            setQuizChecked(false);
-                            setQuizScore(null);
-                          }}
-                          className="rounded-lg border border-slate-200 bg-white px-5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                        >
-                          {lang === "bn" ? "আবার চেষ্টা করুন" : "Retry Quiz"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-slate-100 bg-white p-10 text-center space-y-4">
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-                      {lang === "bn" ? "৩টি বহুনির্বাচনী প্রশ্নের একটি অনুশীলন কুইজে রূপান্তর করে এই বিষয়ের উপর আপনার দক্ষতা যাচাই করুন।" : "Test your understanding of the material by converting this note into a smart 3-question multiple-choice practice quiz."}
-                    </p>
-                    <button
-                      onClick={() => onTriggerQuiz(selectedNote)}
-                      id="btn-generate-quiz"
-                      className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700 shadow-sm cursor-pointer"
-                    >
-                      <HelpCircle className="h-3.5 w-3.5" />
-                      {lang === "bn" ? "অনুশীলন কুইজ তৈরি করুন" : "Create Practice Quiz"}
+                      {lang === "bn" ? "ফ্ল্যাশকার্ড তৈরি করুন" : "Generate Flashcards"}
                     </button>
                   </div>
                 )}
@@ -956,8 +772,8 @@ export default function NotesManager({
               </h3>
               <p className="text-xs text-slate-500">
                 {role === "Admin"
-                  ? (lang === "bn" ? "ফ্ল্যাশকার্ড বা অনুশীলন কুইজ তৈরি করতে বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করুন অথবা সম্পূর্ণ নতুন নোট যোগ করুন!" : "Select a study note on the left sidebar to generate flashcards and quizzes, or write a brand new note to begin!")
-                  : (lang === "bn" ? "বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করে সেটির সারসংক্ষেপ, ফ্ল্যাশকার্ড বা কুইজ দিয়ে পড়াশোনা শুরু করুন!" : "Select a curated study note from the left sidebar library to generate custom summaries, interactive flashcards, or quizzes!")}
+                  ? (lang === "bn" ? "ফ্ল্যাশকার্ড তৈরি করতে বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করুন অথবা সম্পূর্ণ নতুন নোট যোগ করুন!" : "Select a study note on the left sidebar to generate flashcards, or write a brand new note to begin!")
+                  : (lang === "bn" ? "বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করে সেটির সারসংক্ষেপ বা ফ্ল্যাশকার্ড দিয়ে পড়াশোনা শুরু করুন!" : "Select a curated study note from the left sidebar library to generate custom summaries or interactive flashcards!")}
               </p>
             </div>
             {role === "Admin" && (

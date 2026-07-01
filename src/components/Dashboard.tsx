@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Sparkles, 
   BookOpen, 
@@ -82,8 +82,8 @@ export default function Dashboard({
           </h1>
           <p className={`${theme.isDark ? theme.textHeroSub : "text-slate-700/90"} font-semibold text-xs md:text-sm leading-relaxed max-w-xl`}>
             {lang === "bn"
-               ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, ফ্ল্যাশকার্ড পর্যালোচনা করুন এবং কুইজ অনুশীলনের মাধ্যমে প্রস্তুতি বৃদ্ধি করুন।"
-               : "Organize study notes, instantly generate AI-powered summaries, build custom flashcards, and test your knowledge with interactive practice quizzes."}
+               ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
+               : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards."}
           </p>
           <div className="pt-2 flex flex-wrap gap-3">
             <button
@@ -213,9 +213,7 @@ export default function Dashboard({
                   </p>
                   <div className={`mt-4 pt-3 border-t ${theme.borderCard} flex items-center justify-between text-[10px] font-bold ${theme.textMuted} group-hover:${theme.primaryText}`}>
                     <span className="flex items-center gap-1 font-semibold">
-                      {note.quiz && note.quiz.length > 0 
-                        ? (lang === "bn" ? "✓ কুইজ প্রস্তুত" : "✓ Quiz Ready") 
-                        : (lang === "bn" ? "⚡ কুইজ তৈরি করতে ক্লিক করুন" : "⚡ Click to Quiz")}
+                      {lang === "bn" ? "বিস্তারিত দেখুন" : "View Details"}
                     </span>
                     <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </div>
@@ -345,23 +343,34 @@ export default function Dashboard({
       </motion.div>
 
       {/* Fullscreen Scientific Calculator Modal */}
-      {showCalcModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
-          {/* Backdrop */}
-          <div 
-            onClick={() => setShowCalcModal(false)}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity animate-fade-in"
-          ></div>
-          
-          {/* Modal Container */}
-          <div className={`relative w-full max-w-2xl ${theme.bgCard} rounded-2xl shadow-2xl overflow-hidden z-10 border ${theme.borderCard} animate-scale-up max-h-[90vh] overflow-y-auto`}>
-            <ScientificCalculator 
-              lang={lang} 
-              onClose={() => setShowCalcModal(false)} 
-            />
+      <AnimatePresence>
+        {showCalcModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCalcModal(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity"
+            ></motion.div>
+            
+            {/* Modal Container */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0 }}
+              className={`relative w-full max-w-2xl ${theme.bgCard} rounded-2xl shadow-2xl overflow-hidden z-10 border ${theme.borderCard} max-h-[90vh] overflow-y-auto`}
+            >
+              <ScientificCalculator 
+                lang={lang} 
+                onClose={() => setShowCalcModal(false)} 
+              />
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

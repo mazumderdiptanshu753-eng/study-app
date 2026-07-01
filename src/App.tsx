@@ -206,45 +206,6 @@ export default function App() {
     }
   };
 
-  // Handle AI Quiz Generation API
-  const handleTriggerQuiz = async (note: StudyNote) => {
-    setIsLoadingAI(true);
-    try {
-      const response = await fetch("/api/generate-quiz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: note.title, content: note.content })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate practice quiz");
-      }
-
-      const result = await response.json();
-      
-      const updatedNotes = notes.map(n => {
-        if (n.id === note.id) {
-          return {
-            ...n,
-            quiz: result.questions
-          };
-        }
-        return n;
-      });
-
-      setNotes(updatedNotes);
-      const updatedSelected = updatedNotes.find(n => n.id === note.id);
-      if (updatedSelected) {
-        setSelectedNote(updatedSelected);
-      }
-    } catch (e: any) {
-      console.error(e);
-      alert(`Failed to formulate quiz: ${e.message}`);
-    } finally {
-      setIsLoadingAI(false);
-    }
-  };
-
   // Save new manually written note
   const handleSaveNote = (noteData: Omit<StudyNote, "id" | "timestamp">) => {
     const newNote: StudyNote = {
@@ -321,25 +282,37 @@ export default function App() {
     doubtsSolved: 0,
     notesCreated: notes.length,
     studyMinutes: 0,
-    quizzesCompleted: notes.filter(n => n.quiz).length,
     videosUploaded: videosCount
   };
 
-  if (!profile && !hasStartedWelcome) {
-    return (
-      <WelcomePage 
-        lang={lang}
-        onLanguageChange={handleLanguageChange}
-        onStart={() => {
-          setHasStartedWelcome(true);
-        }} 
-      />
-    );
-  }
-
   return (
-    <div className={`h-full flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}>
-      {/* Visual Navigation Header Banner */}
+    <AnimatePresence mode="wait">
+      {(!profile && !hasStartedWelcome) ? (
+        <motion.div
+          key="welcome"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.4 }}
+          className="h-[100dvh] w-full"
+        >
+          <WelcomePage 
+            lang={lang}
+            onLanguageChange={handleLanguageChange}
+            onStart={() => {
+              setHasStartedWelcome(true);
+            }} 
+          />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="main-app"
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className={`h-[100dvh] flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+        >
+          {/* Visual Navigation Header Banner */}
       <header className={`shrink-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
         <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-2 sm:px-6">
           
@@ -543,7 +516,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-4 md:py-8 sm:px-6 relative overflow-y-auto touch-scroll">
+      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-8 sm:px-6 relative overflow-y-auto touch-scroll">
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
@@ -551,10 +524,10 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, scale: 0.98, y: 5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -5 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="h-full"
             >
               {/* Render Active View Tab */}
@@ -590,7 +563,6 @@ export default function App() {
                   isLoadingAI={isLoadingAI}
                   onTriggerSummary={handleTriggerSummary}
                   onTriggerFlashcards={handleTriggerFlashcards}
-                  onTriggerQuiz={handleTriggerQuiz}
                   role={profile.role}
                   theme={theme}
                 />
@@ -712,6 +684,8 @@ export default function App() {
           )}
         </div>
       )}
-    </div>
+    </motion.div>
+    )}
+  </AnimatePresence>
   );
 }

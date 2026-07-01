@@ -164,7 +164,7 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
     notesTagsLabel: "Tags (comma separated)",
     notesTagsPlaceholder: "e.g., Geometry, Calculus, Proofs",
     notesSelectNoteFirst: "Select a Study Note to Begin",
-    notesClickToRead: "Choose a curated mathematical concept from the library left panel to generate flashcards, AI study notes, and custom quizzes instantly.",
+    notesClickToRead: "Choose a curated mathematical concept from the library left panel to generate flashcards and AI study notes instantly.",
     notesEnterCustomNote: "You can also write your own mathematical notes, and the platform will automatically parse key summaries for interactive retention!",
 
     // Notes Tabs

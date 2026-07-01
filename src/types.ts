@@ -46,7 +46,6 @@ export interface StudyNote {
   summaryPoints?: string[];
   tags?: string[];
   flashcards?: Flashcard[];
-  quiz?: QuizQuestion[];
   timestamp: string;
   attachmentUrl?: string;
   attachmentName?: string;
@@ -74,7 +73,6 @@ export interface UserStats {
   doubtsSolved: number;
   notesCreated: number;
   studyMinutes: number;
-  quizzesCompleted: number;
   videosUploaded: number;
 }
 

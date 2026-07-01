@@ -200,59 +200,6 @@ Return a list of flashcards.`;
   }
 });
 
-// 4. Generate Interactive Practice Quiz from Note
-app.post("/api/generate-quiz", async (req: express.Request, res: express.Response): Promise<any> => {
-  try {
-    const { title, content } = req.body;
-    if (!content) {
-      return res.status(400).json({ error: "Content is required to generate a quiz." });
-    }
-
-    const ai = getGeminiClient();
-    const prompt = `Create a 3-question multiple choice quiz with exactly 4 options per question based on this study note:
-Title: "${title || "Untitled"}"
-Content:
-"${content}"
-
-Ensure the questions test actual understanding of the material. Each question must include a correct answer index (0 to 3) and a helpful explanation.`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          required: ["questions"],
-          properties: {
-            questions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                required: ["question", "options", "correctIndex", "explanation"],
-                properties: {
-                  question: { type: Type.STRING },
-                  options: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                  },
-                  correctIndex: { type: Type.INTEGER },
-                  explanation: { type: Type.STRING },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const data = JSON.parse(response.text || "{}");
-    res.json(data);
-  } catch (error: any) {
-    console.error("Error generating quiz:", error);
-    res.status(500).json({ error: error.message || "Failed to generate quiz." });
-  }
-});
 
 // 5. Solve Math with AI
 app.post("/api/solve-math", async (req: express.Request, res: express.Response): Promise<any> => {
@@ -365,7 +312,7 @@ app.get("/api/chat/messages", (req: express.Request, res: express.Response) => {
       senderName: "Admin (Diptanshu)",
       senderEmail: "mazumderdiptanshu753@gmail.com",
       senderRole: "Admin",
-      message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes or quiz prep today?`,
+      message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
       timestamp: new Date().toISOString(),
       studentEmail: studentEmail,
       studentName: name as string
@@ -412,7 +359,7 @@ app.post("/api/chat/ai-reply", async (req: express.Request, res: express.Respons
     const prompt = `You are Diptanshu, the Admin of STUDY HUB. You are responding to a student named ${studentName} who just sent you this message in the support chat:
 "${lastMessage}"
 
-Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes, summarizing, or taking quizzes). Keep it very human, conversational, and direct. Do not use AI jargon.`;
+Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes or summarizing). Keep it very human, conversational, and direct. Do not use AI jargon.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
