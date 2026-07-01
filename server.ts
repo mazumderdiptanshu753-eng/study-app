@@ -553,6 +553,13 @@ app.post("/api/updates/install", (req: express.Request, res: express.Response) =
 // Start express server and integrate Vite
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    app.use((req, res, next) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      next();
+    });
+
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

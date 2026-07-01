@@ -24,6 +24,7 @@ import AppLogo from "./components/AppLogo";
 import WelcomePage from "./components/WelcomePage";
 import VideoPortal from "./components/VideoPortal";
 import AdminPanel from "./components/AdminPanel";
+import GeneralKnowledgePage from "./components/GeneralKnowledgePage";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -89,7 +90,7 @@ export default function App() {
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
 
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin">("dashboard");
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk">("dashboard");
   
   // App States initialized with preloaded educational notes
   const [notes, setNotes] = useState<StudyNote[]>(() => {
@@ -583,6 +584,14 @@ export default function App() {
                   onToggleAdminRole={handleToggleAdminRole}
                   currentUserEmail={profile.email}
                   theme={theme}
+                />
+              )}
+
+              {currentTab === "gk" && (
+                <GeneralKnowledgePage
+                  lang={lang}
+                  theme={theme}
+                  onBack={() => setCurrentTab("dashboard")}
                 />
               )}
             </motion.div>

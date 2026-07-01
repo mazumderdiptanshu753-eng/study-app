@@ -16,11 +16,13 @@ import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import ScientificCalculator from "./ScientificCalculator";
 import SolveWithAI from "./SolveWithAI";
+import GeneralKnowledge from "./GeneralKnowledge";
+import ImportantQuestions from "./ImportantQuestions";
 
 interface DashboardProps {
   stats: UserStats;
   notes: StudyNote[];
-  onNavigate: (tab: "notes" | "chat" | "videos") => void;
+  onNavigate: (tab: "notes" | "chat" | "videos" | "gk") => void;
   onSelectNote: (note: StudyNote) => void;
   lang: Language;
   theme: ThemeConfig;
@@ -101,6 +103,14 @@ export default function Dashboard({
             >
               <MessageSquare className="h-4 w-4" />
               {lang === "bn" ? "এডমিনদের সাথে চ্যাট করুন" : "Chat with assistant"}
+            </button>
+            <button
+              onClick={() => onNavigate("gk")}
+              id="dash-btn-gk"
+              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all active:scale-97 cursor-pointer bg-amber-500 text-amber-50 hover:bg-amber-600`}
+            >
+              <BookOpen className="h-4 w-4" />
+              {lang === "bn" ? "সাধারণ জ্ঞান" : "General Knowledge"}
             </button>
           </div>
         </div>

@@ -22,6 +22,26 @@
     <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <title>STUDY HUB</title>
+    
+    <!-- Force unregister any stuck service workers from previous PWA setups -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+        
+        // Also clear any application caches to be safe
+        if (window.caches) {
+          caches.keys().then(function(names) {
+            for (let name of names) {
+              caches.delete(name);
+            }
+          });
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

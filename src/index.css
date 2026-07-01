@@ -13,16 +13,15 @@
     
     /* Make app fixed size (native app feel) */
     width: 100%;
-    height: 100%;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100dvh;
+    overflow-x: hidden;
     overscroll-behavior-y: none;
   }
   
   #root {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    overflow-x: hidden;
   }
   
   /* Re-enable text selection for text inputs, textareas, and specific elements */
