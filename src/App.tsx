@@ -24,7 +24,6 @@ import AppLogo from "./components/AppLogo";
 import WelcomePage from "./components/WelcomePage";
 import VideoPortal from "./components/VideoPortal";
 import AdminPanel from "./components/AdminPanel";
-import InstallAppButton from "./components/InstallAppButton";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -436,7 +435,6 @@ export default function App() {
 
           {/* Theme & Language Selectors container */}
           <div className="flex items-center gap-1 sm:gap-1.5 ml-auto mr-1 sm:mr-3">
-            <InstallAppButton lang={lang} />
             
             {/* Dynamic Theme Picker Selector */}
             <div className="hidden md:flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
