@@ -7,6 +7,25 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+
+async function withRetry(operation, maxRetries = 3) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if ((error.status === 503 || error.message.includes("503")) && i < maxRetries - 1) {
+        console.warn(`Received 503. Retrying ${i + 1}/${maxRetries} in ${1000 * (i + 1)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+
 const app = express();
 app.use(express.json());
 
@@ -61,7 +80,7 @@ Explain the answer thoroughly. Follow this strict schema:
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -121,7 +140,7 @@ Provide a structured response:
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -168,7 +187,7 @@ Note Content:
 Return a list of flashcards.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -237,7 +256,7 @@ Please provide a highly detailed response. Follow this strict schema:
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: contents,
       config: {
         responseMimeType: "application/json",
@@ -262,6 +281,112 @@ Please provide a highly detailed response. Follow this strict schema:
   } catch (error: any) {
     console.error("Error solving math with AI:", error);
     res.status(500).json({ error: error.message || "Failed to solve math problem using AI." });
+  }
+});
+
+// --- General Knowledge API ---
+app.get("/api/gk-questions", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const ai = getGeminiClient();
+    
+    // We want the questions to change every 7 days.
+    // Calculate a seed based on the current week number.
+    const now = new Date();
+    const oneJan = new Date(now.getFullYear(), 0, 1);
+    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
+    const seed = `${now.getFullYear()}-W${weekNumber}`;
+
+    const prompt = `Generate 5 multiple-choice General Knowledge questions suitable for government exam preparation.
+Use the following seed to ensure variety but consistency for this week: ${seed}.
+Make sure the topics are relevant for competitive government exams (History, Geography, Polity, Science, Current Events).
+Format the output strictly as JSON following this schema.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["questions"],
+          properties: {
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["question", "options", "correctOptionIndex", "explanation"],
+                properties: {
+                  question: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  correctOptionIndex: { type: Type.INTEGER },
+                  explanation: { type: Type.STRING }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || '{"questions": []}');
+    res.json(data);
+  } catch (error: any) {
+    console.error("Error fetching GK questions:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch GK questions." });
+  }
+});
+
+// --- Important Questions API ---
+app.get("/api/important-questions", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const ai = getGeminiClient();
+    
+    const now = new Date();
+    const oneJan = new Date(now.getFullYear(), 0, 1);
+    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
+    const seed = `${now.getFullYear()}-W${weekNumber}-Important`;
+
+    const prompt = `Generate 100 important, frequently asked one-liner questions and their direct answers for Indian government competitive exams (like UPSC, SSC, Railways, State PSC). 
+Make sure to include a good mix of subjects, including some Mathematics/Quantitative Aptitude questions.
+Use the following seed to ensure variety but consistency for this week: ${seed}.
+Format the output strictly as JSON following this schema.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["qnaList"],
+          properties: {
+            qnaList: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["question", "answer", "subject"],
+                properties: {
+                  question: { type: Type.STRING },
+                  answer: { type: Type.STRING },
+                  subject: { type: Type.STRING }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || '{"qnaList": []}');
+    res.json(data);
+  } catch (error: any) {
+    console.error("Error fetching important questions:", error);
+    res.status(500).json({ error: error.message || "Failed to fetch important questions." });
   }
 });
 
@@ -362,7 +487,7 @@ app.post("/api/chat/ai-reply", async (req: express.Request, res: express.Respons
 Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes or summarizing). Keep it very human, conversational, and direct. Do not use AI jargon.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
@@ -435,8 +560,23 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
+    
     app.get("*", (req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
