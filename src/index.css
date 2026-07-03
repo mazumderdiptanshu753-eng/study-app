@@ -2,6 +2,9 @@
 
 @layer base {
   html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
     /* Touch optimization */
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -17,6 +20,8 @@
   }
   
   #root {
+    height: 100%;
+    width: 100%;
     
   }
   

@@ -74,13 +74,13 @@ export default function App() {
         const localUsers = localStorage.getItem("registered_users");
         if (localUsers) {
           const allUsers = JSON.parse(localUsers) as StudentProfile[];
-          const found = allUsers.find(u => u.email.trim().toLowerCase() === parsed.email?.trim().toLowerCase());
+          const found = allUsers.find(u => (u?.email || "").trim().toLowerCase() === (parsed?.email || "").trim().toLowerCase());
           if (found) {
             parsed.role = found.role;
             parsed.avatarUrl = found.avatarUrl;
           }
         } else {
-          const isUserAdmin = parsed.email?.trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+          const isUserAdmin = (parsed?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
           parsed.role = isUserAdmin ? "Admin" : "Student";
           parsed.avatarUrl = isUserAdmin ? "👑" : (parsed.avatarUrl || "🎓");
         }
@@ -96,6 +96,37 @@ export default function App() {
   const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk">("dashboard");
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+
+  // Load users from central backend API
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+        
+        // Also update local profile if role has changed on backend
+        if (profile) {
+          const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
+          if (matched && (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl)) {
+            const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
+            setProfile(updatedProfile);
+            localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch users:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    // Poll every 5 seconds for real-time registration visibility
+    const interval = setInterval(fetchUsers, 5000);
+    return () => clearInterval(interval);
+  }, [profile?.email]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -243,62 +274,99 @@ export default function App() {
     setNotes(prev => prev.filter(n => n.id !== id));
   };
 
-  const handleRegister = (newProfile: StudentProfile) => {
-    setUsers(prev => {
-      const existingUser = prev.find(u => u.email.trim().toLowerCase() === newProfile.email.trim().toLowerCase());
-      if (existingUser && existingUser.role === "Admin") {
-        newProfile.role = "Admin";
-        newProfile.avatarUrl = "👑";
-      }
-
-      setProfile(newProfile);
-      localStorage.setItem("student_profile", JSON.stringify(newProfile));
-
-      
-
-      let updated;
-      if (existingUser) {
-        updated = prev.map(u => u.email.trim().toLowerCase() === newProfile.email.trim().toLowerCase() ? newProfile : u);
-      } else {
-        updated = [...prev, newProfile];
-      }
-      localStorage.setItem("registered_users", JSON.stringify(updated));
-      return updated;
-    });
+  const recordActivityLog = async (action: "Login" | "Logout", userProfile: StudentProfile) => {
+    try {
+      await fetch("/api/activity-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: userProfile.email,
+          userName: userProfile.fullName,
+          action: action,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (e) {
+      console.error("Failed to record activity log", e);
+    }
   };
 
-  const handleToggleAdminRole = (email: string) => {
-    setUsers(prev => {
-      const updated = prev.map(user => {
-        if (user.email.trim().toLowerCase() === email.trim().toLowerCase()) {
-          const newRole = user.role === "Admin" ? "Student" : "Admin";
-          const updatedUser = {
-            ...user,
-            role: newRole,
-            avatarUrl: newRole === "Admin" ? "👑" : "🎓"
-          };
-          
-          
-          
-          return updatedUser as StudentProfile;
-        }
-        return user;
-      });
-      localStorage.setItem("registered_users", JSON.stringify(updated));
+  const handleRegister = async (newProfile: StudentProfile) => {
+    // If we have existing user records, make sure roles are preserved correctly
+    const existingUser = users.find(u => (u?.email || "").trim().toLowerCase() === (newProfile?.email || "").trim().toLowerCase());
+    if (existingUser && existingUser.role === "Admin") {
+      newProfile.role = "Admin";
+      newProfile.avatarUrl = "👑";
+    }
 
-      // If the modified user is the currently logged in user, update their active profile too!
-      if (profile && profile.email.trim().toLowerCase() === email.trim().toLowerCase()) {
-        const updatedSelf = updated.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
-        if (updatedSelf) {
-          setProfile(updatedSelf);
-          localStorage.setItem("student_profile", JSON.stringify(updatedSelf));
+    // Explicitly grant Admin role to the main user email
+    if ((newProfile?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com") {
+      newProfile.role = "Admin";
+      newProfile.avatarUrl = "👑";
+    }
+
+    setProfile(newProfile);
+    localStorage.setItem("student_profile", JSON.stringify(newProfile));
+    
+    // Log login activity
+    recordActivityLog("Login", newProfile);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProfile)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+      }
+    } catch (e) {
+      console.error("Failed to register user to central backend:", e);
+    }
+  };
+
+  const handleToggleAdminRole = async (email: string) => {
+    const targetUser = users.find(user => (user?.email || "").trim().toLowerCase() === (email || "").trim().toLowerCase());
+    if (!targetUser) return;
+
+    const newRole = targetUser.role === "Admin" ? "Student" : "Admin";
+    const updatedUser = {
+      ...targetUser,
+      role: newRole,
+      avatarUrl: newRole === "Admin" ? "👑" : "🎓"
+    };
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+
+        // If the modified user is the currently logged in user, update their active profile too!
+        if (profile && (profile.email || "").trim().toLowerCase() === (email || "").trim().toLowerCase()) {
+          const updatedSelf = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (email || "").trim().toLowerCase());
+          if (updatedSelf) {
+            setProfile(updatedSelf);
+            localStorage.setItem("student_profile", JSON.stringify(updatedSelf));
+          }
         }
       }
-      return updated;
-    });
+    } catch (e) {
+      console.error("Failed to toggle admin role on backend:", e);
+    }
   };
 
   const handleLogout = () => {
+    if (profile) {
+      recordActivityLog("Logout", profile);
+    }
     setProfile(null);
     localStorage.removeItem("student_profile");
     setHasStartedWelcome(false);

@@ -4,6 +4,7 @@ import { ThemeConfig } from '../lib/themes';
 import { Language } from '../lib/translations';
 
 interface SplashScreenProps {
+  key?: string;
   theme: ThemeConfig;
   lang: Language;
 }

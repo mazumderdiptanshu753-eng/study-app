@@ -156,38 +156,45 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
     }> = {};
 
     messages.forEach(msg => {
-      const emailKey = msg.studentEmail.toLowerCase();
+      const emailKey = (msg.studentEmail || "").toLowerCase().trim();
+      if (!emailKey) return;
       // Only keep track of student conversations
       if (!groups[emailKey]) {
         groups[emailKey] = {
-          studentEmail: msg.studentEmail,
-          studentName: msg.studentName,
-          lastMessage: msg.message,
-          lastTimestamp: msg.timestamp,
+          studentEmail: msg.studentEmail || "",
+          studentName: msg.studentName || "Unknown Student",
+          lastMessage: msg.message || "",
+          lastTimestamp: msg.timestamp || new Date().toISOString(),
           unreadCount: 0
         };
       } else {
         // Update to latest message
-        if (new Date(msg.timestamp) > new Date(groups[emailKey].lastTimestamp)) {
-          groups[emailKey].lastMessage = msg.message;
-          groups[emailKey].lastTimestamp = msg.timestamp;
+        const currentTimestamp = msg.timestamp ? new Date(msg.timestamp).getTime() : 0;
+        const lastTimestamp = groups[emailKey].lastTimestamp ? new Date(groups[emailKey].lastTimestamp).getTime() : 0;
+        if (currentTimestamp > lastTimestamp) {
+          groups[emailKey].lastMessage = msg.message || "";
+          groups[emailKey].lastTimestamp = msg.timestamp || new Date().toISOString();
         }
       }
     });
 
     return Object.values(groups)
       .filter(c => 
-        c.studentName.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-        c.studentEmail.toLowerCase().includes(adminSearchTerm.toLowerCase())
+        (c.studentName || "").toLowerCase().includes((adminSearchTerm || "").toLowerCase()) ||
+        (c.studentEmail || "").toLowerCase().includes((adminSearchTerm || "").toLowerCase())
       )
-      .sort((a, b) => new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime());
+      .sort((a, b) => {
+        const timeA = a.lastTimestamp ? new Date(a.lastTimestamp).getTime() : 0;
+        const timeB = b.lastTimestamp ? new Date(b.lastTimestamp).getTime() : 0;
+        return timeB - timeA;
+      });
   };
 
   // Filter messages for active student thread
   const getActiveThreadMessages = () => {
     if (isAdmin) {
       if (!selectedStudentEmail) return [];
-      return messages.filter(m => m.studentEmail.toLowerCase() === selectedStudentEmail.toLowerCase());
+      return messages.filter(m => (m?.studentEmail || "").toLowerCase().trim() === (selectedStudentEmail || "").toLowerCase().trim());
     }
     return messages;
   };
@@ -270,7 +277,7 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
             {/* Conversation list */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
               {conversations.map((c) => {
-                const isActive = selectedStudentEmail?.toLowerCase() === c.studentEmail.toLowerCase();
+                const isActive = (selectedStudentEmail || "").toLowerCase().trim() === (c.studentEmail || "").toLowerCase().trim();
                 return (
                   <button
                     key={c.studentEmail}
@@ -347,7 +354,7 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
             {activeMessages.map((msg) => {
               // Message from self
-              const isSelf = msg.senderEmail.toLowerCase() === profile.email.toLowerCase();
+              const isSelf = (msg?.senderEmail || "").toLowerCase().trim() === (profile?.email || "").toLowerCase().trim();
               return (
                 <div 
                   key={msg.id} 

@@ -4,6 +4,19 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { initializeApp } from "firebase/app";
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  setDoc, 
+  addDoc, 
+  query, 
+  where, 
+  orderBy 
+} from "firebase/firestore";
 
 dotenv.config();
 
@@ -39,11 +52,13 @@ interface StudentProfile {
 interface Database {
   users: StudentProfile[];
   chatMessages: ChatMessage[];
+  activityLogs?: any[];
 }
 
 // Default DB State
 let db: Database = {
   users: [],
+  activityLogs: [],
   chatMessages: [
     {
       id: "welcome-demo",
@@ -65,6 +80,7 @@ if (fs.existsSync(DB_FILE)) {
     const parsed = JSON.parse(fileData);
     if (parsed.users) db.users = parsed.users;
     if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
+    if (parsed.activityLogs) db.activityLogs = parsed.activityLogs;
   } catch (error) {
     console.error("Error loading db.json:", error);
   }
@@ -77,6 +93,23 @@ function saveDB() {
   } catch (error) {
     console.error("Error saving db.json:", error);
   }
+}
+
+// Initialize Firebase Firestore using the config file
+let firestore: any = null;
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const firebaseApp = initializeApp(firebaseConfig);
+    const dbId = firebaseConfig.firestoreDatabaseId || "(default)";
+    firestore = getFirestore(firebaseApp, dbId);
+    console.log(`Firebase Firestore initialized successfully with database: ${dbId}`);
+  } else {
+    console.warn("firebase-applet-config.json not found, using local JSON fallback");
+  }
+} catch (error) {
+  console.error("Failed to initialize Firebase Firestore:", error);
 }
 
 async function withRetry(operation: any, maxRetries = 3) {
@@ -468,42 +501,83 @@ Format the output strictly as JSON following this schema.`;
 // --- Chat Application APIs ---
 
 // Get Chat Messages
-app.get("/api/chat/messages", (req: express.Request, res: express.Response) => {
+app.get("/api/chat/messages", async (req: express.Request, res: express.Response): Promise<any> => {
   const { email, role, name } = req.query;
   
-  if (role === "Admin") {
-    return res.json(db.chatMessages);
+  try {
+    if (firestore) {
+      const chatCol = collection(firestore, "chatMessages");
+      const snapshot = await getDocs(chatCol);
+      let messages = snapshot.docs.map(doc => doc.data() as ChatMessage);
+      
+      if (role !== "Admin") {
+        if (!email) {
+          return res.status(400).json({ error: "Email is required for students." });
+        }
+        const studentEmail = (email as string).trim().toLowerCase();
+        messages = messages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
+      }
+
+      // Sort by timestamp ascending
+      messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+      // If new student, insert an auto-welcome message
+      if (role !== "Admin" && messages.length === 0 && name && email) {
+        const studentEmail = (email as string).trim().toLowerCase();
+        const welcomeMsg: ChatMessage = {
+          id: `welcome-${Date.now()}`,
+          senderName: "Admin (Diptanshu)",
+          senderEmail: "mazumderdiptanshu753@gmail.com",
+          senderRole: "Admin",
+          message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
+          timestamp: new Date().toISOString(),
+          studentEmail: studentEmail,
+          studentName: name as string
+        };
+        const msgDocRef = doc(chatCol, welcomeMsg.id);
+        await setDoc(msgDocRef, welcomeMsg);
+        return res.json([welcomeMsg]);
+      }
+
+      return res.json(messages);
+    } else {
+      if (role === "Admin") {
+        return res.json(db.chatMessages);
+      }
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required for students." });
+      }
+
+      const studentEmail = (email as string).trim().toLowerCase();
+      const studentMessages = db.chatMessages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
+
+      if (studentMessages.length === 0 && name) {
+        const welcomeMsg: ChatMessage = {
+          id: `welcome-${Date.now()}`,
+          senderName: "Admin (Diptanshu)",
+          senderEmail: "mazumderdiptanshu753@gmail.com",
+          senderRole: "Admin",
+          message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
+          timestamp: new Date().toISOString(),
+          studentEmail: studentEmail,
+          studentName: name as string
+        };
+        db.chatMessages.push(welcomeMsg);
+        saveDB();
+        return res.json([welcomeMsg]);
+      }
+
+      res.json(studentMessages);
+    }
+  } catch (error: any) {
+    console.error("Error fetching chat messages:", error);
+    res.status(500).json({ error: error.message });
   }
-
-  if (!email) {
-    return res.status(400).json({ error: "Email is required for students." });
-  }
-
-  const studentEmail = (email as string).trim().toLowerCase();
-  const studentMessages = db.chatMessages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
-
-  // If new student, insert an auto-welcome message so they don't see a blank chat
-  if (studentMessages.length === 0 && name) {
-    const welcomeMsg: ChatMessage = {
-      id: `welcome-${Date.now()}`,
-      senderName: "Admin (Diptanshu)",
-      senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
-      message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
-      timestamp: new Date().toISOString(),
-      studentEmail: studentEmail,
-      studentName: name as string
-    };
-    db.chatMessages.push(welcomeMsg);
-    saveDB();
-    return res.json([welcomeMsg]);
-  }
-
-  res.json(studentMessages);
 });
 
 // Post a new Chat Message
-app.post("/api/chat/messages", (req: express.Request, res: express.Response) => {
+app.post("/api/chat/messages", async (req: express.Request, res: express.Response): Promise<any> => {
   const { senderName, senderEmail, senderRole, message, studentEmail, studentName } = req.body;
 
   if (!message || !studentEmail || !studentName) {
@@ -521,9 +595,21 @@ app.post("/api/chat/messages", (req: express.Request, res: express.Response) => 
     studentName
   };
 
-  db.chatMessages.push(newMsg);
-  saveDB();
-  res.status(201).json(newMsg);
+  try {
+    if (firestore) {
+      const chatCol = collection(firestore, "chatMessages");
+      const msgDocRef = doc(chatCol, newMsg.id);
+      await setDoc(msgDocRef, newMsg);
+      res.status(201).json(newMsg);
+    } else {
+      db.chatMessages.push(newMsg);
+      saveDB();
+      res.status(201).json(newMsg);
+    }
+  } catch (error: any) {
+    console.error("Error posting chat message:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // AI Simulated Admin Auto-Response endpoint using Gemini
@@ -558,8 +644,14 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       studentName
     };
 
-    db.chatMessages.push(aiMsg);
-    saveDB();
+    if (firestore) {
+      const chatCol = collection(firestore, "chatMessages");
+      const msgDocRef = doc(chatCol, aiMsg.id);
+      await setDoc(msgDocRef, aiMsg);
+    } else {
+      db.chatMessages.push(aiMsg);
+      saveDB();
+    }
     res.json(aiMsg);
   } catch (error: any) {
     console.error("Error generating Admin AI reply:", error);
@@ -574,29 +666,107 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       studentEmail: req.body.studentEmail.trim().toLowerCase(),
       studentName: req.body.studentName
     };
-    db.chatMessages.push(fallbackMsg);
-    saveDB();
+    
+    if (firestore) {
+      const chatCol = collection(firestore, "chatMessages");
+      const msgDocRef = doc(chatCol, fallbackMsg.id);
+      await setDoc(msgDocRef, fallbackMsg);
+    } else {
+      db.chatMessages.push(fallbackMsg);
+      saveDB();
+    }
     res.json(fallbackMsg);
   }
 });
 
 // --- Users API (Admin Panel Persistence) ---
-app.get("/api/users", (req: express.Request, res: express.Response) => {
-  res.json(db.users);
+app.get("/api/users", async (req: express.Request, res: express.Response) => {
+  try {
+    if (firestore) {
+      const usersCol = collection(firestore, "users");
+      const snapshot = await getDocs(usersCol);
+      const usersList = snapshot.docs.map(doc => doc.data());
+      res.json(usersList);
+    } else {
+      res.json(db.users);
+    }
+  } catch (error: any) {
+    console.error("Error fetching users from Firestore:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.post("/api/users", (req: express.Request, res: express.Response) => {
+app.post("/api/users", async (req: express.Request, res: express.Response): Promise<any> => {
   const user = req.body;
   if (!user.email) return res.status(400).json({ error: "Email is required" });
   
-  const existing = db.users.find(u => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
-  if (existing) {
-    Object.assign(existing, user);
-  } else {
-    db.users.push(user);
+  try {
+    if (firestore) {
+      const emailKey = user.email.trim().toLowerCase();
+      const userDocRef = doc(firestore, "users", emailKey);
+      await setDoc(userDocRef, user, { merge: true });
+      
+      // Fetch updated list of all users to return
+      const usersCol = collection(firestore, "users");
+      const snapshot = await getDocs(usersCol);
+      const usersList = snapshot.docs.map(doc => doc.data());
+      res.json(usersList);
+    } else {
+      const existing = db.users.find(u => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
+      if (existing) {
+        Object.assign(existing, user);
+      } else {
+        db.users.push(user);
+      }
+      saveDB();
+      res.json(db.users);
+    }
+  } catch (error: any) {
+    console.error("Error saving user to Firestore:", error);
+    res.status(500).json({ error: error.message });
   }
-  saveDB();
-  res.json(db.users);
+});
+
+// --- Activity Logs API ---
+app.get("/api/activity-logs", async (req: express.Request, res: express.Response) => {
+  try {
+    if (firestore) {
+      const logsCol = collection(firestore, "activityLogs");
+      const snapshot = await getDocs(logsCol);
+      let logsList = snapshot.docs.map(doc => doc.data());
+      logsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      res.json(logsList);
+    } else {
+      res.json(db.activityLogs || []);
+    }
+  } catch (error: any) {
+    console.error("Error fetching activity logs:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/activity-logs", async (req: express.Request, res: express.Response): Promise<any> => {
+  const log = req.body; // { userEmail, userName, action: "Login" | "Logout", timestamp: ISOString }
+  if (!log.userEmail || !log.action) return res.status(400).json({ error: "Missing required fields" });
+  
+  log.id = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  if (!log.timestamp) log.timestamp = new Date().toISOString();
+
+  try {
+    if (firestore) {
+      const logDocRef = doc(firestore, "activityLogs", log.id);
+      await setDoc(logDocRef, log);
+      res.status(201).json(log);
+    } else {
+      if (!db.activityLogs) db.activityLogs = [];
+      db.activityLogs.unshift(log);
+      saveDB();
+      res.status(201).json(log);
+    }
+  } catch (error: any) {
+    console.error("Error saving activity log:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // --- App Updates API ---

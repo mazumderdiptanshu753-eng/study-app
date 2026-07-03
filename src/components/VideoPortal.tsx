@@ -282,7 +282,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Side: Adding Video Form (Admin-only view state) OR Playlist Sidebar */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-4 space-y-4 order-2 lg:order-1">
           
           {role === "Admin" && isAddingVideo ? (
             /* Upload form block */
@@ -462,7 +462,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
         </div>
 
         {/* Right Side: Active Video player and comments panel */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-6 order-1 lg:order-2">
           
           {selectedVideo ? (
             <div className="space-y-6">

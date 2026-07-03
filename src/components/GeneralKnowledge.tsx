@@ -33,10 +33,10 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
     setSelectedAnswers({});
     try {
       const response = await fetch("/api/gk-questions");
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch questions");
+        throw new Error("Failed to fetch general knowledge questions");
       }
+      const data = await response.json();
       setQuestions(data.questions || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
