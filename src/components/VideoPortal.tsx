@@ -243,10 +243,28 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     saveVideos(updatedVideos);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {/* Tab Banner Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <Video className="h-6 w-6 text-teal-600" />
@@ -277,12 +295,12 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
             )}
           </button>
         )}
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Side: Adding Video Form (Admin-only view state) OR Playlist Sidebar */}
-        <div className="lg:col-span-4 space-y-4 order-2 lg:order-1">
+        <motion.div variants={itemVariants} className="lg:col-span-4 space-y-4 order-2 lg:order-1">
           
           {role === "Admin" && isAddingVideo ? (
             /* Upload form block */
@@ -459,10 +477,10 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                 : "Note down critical formulas during classes and feel free to clear up confusions directly in the interactive comment section below."}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Side: Active Video player and comments panel */}
-        <div className="lg:col-span-8 space-y-6 order-1 lg:order-2">
+        <motion.div variants={itemVariants} className="lg:col-span-8 space-y-6 order-1 lg:order-2">
           
           {selectedVideo ? (
             <div className="space-y-6">
@@ -627,9 +645,8 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
             </div>
           )}
 
-        </div>
-
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

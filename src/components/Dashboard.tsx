@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -9,15 +10,15 @@ import {
   ChevronRight, 
   Calculator, 
   Maximize2,
-  CheckSquare as BookOpenCheck
+  CheckSquare as BookOpenCheck,
+  TrendingUp,
+  Award
 } from "lucide-react";
 import { StudyNote, UserStats } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import ScientificCalculator from "./ScientificCalculator";
 import SolveWithAI from "./SolveWithAI";
-import GeneralKnowledge from "./GeneralKnowledge";
-import ImportantQuestions from "./ImportantQuestions";
 
 interface DashboardProps {
   stats: UserStats;
@@ -57,145 +58,232 @@ export default function Dashboard({
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   return (
     <motion.div 
-      className="space-y-8"
+      className="space-y-6 lg:space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="show"
     >
-      {/* Hero Welcome Header */}
-      <motion.div variants={itemVariants} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${theme.heroGradient} p-8 text-white shadow-xs border ${theme.heroOuterBorder}`}>
-        <div className="absolute right-0 top-0 -mr-10 -mt-10 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 h-32 w-32 rounded-full bg-emerald-500/10 blur-2xl"></div>
-        <div className="absolute top-1/2 left-10 -translate-y-1/2 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl"></div>
+      {/* Hero Welcome Header (Restyled) */}
+      <motion.div variants={itemVariants} className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${theme.heroGradient} p-8 sm:p-10 text-white shadow-xl border ${theme.heroOuterBorder}`}>
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white/10 blur-3xl mix-blend-overlay"></div>
+        <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-teal-300/20 blur-3xl mix-blend-overlay"></div>
         
-        <div className="relative z-10 max-w-2xl space-y-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-2xs font-bold tracking-wider uppercase backdrop-blur-md text-teal-100">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
-            {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "Interactive Study & AI Hub"}
-          </span>
-          <h1 className={`text-3xl font-black tracking-tight md:text-4xl ${theme.isDark ? theme.textHeroTitle : "text-slate-900"}`}>
-            {lang === "bn" ? "স্টাডি হাবে স্বাগতম" : "Welcome to STUDY HUB"}
-          </h1>
-          <p className={`${theme.isDark ? theme.textHeroSub : "text-slate-700/90"} font-semibold text-xs md:text-sm leading-relaxed max-w-xl`}>
-            {lang === "bn"
-               ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
-               : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards."}
-          </p>
-          <div className="pt-2 flex flex-wrap gap-3">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="max-w-2xl space-y-4">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold tracking-widest uppercase backdrop-blur-md text-white shadow-sm border border-white/10">
+              <Sparkles className="h-4 w-4 text-amber-200 animate-pulse" />
+              {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "Interactive Study & AI Hub"}
+            </span>
+            <h1 className={`text-4xl font-black tracking-tighter md:text-5xl ${theme.isDark ? theme.textHeroTitle : "text-white"} drop-shadow-md`}>
+              {lang === "bn" ? "স্টাডি হাবে স্বাগতম" : "Welcome to STUDY HUB"}
+            </h1>
+            <p className={`${theme.isDark ? theme.textHeroSub : "text-white/90"} font-medium text-sm md:text-base leading-relaxed max-w-xl drop-shadow-sm`}>
+              {lang === "bn"
+                 ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
+                 : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards."}
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
             <button
               onClick={() => onNavigate("notes")}
-              id="dash-btn-notes"
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all active:scale-97 cursor-pointer ${theme.heroBtnBg} ${theme.heroBtnText} ${theme.heroBtnHover}`}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-lg ${theme.heroBtnBg} ${theme.heroBtnText} hover:opacity-90 hover:shadow-xl hover:-translate-y-0.5`}
             >
-              <BookOpen className="h-4 w-4" />
+              <BookOpen className="h-4.5 w-4.5" />
               {lang === "bn" ? "নোট ওয়ার্কস্পেসে যান" : "Go to Notes Workspace"}
             </button>
             <button
               onClick={() => onNavigate("chat")}
-              id="dash-btn-chat"
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all active:scale-97 cursor-pointer ${theme.heroSecondaryBtn} ${theme.heroSecondaryBtnHover}`}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5`}
             >
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4.5 w-4.5" />
               {lang === "bn" ? "এডমিনদের সাথে চ্যাট করুন" : "Chat with assistant"}
             </button>
+
             <button
               onClick={() => onNavigate("gk")}
-              id="dash-btn-gk"
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black transition-all active:scale-97 cursor-pointer bg-amber-500 text-amber-50 hover:bg-amber-600`}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5`}
             >
-              <BookOpen className="h-4 w-4" />
-              {lang === "bn" ? "সাধারণ জ্ঞান" : "General Knowledge"}
+              <Award className="h-4.5 w-4.5" />
+              {lang === "bn" ? "সরকারি চাকরি প্রস্তুতি" : "Government Job Preparation"}
             </button>
           </div>
         </div>
       </motion.div>
 
-      {/* 2-Column Quick Stats Row (Compact, Clean & Symmetric) */}
-      <motion.div variants={itemVariants} className="grid gap-4 grid-cols-2 md:grid-cols-2">
-        {/* Stat 1: Total Notes */}
-        <div className={`rounded-xl border ${theme.borderCard} ${theme.bgCard} p-4 shadow-3xs transition-all ${theme.hoverBorderCard} ${theme.hoverTranslate}`}>
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider block`}>
-              {t.dashNotesSaved}
-            </span>
-            <div className={`rounded-lg ${theme.primaryBg} p-2 ${theme.primaryText}`}>
-              <BookOpen className="h-4.5 w-4.5" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <span className={`text-2xl font-black ${theme.textHeading}`}>{totalNotes}</span>
-            <span className={`text-[10px] font-semibold ${theme.primaryText}`}>
-              {lang === "bn" ? "টি নোট" : (totalNotes === 1 ? "Note" : "Notes")}
-            </span>
-          </div>
-        </div>
 
-        {/* Stat 2: Video Notes/Lectures */}
-        <div className={`rounded-xl border ${theme.borderCard} ${theme.bgCard} p-4 shadow-3xs transition-all ${theme.hoverBorderCard} ${theme.hoverTranslate}`}>
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider block`}>
-              {lang === "bn" ? "ভিডিও লেকচার" : "Video Lectures"}
-            </span>
-            <div className={`rounded-lg ${theme.accentBg} p-2 ${theme.accentText}`}>
-              <Video className="h-4.5 w-4.5" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex items-baseline gap-1.5">
-            <span className={`text-2xl font-black ${theme.textHeading}`}>{stats.videosUploaded}</span>
-            <span className={`text-[10px] font-semibold ${theme.accentText}`}>
-              {lang === "bn" ? "টি ভিডিও" : (stats.videosUploaded === 1 ? "Video" : "Videos")}
-            </span>
-          </div>
-        </div>
-
-
-      </motion.div>
-
-      {/* Main Content Workspace Layout (2 Columns: Left Spans 3 cols, Right Spans 2 cols) */}
-      <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-5 items-start">
+      {/* Main Grid Layout (Restyled: 12-col grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
-        {/* Left Column (3/5 Width) - Interactive Workspaces */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Left Sidebar Column (4/12) */}
+        <motion.div variants={itemVariants} className="lg:col-span-4 space-y-6">
           
-          {/* 1. Solve with AI Workspace (Prominent & Spacious Center-piece) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-sm transition-all hover:shadow-md ${theme.hoverBorderCard}`}>
+              <div className="flex items-center justify-between mb-3">
+                <span className={`text-[11px] font-bold ${theme.textMuted} uppercase tracking-wider block`}>
+                  {t.dashNotesSaved}
+                </span>
+                <div className={`rounded-xl ${theme.primaryBg} p-2.5 ${theme.primaryText}`}>
+                  <BookOpen className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-3xl font-black ${theme.textHeading}`}>{totalNotes}</span>
+              </div>
+            </div>
+
+            <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-sm transition-all hover:shadow-md ${theme.hoverBorderCard}`}>
+              <div className="flex items-center justify-between mb-3">
+                <span className={`text-[11px] font-bold ${theme.textMuted} uppercase tracking-wider block`}>
+                  {lang === "bn" ? "ভিডিও" : "Videos"}
+                </span>
+                <div className={`rounded-xl ${theme.accentBg} p-2.5 ${theme.accentText}`}>
+                  <Video className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-3xl font-black ${theme.textHeading}`}>{stats.videosUploaded}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Scientific Calculator Launch Card */}
+          <div className={`relative overflow-hidden rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-6 shadow-sm transition-all hover:shadow-md ${theme.hoverBorderCard} group`}>
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${theme.heroGradient} opacity-5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110`}></div>
+            <div className="space-y-5 relative z-10">
               <div>
-                <h2 className={`text-sm font-black ${theme.textHeading} tracking-tight uppercase`}>
-                  {lang === "bn" ? "এআই গণিত সমাধান সহকারী" : "AI Math Derivation Engine"}
-                </h2>
-                <p className={`text-[11px] ${theme.textMuted} font-semibold`}>
-                  {lang === "bn" ? "যেকোনো গাণিতিক সমস্যা টাইপ করুন বা ছবি/পিডিএফ আপলোড করে ধাপে ধাপে সমাধান বুঝে নিন" : "Describe a problem or upload photo/PDF to get instant detailed mathematical proofs"}
+                <span className={`inline-flex items-center gap-1.5 rounded-lg ${theme.badgeBg} px-2.5 py-1 text-[10px] font-black ${theme.badgeText} uppercase tracking-wide mb-3`}>
+                  <Award className="h-3 w-3" /> Digital Tool
+                </span>
+                <h4 className={`font-black ${theme.textHeading} text-base flex items-center gap-2`}>
+                  <Calculator className={`h-5 w-5 ${theme.primaryText}`} />
+                  {lang === "bn" ? "বৈজ্ঞানিক ক্যালকুলেটর" : "Scientific Calculator"}
+                </h4>
+                <p className={`text-xs ${theme.textMuted} leading-relaxed font-medium mt-2`}>
+                  {lang === "bn" 
+                    ? "জটিল বীজগণিত, ত্রিকোণমিতি এবং ক্যালকুলাস সমীকরণগুলি সমাধান করতে আমাদের পূর্ণাঙ্গ ডিজিটাল বৈজ্ঞানিক ক্যালকুলেটরটি চালু করুন।" 
+                    : "Launch our immersive mathematical environment with complete support for advanced trigonometric functions, log bases, roots, and angle modes."}
                 </p>
               </div>
+              
+              <button
+                onClick={() => setShowCalcModal(true)}
+                className={`w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer shadow-sm active:scale-95 ${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText}`}
+              >
+                <Maximize2 className="h-4 w-4" />
+                {lang === "bn" ? "ক্যালকুলেটর খুলুন" : "Open Calculator"}
+              </button>
+            </div>
+          </div>
+
+          {/* Subject Distribution */}
+          <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-6 shadow-sm space-y-5`}>
+            <div className="flex items-center gap-2">
+              <TrendingUp className={`h-5 w-5 ${theme.textMuted}`} />
+              <h3 className={`font-black ${theme.textHeading} text-sm tracking-wide uppercase`}>
+                {lang === "bn" ? "নোটস বিতরণ বিন্যাস" : "Notes Subject Distribution"}
+              </h3>
+            </div>
+            
+            <div className="space-y-4">
+              {Object.keys(subjectCounts).length > 0 ? (
+                Object.entries(subjectCounts).map(([subj, count]) => {
+                  const percentage = Math.round((count / totalNotes) * 100);
+                  const subjDisplay = subj === "Mathematics" ? t.mathSubject : subj;
+                  return (
+                    <div key={subj} className="space-y-2">
+                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 font-bold">
+                        <span className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${theme.primaryBtn}`}></span>
+                          {subjDisplay}
+                        </span>
+                        <span className={theme.textMuted}>
+                          {count} ({percentage}%)
+                        </span>
+                      </div>
+                      <div className={`h-2 w-full ${theme.primaryBg} rounded-full overflow-hidden`}>
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ duration: 1, delay: 0.2 }}
+                          className={`h-full ${theme.primaryBtn} rounded-full`}
+                        ></motion.div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-xl p-4 text-center border border-dashed border-slate-200 dark:border-slate-700">
+                  <p className={`text-xs ${theme.textMuted} font-semibold`}>
+                    {role === "Admin"
+                      ? (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নতুন নোট তৈরি করুন।" : "Create notes under various subjects to see distribution here.")
+                      : (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নোট প্রয়োজন।" : "Notes needed to see subject distribution.")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Daily Advice */}
+          <div className={`rounded-2xl border ${theme.borderCard} ${theme.primaryBg} p-6 shadow-sm`}>
+            <div className="flex gap-4 items-start">
+              <div className="text-2xl mt-1">💡</div>
+              <div className="space-y-1.5">
+                <h4 className={`font-black ${theme.textHeading} text-sm uppercase tracking-wide`}>
+                  {t.dashDailyAdviceTitle}
+                </h4>
+                <p className={`text-xs ${theme.textMain} leading-relaxed font-medium`}>
+                  {t.dashDailyAdviceText}
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </motion.div>
+
+        {/* Right Main Content Column (8/12) */}
+        <motion.div variants={itemVariants} className="lg:col-span-8 space-y-6 lg:space-y-8">
+          
+          {/* Solve with AI */}
+          <div className="space-y-3">
+            <div className="px-1">
+              <h2 className={`text-lg font-black ${theme.textHeading} tracking-tight uppercase flex items-center gap-2`}>
+                <Sparkles className={`h-5 w-5 ${theme.primaryText}`} />
+                {lang === "bn" ? "এআই গণিত সমাধান সহকারী" : "AI Math Derivation Engine"}
+              </h2>
+              <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>
+                {lang === "bn" ? "যেকোনো গাণিতিক সমস্যা টাইপ করুন বা ছবি/পিডিএফ আপলোড করে ধাপে ধাপে সমাধান বুঝে নিন" : "Describe a problem or upload photo/PDF to get instant detailed mathematical proofs"}
+              </p>
             </div>
             <SolveWithAI lang={lang} theme={theme} />
           </div>
 
-          {/* 2. Your Study Notes Center */}
-          <div className="space-y-3.5 pt-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h2 className={`text-sm font-black ${theme.textHeading} tracking-tight uppercase flex items-center gap-2`}>
-                  <BookOpenCheck className={`h-4.5 w-4.5 ${theme.primaryText}`} />
+          {/* Study Notes */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-end justify-between px-1">
+              <div>
+                <h2 className={`text-lg font-black ${theme.textHeading} tracking-tight uppercase flex items-center gap-2`}>
+                  <BookOpenCheck className={`h-5 w-5 ${theme.primaryText}`} />
                   {lang === "bn" ? "অধ্যয়ন নোটসমূহ" : "Your Study Notes Library"}
                 </h2>
-                <p className={`text-[11px] ${theme.textMuted} font-semibold`}>
+                <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>
                   {lang === "bn" ? "আপনার সংরক্ষিত গণিত অধ্যায় এবং এআই কুইজ ট্র্যাকার" : "Browse notes, review active lessons, or launch self-assessments"}
                 </p>
               </div>
               <button
                 onClick={() => onNavigate("notes")}
-                className={`inline-flex items-center gap-1 text-xs font-bold ${theme.primaryText} cursor-pointer`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold ${theme.primaryBtnText} ${theme.primaryBtn} px-4 py-2 rounded-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
               >
                 {lang === "bn" ? "সবগুলো" : "View all"}
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
 
@@ -205,38 +293,39 @@ export default function Dashboard({
                   key={note.id}
                   onClick={() => onSelectNote(note)}
                   id={`note-card-${note.id}`}
-                  className={`group relative cursor-pointer rounded-xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-3xs transition-all ${theme.hoverTranslate} hover:shadow-2xs ${theme.hoverBorderCard}`}
+                  className={`group relative cursor-pointer rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-6 shadow-sm transition-all ${theme.hoverTranslate} hover:shadow-md ${theme.hoverBorderCard} overflow-hidden`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className={`inline-block rounded ${theme.badgeBg} px-2 py-0.5 text-3xs font-black uppercase ${theme.badgeText} tracking-wider`}>
+                  <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${theme.heroGradient} opacity-0 group-hover:opacity-5 transition-opacity rounded-bl-full`}></div>
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <span className={`inline-block rounded-md ${theme.badgeBg} px-2.5 py-1 text-[10px] font-black uppercase ${theme.badgeText} tracking-wider`}>
                       {note.subject === "Mathematics" ? t.mathSubject : note.subject}
                     </span>
-                    <span className={`text-[10px] font-semibold ${theme.textMuted}`}>
+                    <span className={`text-[10px] font-bold ${theme.textMuted}`}>
                       {new Date(note.timestamp).toLocaleDateString(lang === "bn" ? "bn-BD" : undefined, { month: "short", day: "numeric" })}
                     </span>
                   </div>
-                  <h3 className={`mt-3 font-bold ${theme.textHeading} text-xs line-clamp-1 group-hover:${theme.primaryText}`}>
+                  <h3 className={`font-black ${theme.textHeading} text-sm line-clamp-1 group-hover:${theme.primaryText} transition-colors relative z-10`}>
                     {note.title}
                   </h3>
-                  <p className={`mt-1.5 text-2xs ${theme.textMuted} line-clamp-2 leading-relaxed`}>
+                  <p className={`mt-2 text-xs ${theme.textMuted} line-clamp-2 leading-relaxed relative z-10`}>
                     {note.content}
                   </p>
-                  <div className={`mt-4 pt-3 border-t ${theme.borderCard} flex items-center justify-between text-[10px] font-bold ${theme.textMuted} group-hover:${theme.primaryText}`}>
-                    <span className="flex items-center gap-1 font-semibold">
-                      {lang === "bn" ? "বিস্তারিত দেখুন" : "View Details"}
-                    </span>
-                    <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  <div className={`mt-5 pt-4 border-t ${theme.borderCard} flex items-center justify-between text-xs font-bold ${theme.textMuted} group-hover:${theme.primaryText} transition-colors relative z-10`}>
+                    <span>{lang === "bn" ? "বিস্তারিত দেখুন" : "View Details"}</span>
+                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
               ))}
               {notes.length === 0 && (
-                <div className={`col-span-2 rounded-xl border border-dashed ${theme.borderCard} p-8 text-center bg-slate-50/50 dark:bg-slate-900/30`}>
-                  <p className={`text-xs font-bold ${theme.textMuted}`}>{lang === "bn" ? "এখনও কোনো অধ্যয়ন নোট নেই।" : "No study notes yet."}</p>
+                <div className={`col-span-2 rounded-2xl border-2 border-dashed ${theme.borderCard} p-10 text-center bg-slate-50/50 dark:bg-slate-900/30`}>
+                  <BookOpen className={`h-8 w-8 mx-auto mb-3 ${theme.textMuted} opacity-50`} />
+                  <p className={`text-sm font-bold ${theme.textMuted} mb-4`}>{lang === "bn" ? "এখনও কোনো অধ্যয়ন নোট নেই।" : "No study notes yet."}</p>
                   {role === "Admin" && (
                     <button
                       onClick={() => onNavigate("notes")}
-                      className={`mt-3 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-3xs cursor-pointer ${theme.primaryBtn} ${theme.primaryBtnText} ${theme.primaryBtnHover}`}
+                      className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold shadow-sm cursor-pointer ${theme.primaryBtn} ${theme.primaryBtnText} ${theme.primaryBtnHover} transition-transform active:scale-95`}
                     >
+                      <BookOpen className="h-4 w-4" />
                       {lang === "bn" ? "প্রথম নোট তৈরি করুন" : "Create Your First Note"}
                     </button>
                   )}
@@ -244,113 +333,9 @@ export default function Dashboard({
               )}
             </div>
           </div>
-        </div>
 
-        {/* Right Column (2/5 Width) - Interactive Tools & Insights */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* 1. Scientific Calculator Option Card (Stunning visual mock launcher) */}
-          <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-3xs transition-all ${theme.hoverBorderCard} flex flex-col justify-between`}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className={`text-[9px] font-black ${theme.textMuted} uppercase tracking-wider block`}>
-                  {lang === "bn" ? "ডিজিটাল গণিত টুল" : "Digital Math Instrument"}
-                </span>
-                <span className={`inline-flex items-center gap-1 rounded ${theme.badgeBg} px-2 py-0.5 text-[9px] font-bold ${theme.badgeText} uppercase`}>
-                  Fullscreen Ready
-                </span>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className={`font-extrabold ${theme.textHeading} text-sm flex items-center gap-2`}>
-                  <Calculator className={`h-4.5 w-4.5 ${theme.primaryText}`} />
-                  {lang === "bn" ? "বৈজ্ঞানিক ক্যালকুলেটর" : "Scientific Calculator"}
-                </h4>
-                <p className={`text-2xs ${theme.textMuted} leading-relaxed font-semibold`}>
-                  {lang === "bn" 
-                    ? "জটিল বীজগণিত, ত্রিকোণমিতি এবং ক্যালকুলাস সমীকরণগুলি সমাধান করতে আমাদের পূর্ণাঙ্গ ডিজিটাল বৈজ্ঞানিক ক্যালকুলেটরটি চালু করুন।" 
-                    : "Launch our immersive mathematical environment with complete support for advanced trigonometric functions, log bases, roots, and angle modes."}
-                </p>
-              </div>
-
-              {/* Calculator Visual Button Mockup (Adds great tactile and visual appeal!) */}
-              <div className={`${theme.bgPage} border ${theme.borderCard} rounded-xl p-3.5 grid grid-cols-4 gap-1.5 font-mono text-[9px] font-bold text-slate-400 select-none`}>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>sin</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>cos</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>tan</div>
-                <div className={`${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>DEG</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>log</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>ln</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>π</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>e</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>x²</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>√</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>(</div>
-                <div className={`${theme.bgCard} border ${theme.borderCard} rounded px-1 py-1.5 text-center`}>)</div>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setShowCalcModal(true)}
-              className={`mt-5 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-3xs active:scale-98 ${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText}`}
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              {lang === "bn" ? "ফুল স্ক্রিনে বৈজ্ঞানিক ক্যালকুলেটর" : "Open Fullscreen Calculator"}
-            </button>
-          </div>
-
-          {/* 2. Notes Subject Distribution */}
-          <div className={`rounded-xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-3xs space-y-4`}>
-            <h3 className={`font-extrabold ${theme.textHeading} text-xs tracking-wider uppercase`}>
-              {lang === "bn" ? "নোটস বিতরণ বিন্যাস" : "Notes Subject Distribution"}
-            </h3>
-            <div className="space-y-3.5">
-              {Object.keys(subjectCounts).length > 0 ? (
-                Object.entries(subjectCounts).map(([subj, count]) => {
-                  const percentage = Math.round((count / totalNotes) * 100);
-                  const subjDisplay = subj === "Mathematics" ? t.mathSubject : subj;
-                  return (
-                    <div key={subj} className="space-y-1.5">
-                      <div className="flex justify-between text-2xs text-slate-600 dark:text-slate-400 font-bold">
-                        <span className="flex items-center gap-1">
-                          <span className={`h-1.5 w-1.5 rounded-full ${theme.primaryBtn}`}></span>
-                          {subjDisplay}
-                        </span>
-                        <span className={theme.textMuted}>
-                          {count} {lang === "bn" ? "টি" : (count === 1 ? "Note" : "Notes")} ({percentage}%)
-                        </span>
-                      </div>
-                      <div className={`h-1.5 w-full ${theme.primaryBg} rounded-full overflow-hidden`}>
-                        <div 
-                          className={`h-full ${theme.primaryBtn} rounded-full`} 
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className={`text-2xs ${theme.textMuted} font-semibold`}>
-                  {role === "Admin"
-                    ? (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নতুন নোট তৈরি করুন।" : "Create notes under various subjects to see distribution here.")
-                    : (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নোট প্রয়োজন।" : "Notes needed to see subject distribution.")}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* 3. Daily Study Advice Card */}
-          <div className={`rounded-2xl border ${theme.borderCard} ${theme.primaryBg} p-5 shadow-3xs space-y-3`}>
-            <h4 className={`font-extrabold ${theme.textHeading} text-xs flex items-center gap-1.5 uppercase tracking-wider`}>
-              <span className="text-sm">💡</span> {t.dashDailyAdviceTitle}
-            </h4>
-            <p className={`text-2xs ${theme.textMain} leading-relaxed font-semibold`}>
-              {t.dashDailyAdviceText}
-            </p>
-          </div>
-
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Fullscreen Scientific Calculator Modal */}
       <AnimatePresence>
@@ -362,16 +347,16 @@ export default function Dashboard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCalcModal(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity"
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity cursor-pointer"
             ></motion.div>
             
             {/* Modal Container */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0 }}
-              className={`relative w-full max-w-2xl ${theme.bgCard} rounded-2xl shadow-2xl overflow-hidden z-10 border ${theme.borderCard} max-h-[90vh] overflow-y-auto`}
+              className={`relative w-full max-w-2xl ${theme.bgCard} rounded-3xl shadow-2xl overflow-hidden z-10 border ${theme.borderCard} max-h-[90vh] overflow-y-auto`}
             >
               <ScientificCalculator 
                 lang={lang} 

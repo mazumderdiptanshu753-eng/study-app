@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2 } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language } from "../lib/translations";
@@ -98,11 +99,29 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto pb-12">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 max-w-7xl mx-auto pb-12"
+    >
       
       {/* Header section with styling and safe area */}
-      <div className="bg-gradient-to-r from-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-teal-700/30 relative overflow-hidden">
+      <motion.div variants={itemVariants} className="bg-gradient-to-r from-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-teal-700/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
         <div className="relative z-10 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-500/20 rounded-lg text-xs font-bold text-teal-300 tracking-wider uppercase">
@@ -112,10 +131,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{t.title}</h1>
           <p className="text-xs sm:text-sm text-teal-100 font-medium max-w-2xl leading-relaxed">{t.subtitle}</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Summary Bento Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
         {/* Total Users Stat Card */}
         <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex items-center gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
@@ -150,10 +169,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
           </div>
         </div>
 
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <div className="flex space-x-2 border-b border-slate-700/20 mb-6 px-1">
+      <motion.div variants={itemVariants} className="flex space-x-2 border-b border-slate-700/20 mb-6 px-1">
         <button
           onClick={() => setActiveTab("users")}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
@@ -172,10 +191,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
           <Activity className="h-4 w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
         </button>
-      </div>
+      </motion.div>
 
       {activeTab === "users" && (
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
           
           {/* Search header bar */}
           <div className={`p-4 sm:p-5 border-b ${theme.borderCard} bg-slate-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
@@ -311,11 +330,11 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
       )}
 
       {activeTab === "logs" && (
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
           {loadingLogs ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mx-auto"></div>
@@ -378,9 +397,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
               </table>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
-
-    </div>
+    </motion.div>
   );
 }

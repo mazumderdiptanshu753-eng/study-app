@@ -189,11 +189,31 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
 
   const isSolveDisabled = inputMode === "text" ? !problem.trim() : !attachedFile;
 
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-md p-6 space-y-6 transition-all duration-300`}>
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-md p-6 space-y-6 transition-all duration-300`}
+    >
+
       
       {/* Header section */}
-      <div className={`flex items-center justify-between border-b ${theme.borderCard} pb-4`}>
+      <motion.div variants={itemVariants} className={`flex items-center justify-between border-b ${theme.borderCard} pb-4`}>
         <div>
           <h3 className={`font-black ${theme.textHeading} text-base flex items-center gap-2`}>
             <BrainCircuit className={`h-5 w-5 ${theme.primaryText} animate-pulse`} />
@@ -204,7 +224,7 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
           </h3>
           <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>{t.subtitle}</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Mode Selector Option Buttons (Text vs File) */}
       {!solution && !isLoading && (
@@ -499,6 +519,6 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
         </div>
       )}
 
-    </div>
+    </motion.div>
   );
 }

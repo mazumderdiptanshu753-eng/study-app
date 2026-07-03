@@ -169,10 +169,28 @@ export default function NotesManager({
     setIsFlipped(false);
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="grid gap-6 md:grid-cols-12 animate-fade-in">
+    <motion.div 
+      className="grid gap-6 md:grid-cols-12"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+    >
       {/* LEFT PANEL: Note List & Quick Import (4 cols on md+) */}
-      <div className={`md:col-span-4 space-y-4 ${selectedNote || isCreating ? "hidden md:block" : "block"}`}>
+      <motion.div variants={itemVariants} className={`md:col-span-4 space-y-4 ${selectedNote || isCreating ? "hidden md:block" : "block"}`}>
         <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-3xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-50 pb-2.5">
             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
@@ -300,10 +318,10 @@ export default function NotesManager({
             )}
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* RIGHT PANEL: Note Viewer / Editor / Study mode (8 cols on md+) */}
-      <div className="md:col-span-8 space-y-6">
+      <motion.div variants={itemVariants} className="md:col-span-8 space-y-6">
         {isCreating ? (
           /* CREATE NOTE FORM */
           <div className="space-y-4">
@@ -786,7 +804,7 @@ export default function NotesManager({
             )}
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

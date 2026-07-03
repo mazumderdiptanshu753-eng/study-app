@@ -444,8 +444,42 @@ Format the output strictly as JSON following this schema.`;
     const data = JSON.parse(response.text || '{"questions": []}');
     res.json(data);
   } catch (error: any) {
-    console.error("Error fetching GK questions:", error);
-    res.status(500).json({ error: error.message || "Failed to fetch GK questions." });
+    console.error("Error fetching GK questions, using fallback:", error.message);
+    const fallbackData = {
+      questions: [
+        {
+          question: "Which of the following planets is known as the Red Planet?",
+          options: ["Venus", "Mars", "Jupiter", "Saturn"],
+          correctOptionIndex: 1,
+          explanation: "Mars is often called the 'Red Planet' due to the iron oxide prevalent on its surface."
+        },
+        {
+          question: "Who was the first President of independent India?",
+          options: ["Jawaharlal Nehru", "Dr. Rajendra Prasad", "Sardar Vallabhbhai Patel", "B.R. Ambedkar"],
+          correctOptionIndex: 1,
+          explanation: "Dr. Rajendra Prasad was the first President of India, serving from 1950 to 1962."
+        },
+        {
+          question: "What is the capital of Australia?",
+          options: ["Sydney", "Melbourne", "Canberra", "Perth"],
+          correctOptionIndex: 2,
+          explanation: "Canberra is the capital city of Australia."
+        },
+        {
+          question: "The Indus Valley Civilization was primarily located in which present-day regions?",
+          options: ["India and Nepal", "Pakistan and Northwest India", "Afghanistan and Iran", "Bangladesh and East India"],
+          correctOptionIndex: 1,
+          explanation: "The Indus Valley Civilization flourished in the basins of the Indus River, largely in present-day Pakistan and northwest India."
+        },
+        {
+          question: "What is the chemical symbol for gold?",
+          options: ["Ag", "Au", "Pb", "Fe"],
+          correctOptionIndex: 1,
+          explanation: "The symbol 'Au' comes from the Latin word for gold, 'aurum'."
+        }
+      ]
+    };
+    res.json(fallbackData);
   }
 });
 
@@ -494,8 +528,42 @@ Format the output strictly as JSON following this schema.`;
     const data = JSON.parse(response.text || '{"qnaList": []}');
     res.json(data);
   } catch (error: any) {
-    console.error("Error fetching important questions:", error);
-    res.status(500).json({ error: error.message || "Failed to fetch important questions." });
+    console.error("Error fetching important questions, using fallback:", error.message);
+    const fallbackData = {
+      qnaList: [
+        {
+          question: "Who is known as the 'Father of the Indian Constitution'?",
+          answer: "Dr. B.R. Ambedkar",
+          subject: "Polity"
+        },
+        {
+          question: "What is the SI unit of electric current?",
+          answer: "Ampere (A)",
+          subject: "Science"
+        },
+        {
+          question: "Which article of the Indian Constitution deals with the 'Right to Equality'?",
+          answer: "Article 14 to Article 18",
+          subject: "Polity"
+        },
+        {
+          question: "Who was the founder of the Maurya Empire?",
+          answer: "Chandragupta Maurya",
+          "subject": "History"
+        },
+        {
+          question: "What is the largest river in the world by volume of water?",
+          answer: "Amazon River",
+          subject: "Geography"
+        },
+        {
+          question: "If the sum of two numbers is 14 and their difference is 4, what is the product of the two numbers?",
+          answer: "45 (The numbers are 9 and 5)",
+          subject: "Mathematics"
+        }
+      ]
+    };
+    res.json(fallbackData);
   }
 });
 
