@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2 } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -8,6 +8,7 @@ interface AdminPanelProps {
   lang: Language;
   users: StudentProfile[];
   onToggleAdminRole: (email: string) => void;
+  onDeleteUser: (email: string) => void;
   currentUserEmail: string;
   theme: ThemeConfig;
 }
@@ -20,7 +21,7 @@ interface ActivityLog {
   timestamp: string;
 }
 
-export default function AdminPanel({ lang, users, onToggleAdminRole, currentUserEmail, theme }: AdminPanelProps) {
+export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -67,6 +68,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, currentUser
     actionsHeader: isBengali ? "অ্যাকশন" : "Administrative Actions",
     makeAdmin: isBengali ? "প্রশাসক করুন" : "Make Admin",
     revokeAdmin: isBengali ? "প্রশাসক সরান" : "Revoke Admin",
+    deleteUser: isBengali ? "মুছে ফেলুন" : "Delete User",
     primaryAdminBadge: isBengali ? "প্রধান অ্যাডমিন" : "Primary Admin",
     noUsersFound: isBengali ? "কোনো ব্যবহারকারী খুঁজে পাওয়া যায়নি।" : "No registered users match your search query.",
     actionSuccess: isBengali ? "ভূমিকা সফলভাবে পরিবর্তন করা হয়েছে!" : "User role updated successfully!",
@@ -266,26 +268,39 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, currentUser
                             {isBengali ? "আপনি নিজে" : "Logged-in Self"}
                           </span>
                         ) : (
-                          <button
-                            onClick={() => onToggleAdminRole(user.email)}
-                            className={`inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer android-ripple ${
-                              user.role === "Admin"
-                                ? "bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-900/30"
-                                : "bg-teal-500/10 border-teal-500/20 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400 dark:bg-teal-950/30 dark:border-teal-900/30"
-                            }`}
-                          >
-                            {user.role === "Admin" ? (
-                              <>
-                                <UserMinus className="h-3.5 w-3.5" />
-                                {t.revokeAdmin}
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="h-3.5 w-3.5" />
-                                {t.makeAdmin}
-                              </>
-                            )}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => onToggleAdminRole(user.email)}
+                              className={`inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer android-ripple ${
+                                user.role === "Admin"
+                                  ? "bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-900/30"
+                                  : "bg-teal-500/10 border-teal-500/20 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400 dark:bg-teal-950/30 dark:border-teal-900/30"
+                              }`}
+                            >
+                              {user.role === "Admin" ? (
+                                <>
+                                  <UserMinus className="h-3.5 w-3.5" />
+                                  {t.revokeAdmin}
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-3.5 w-3.5" />
+                                  {t.makeAdmin}
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(isBengali ? "আপনি কি নিশ্চিত যে আপনি এই ব্যবহারকারীকে মুছে ফেলতে চান?" : "Are you sure you want to delete this user?")) {
+                                  onDeleteUser(user.email);
+                                }
+                              }}
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer"
+                              title={t.deleteUser}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         )}
                       </td>
 

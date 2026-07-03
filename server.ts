@@ -13,6 +13,7 @@ import {
   getDoc, 
   setDoc, 
   addDoc, 
+  deleteDoc,
   query, 
   where, 
   orderBy 
@@ -723,6 +724,35 @@ app.post("/api/users", async (req: express.Request, res: express.Response): Prom
     }
   } catch (error: any) {
     console.error("Error saving user to Firestore:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/users", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    if (firestore) {
+      const emailKey = email.trim().toLowerCase();
+      const userDocRef = doc(firestore, "users", emailKey);
+      await deleteDoc(userDocRef);
+      
+      // Fetch updated list
+      const usersCol = collection(firestore, "users");
+      const snapshot = await getDocs(usersCol);
+      const usersList = snapshot.docs.map(doc => doc.data());
+      res.json(usersList);
+    } else {
+      const index = db.users.findIndex(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
+      if (index !== -1) {
+        db.users.splice(index, 1);
+        saveDB();
+      }
+      res.json(db.users);
+    }
+  } catch (error: any) {
+    console.error("Error deleting user:", error);
     res.status(500).json({ error: error.message });
   }
 });

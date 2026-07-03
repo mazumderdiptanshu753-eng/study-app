@@ -363,6 +363,23 @@ export default function App() {
     }
   };
 
+  const handleDeleteUser = async (email: string) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+      }
+    } catch (e) {
+      console.error("Failed to delete user on central backend:", e);
+    }
+  };
+
   const handleLogout = () => {
     if (profile) {
       recordActivityLog("Logout", profile);
@@ -691,6 +708,7 @@ export default function App() {
                   lang={lang}
                   users={users}
                   onToggleAdminRole={handleToggleAdminRole}
+                  onDeleteUser={handleDeleteUser}
                   currentUserEmail={profile.email}
                   theme={theme}
                 />
