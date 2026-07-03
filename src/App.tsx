@@ -27,6 +27,8 @@ import SplashScreen from "./components/SplashScreen";
 import VideoPortal from "./components/VideoPortal";
 import AdminPanel from "./components/AdminPanel";
 import GeneralKnowledgePage from "./components/GeneralKnowledgePage";
+import CommunityForum from "./components/CommunityForum";
+import LiveClasses from "./components/LiveClasses";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -93,7 +95,7 @@ export default function App() {
   });
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk">("dashboard");
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk" | "forum" | "liveClasses">("dashboard");
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -135,7 +137,7 @@ export default function App() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "videos" | "admin" | "gk") => {
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "videos" | "admin" | "gk" | "forum" | "liveClasses") => {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
@@ -714,6 +716,22 @@ export default function App() {
                 />
               )}
 
+                                          {currentTab === "liveClasses" && (
+                <LiveClasses
+                  lang={lang}
+                  theme={theme}
+                  profile={profile}
+                  onBack={() => setCurrentTab("dashboard")}
+                />
+              )}
+              {currentTab === "forum" && (
+                <CommunityForum
+                  lang={lang}
+                  theme={theme}
+                  profile={profile}
+                  onBack={() => setCurrentTab("dashboard")}
+                />
+              )}
               {currentTab === "gk" && (
                 <GeneralKnowledgePage
                   lang={lang}

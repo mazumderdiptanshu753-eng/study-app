@@ -5,6 +5,9 @@ import { ThemeConfig } from "../lib/themes";
 import { Language } from "../lib/translations";
 import GeneralKnowledge from "./GeneralKnowledge";
 import ImportantQuestions from "./ImportantQuestions";
+import CurrentAffairs from "./CurrentAffairs";
+import JobAlerts from "./JobAlerts";
+import PreviousYearQuestions from "./PreviousYearQuestions";
 import { ArrowLeft, Upload, FileText, Image as ImageIcon, Video, X, CheckCircle } from "lucide-react";
 
 interface GeneralKnowledgePageProps {
@@ -95,7 +98,7 @@ export default function GeneralKnowledgePage({ theme, lang, onBack }: GeneralKno
           <ArrowLeft className={`h-5 w-5 ${theme.textHeading}`} />
         </button>
         <h2 className={`text-2xl font-black ${theme.textHeading}`}>
-          {lang === "bn" ? "সরকারি চাকরি প্রস্তুতি" : "Government Job Preparation"}
+          {lang === "bn" ? "সরকারি চাকরি প্রস্তুতি এবং সম্পর্কিত খবর" : "Government Job Preparation and Related News"}
         </h2>
       </div>
 
@@ -229,6 +232,9 @@ export default function GeneralKnowledgePage({ theme, lang, onBack }: GeneralKno
         </div>
 
         <div className="space-y-6">
+          <JobAlerts lang={lang} theme={theme} />
+          <CurrentAffairs lang={lang} theme={theme} />
+          <PreviousYearQuestions lang={lang} theme={theme} />
           <GeneralKnowledge lang={lang} theme={theme} />
           <ImportantQuestions lang={lang} theme={theme} />
         </div>

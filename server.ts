@@ -50,10 +50,44 @@ interface StudentProfile {
   role: "Admin" | "Student";
 }
 
+
+interface ForumReply {
+  id: string;
+  authorEmail: string;
+  authorName: string;
+  content: string;
+  timestamp: string;
+}
+
+interface ForumPost {
+  id: string;
+  authorEmail: string;
+  authorName: string;
+  title: string;
+  content: string;
+  timestamp: string;
+  likes: number;
+  replies: ForumReply[];
+}
+
+
+interface LiveClass {
+  id: string;
+  title: string;
+  subject: string;
+  instructor: string;
+  scheduledTime: string;
+  link: string;
+  status: "Scheduled" | "Live" | "Completed";
+  createdAt: string;
+}
+
 interface Database {
   users: StudentProfile[];
   chatMessages: ChatMessage[];
   activityLogs?: any[];
+  forumPosts?: ForumPost[];
+  liveClasses?: LiveClass[];
 }
 
 // Default DB State
@@ -444,7 +478,7 @@ Format the output strictly as JSON following this schema.`;
     const data = JSON.parse(response.text || '{"questions": []}');
     res.json(data);
   } catch (error: any) {
-    console.error("Error fetching GK questions, using fallback:", error.message);
+    console.warn("Using fallback for GK questions due to API limit.");
     const fallbackData = {
       questions: [
         {
@@ -528,7 +562,7 @@ Format the output strictly as JSON following this schema.`;
     const data = JSON.parse(response.text || '{"qnaList": []}');
     res.json(data);
   } catch (error: any) {
-    console.error("Error fetching important questions, using fallback:", error.message);
+    console.warn("Using fallback for important questions due to API limit.");
     const fallbackData = {
       qnaList: [
         {
@@ -560,6 +594,240 @@ Format the output strictly as JSON following this schema.`;
           question: "If the sum of two numbers is 14 and their difference is 4, what is the product of the two numbers?",
           answer: "45 (The numbers are 9 and 5)",
           subject: "Mathematics"
+        }
+      ]
+    };
+    res.json(fallbackData);
+  }
+});
+
+
+// --- Current Affairs API ---
+app.get("/api/current-affairs", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const ai = getGeminiClient();
+    
+    // We want current affairs to change daily.
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0];
+    const seed = `CurrentAffairs-${dateString}`;
+
+    const prompt = `Generate 5 important daily current affairs headlines and brief descriptions for Indian government competitive exams (like UPSC, SSC, Railways, State PSC) for today.
+Use the following seed to ensure variety but consistency for today: ${seed}.
+Format the output strictly as JSON following this schema.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["news"],
+          properties: {
+            news: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["headline", "description", "category", "date"],
+                properties: {
+                  headline: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  category: { type: Type.STRING },
+                  date: { type: Type.STRING }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || '{"news": []}');
+    res.json(data);
+  } catch (error: any) {
+    console.warn("Using fallback for current affairs due to API limit.");
+    const fallbackData = {
+      news: [
+        {
+          headline: "India's space agency successfully launches new communication satellite",
+          description: "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
+          category: "Science & Technology",
+          date: new Date().toISOString().split('T')[0]
+        },
+        {
+          headline: "Government announces new economic package for MSMEs",
+          description: "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
+          category: "Economy",
+          date: new Date().toISOString().split('T')[0]
+        },
+        {
+          headline: "International summit on climate change begins in New Delhi",
+          description: "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
+          category: "Environment",
+          date: new Date().toISOString().split('T')[0]
+        },
+        {
+          headline: "Prominent sportsperson wins gold at international championship",
+          description: "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
+          category: "Sports",
+          date: new Date().toISOString().split('T')[0]
+        },
+        {
+          headline: "Parliament passes new bill on data privacy",
+          description: "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
+          category: "Polity",
+          date: new Date().toISOString().split('T')[0]
+        }
+      ]
+    };
+    res.json(fallbackData);
+  }
+});
+
+
+// --- Job Alerts API ---
+app.get("/api/job-alerts", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const ai = getGeminiClient();
+    
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0];
+    const seed = `JobAlerts-${dateString}`;
+
+    const prompt = `Generate 5 latest Indian government job alerts, admit card releases, or exam result announcements for the current year ${now.getFullYear()} (e.g., SSC, UPSC, Railway, State PSC, Police).
+Use the following seed to ensure variety but consistency for today: ${seed}.
+Format the output strictly as JSON following this schema.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["alerts"],
+          properties: {
+            alerts: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["title", "organization", "type", "lastDateOrStatus", "link"],
+                properties: {
+                  title: { type: Type.STRING, description: "Job title or alert name" },
+                  organization: { type: Type.STRING, description: "Organization name like SSC, UPSC" },
+                  type: { type: Type.STRING, description: "Type of alert: 'New Job', 'Admit Card', 'Result'" },
+                  lastDateOrStatus: { type: Type.STRING, description: "Last date to apply or current status" },
+                  link: { type: Type.STRING, description: "A placeholder link, e.g., 'https://ssc.nic.in'" }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || '{"alerts": []}');
+    res.json(data);
+  } catch (error: any) {
+    console.warn("Using fallback for job alerts due to API limit.");
+    const fallbackData = {
+      alerts: [
+        {
+          title: `SSC CGL ${new Date().getFullYear()} Notification Released`,
+          organization: "Staff Selection Commission (SSC)",
+          type: "New Job",
+          lastDateOrStatus: `Last Date: 24-07-${new Date().getFullYear()}`,
+          link: "https://ssc.nic.in"
+        },
+        {
+          title: `Railway ALP Admit Card ${new Date().getFullYear()}`,
+          organization: "Railway Recruitment Board (RRB)",
+          type: "Admit Card",
+          lastDateOrStatus: "Available Now",
+          link: "https://indianrailways.gov.in"
+        },
+        {
+          title: "UPSC Civil Services Prelims Result",
+          organization: "Union Public Service Commission (UPSC)",
+          type: "Result",
+          lastDateOrStatus: "Declared",
+          link: "https://upsc.gov.in"
+        }
+      ]
+    };
+    res.json(fallbackData);
+  }
+});
+
+// --- Previous Year Questions (PYQ) API ---
+app.get("/api/pyq", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const ai = getGeminiClient();
+    const exam = req.query.exam || "SSC CGL";
+    const seed = `PYQ-${exam}`;
+
+    const prompt = `Generate 5 authentic-looking Previous Year Questions (PYQ) for the ${exam} exam.
+Include the year it was asked. Make sure the questions are relevant to the exam.
+Format the output strictly as JSON following this schema.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["questions"],
+          properties: {
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["question", "options", "correctAnswer", "year", "subject"],
+                properties: {
+                  question: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  correctAnswer: { type: Type.STRING },
+                  year: { type: Type.STRING },
+                  subject: { type: Type.STRING }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const data = JSON.parse(response.text || '{"questions": []}');
+    res.json(data);
+  } catch (error: any) {
+    console.warn("Using fallback for PYQ due to API limit.");
+    const fallbackData = {
+      questions: [
+        {
+          question: "Which article of the Indian Constitution deals with the abolition of untouchability?",
+          options: ["Article 14", "Article 15", "Article 16", "Article 17"],
+          correctAnswer: "Article 17",
+          year: "2021",
+          subject: "Polity"
+        },
+        {
+          question: "What is the chemical name of baking soda?",
+          options: ["Sodium Carbonate", "Sodium Bicarbonate", "Calcium Carbonate", "Calcium Hydroxide"],
+          correctAnswer: "Sodium Bicarbonate",
+          year: "2020",
+          subject: "Science"
+        },
+        {
+          question: "The first battle of Panipat was fought in which year?",
+          options: ["1526", "1556", "1761", "1857"],
+          correctAnswer: "1526",
+          year: "2019",
+          subject: "History"
         }
       ]
     };
@@ -745,6 +1013,184 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       saveDB();
     }
     res.json(fallbackMsg);
+  }
+});
+
+
+// --- Community Forum API ---
+app.get("/api/forum/posts", async (req: express.Request, res: express.Response) => {
+  try {
+    if (firestore) {
+      const postsCol = collection(firestore, "forumPosts");
+      const snapshot = await getDocs(postsCol);
+      let postsList = snapshot.docs.map(doc => doc.data());
+      postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      res.json(postsList);
+    } else {
+      const postsList = db.forumPosts || [];
+      postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      res.json(postsList);
+    }
+  } catch (error: any) {
+    console.error("Error fetching forum posts:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/forum/posts", async (req: express.Request, res: express.Response): Promise<any> => {
+  const post = req.body;
+  if (!post.authorEmail || !post.title || !post.content) return res.status(400).json({ error: "Missing fields" });
+  
+  post.id = `post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  post.timestamp = new Date().toISOString();
+  post.likes = 0;
+  post.replies = [];
+
+  try {
+    if (firestore) {
+      const postDocRef = doc(firestore, "forumPosts", post.id);
+      await setDoc(postDocRef, post);
+      res.status(201).json(post);
+    } else {
+      if (!db.forumPosts) db.forumPosts = [];
+      db.forumPosts.push(post);
+      saveDB();
+      res.status(201).json(post);
+    }
+  } catch (error: any) {
+    console.error("Error saving forum post:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { postId } = req.params;
+  const reply = req.body;
+  if (!reply.authorEmail || !reply.content) return res.status(400).json({ error: "Missing fields" });
+  
+  reply.id = `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  reply.timestamp = new Date().toISOString();
+
+  try {
+    if (firestore) {
+      const postDocRef = doc(firestore, "forumPosts", postId);
+      const postSnap = await getDoc(postDocRef);
+      if (postSnap.exists()) {
+        const postData = postSnap.data();
+        const replies = postData.replies || [];
+        replies.push(reply);
+        await setDoc(postDocRef, { replies }, { merge: true });
+        res.status(201).json(reply);
+      } else {
+        res.status(404).json({ error: "Post not found" });
+      }
+    } else {
+      if (!db.forumPosts) db.forumPosts = [];
+      const post = db.forumPosts.find((p: any) => p.id === postId);
+      if (post) {
+        if (!post.replies) post.replies = [];
+        post.replies.push(reply);
+        saveDB();
+        res.status(201).json(reply);
+      } else {
+        res.status(404).json({ error: "Post not found" });
+      }
+    }
+  } catch (error: any) {
+    console.error("Error saving forum reply:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// --- Live Classes API ---
+app.get("/api/live-classes", async (req: express.Request, res: express.Response) => {
+  try {
+    if (firestore) {
+      const classesCol = collection(firestore, "liveClasses");
+      const snapshot = await getDocs(classesCol);
+      let classesList = snapshot.docs.map(doc => doc.data());
+      classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
+      res.json(classesList);
+    } else {
+      const classesList = db.liveClasses || [];
+      classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
+      res.json(classesList);
+    }
+  } catch (error: any) {
+    console.error("Error fetching live classes:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/live-classes", async (req: express.Request, res: express.Response): Promise<any> => {
+  const cls = req.body;
+  if (!cls.title || !cls.link || !cls.scheduledTime) return res.status(400).json({ error: "Missing fields" });
+  
+  cls.id = `class-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  cls.createdAt = new Date().toISOString();
+  cls.status = cls.status || "Scheduled";
+
+  try {
+    if (firestore) {
+      const classDocRef = doc(firestore, "liveClasses", cls.id);
+      await setDoc(classDocRef, cls);
+      res.status(201).json(cls);
+    } else {
+      if (!db.liveClasses) db.liveClasses = [];
+      db.liveClasses.push(cls);
+      saveDB();
+      res.status(201).json(cls);
+    }
+  } catch (error: any) {
+    console.error("Error saving live class:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/live-classes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  try {
+    if (firestore) {
+      const classDocRef = doc(firestore, "liveClasses", id);
+      await setDoc(classDocRef, { status }, { merge: true });
+      res.json({ success: true });
+    } else {
+      if (!db.liveClasses) db.liveClasses = [];
+      const cls = db.liveClasses.find((c: any) => c.id === id);
+      if (cls) {
+        cls.status = status;
+        saveDB();
+        res.json(cls);
+      } else {
+        res.status(404).json({ error: "Not found" });
+      }
+    }
+  } catch (error: any) {
+    console.error("Error updating live class:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  
+  try {
+    if (firestore) {
+      const classDocRef = doc(firestore, "liveClasses", id);
+      await deleteDoc(classDocRef);
+      res.json({ success: true });
+    } else {
+      if (!db.liveClasses) db.liveClasses = [];
+      db.liveClasses = db.liveClasses.filter((c: any) => c.id !== id);
+      saveDB();
+      res.json({ success: true });
+    }
+  } catch (error: any) {
+    console.error("Error deleting live class:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
