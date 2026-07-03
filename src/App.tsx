@@ -134,7 +134,7 @@ export default function App() {
   useEffect(() => {
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 5000);
+    }, 4000);
     return () => clearTimeout(splashTimer);
   }, []);
 
@@ -435,98 +435,11 @@ export default function App() {
           className={`min-h-[100dvh] flex flex-col ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Visual Navigation Header Banner */}
-      <header className={`sticky top-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
-        <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-2 sm:px-6">
-          
-          {/* Logo brand title */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <AppLogo size="md" />
-            <div className="hidden min-[400px]:block text-left">
-              <span className={`font-extrabold text-sm tracking-tight ${theme.textHeading} block`}>{t.brandName}</span>
-              <span className="text-5xs text-slate-400 uppercase font-black tracking-wider">
-                {lang === "bn" ? "শিক্ষা পোর্টাল" : "Academic Portal"}
-              </span>
-            </div>
-          </div>
+      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center justify-end pointer-events-none">
+        <div className={`flex items-center gap-2 p-1.5 rounded-2xl border ${theme.borderCard} shadow-lg pointer-events-auto backdrop-blur-xl ${theme.isDark ? 'bg-slate-900/80' : 'bg-white/80'}`}>
 
           {/* Navigation link triggers */}
-          {profile && (
-            <nav className="hidden md:flex space-x-1 ml-6">
-              <button
-                onClick={() => setCurrentTab("dashboard")}
-                id="nav-tab-dashboard"
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  currentTab === "dashboard"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText}`
-                    : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                }`}
-              >
-                {lang === "bn" ? "ড্যাশবোর্ড" : "Dashboard"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentTab("notes");
-                  setSelectedNote(null);
-                }}
-                id="nav-tab-notes"
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  currentTab === "notes"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText}`
-                    : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                }`}
-              >
-                {lang === "bn" ? "স্টাডি নোটস" : "Notes Workspace"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentTab("chat");
-                  setSelectedNote(null);
-                }}
-                id="nav-tab-chat"
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  currentTab === "chat"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText}`
-                    : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                }`}
-              >
-                {lang === "bn" ? "সহায়তা চ্যাট" : "Support Chat"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentTab("videos");
-                  setSelectedNote(null);
-                }}
-                id="nav-tab-videos"
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                  currentTab === "videos"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText}`
-                    : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                }`}
-              >
-                {lang === "bn" ? "ভিডিও লেকচার" : "Video Lectures"}
-              </button>
-
-              {profile.role === "Admin" && (
-                <button
-                  onClick={() => {
-                    setCurrentTab("admin");
-                    setSelectedNote(null);
-                  }}
-                  id="nav-tab-admin"
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                    currentTab === "admin"
-                      ? "bg-amber-600 text-white"
-                      : `${theme.textMuted} hover:bg-slate-100/50 dark:hover:bg-slate-800/50`
-                  }`}
-                >
-                  {lang === "bn" ? "অ্যাডমিন প্যানেল" : "Admin Panel"}
-                </button>
-              )}
-            </nav>
-          )}
+          
 
           {/* Theme & Language Selectors container */}
           <div className="flex items-center gap-1 sm:gap-1.5 ml-auto mr-1 sm:mr-3">
@@ -632,7 +545,7 @@ export default function App() {
           )}
 
         </div>
-      </header>
+      </div>
 
       {/* Main Content Area Container */}
       <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-32 md:py-8 sm:px-6 relative touch-scroll">
@@ -745,8 +658,8 @@ export default function App() {
 
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)]">
-          <div className={`flex justify-around items-center h-16 px-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
+        <div className="fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
+          <div className={`flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl pointer-events-auto ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
           <button
             onClick={() => setCurrentTab("dashboard")}
             className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
