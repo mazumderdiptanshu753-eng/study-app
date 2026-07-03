@@ -328,9 +328,9 @@ export default function App() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.4 }}
-          className="h-[100dvh] w-full"
+          className="min-h-[100dvh] w-full flex flex-col"
         >
-          <WelcomePage 
+          <WelcomePage theme={theme} 
             lang={lang}
             onLanguageChange={handleLanguageChange}
             onStart={() => {
@@ -344,10 +344,10 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`fixed inset-0 flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`min-h-[100dvh] flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Visual Navigation Header Banner */}
-      <header className={`shrink-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
+      <header className={`sticky top-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
         <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-2 sm:px-6">
           
           {/* Logo brand title */}
@@ -549,7 +549,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-8 sm:px-6 relative overflow-y-auto touch-scroll">
+      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-8 sm:px-6 relative touch-scroll">
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
@@ -561,7 +561,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: -5 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="h-full"
+              className="w-full min-h-full flex flex-col"
             >
               {isPageLoading ? (
                 <div className="flex flex-col items-center justify-center h-[50vh]">

@@ -3,14 +3,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, ArrowRight, BookOpen, Compass, Award, Shield, ChevronRight } from "lucide-react";
 import AppLogo from "./AppLogo";
 import { Language, TRANSLATIONS } from "../lib/translations";
+import { ThemeConfig } from "../lib/themes";
 
 interface WelcomePageProps {
   onStart: () => void;
   lang: Language;
   onLanguageChange: (lang: Language) => void;
+  theme: ThemeConfig;
 }
 
-export default function WelcomePage({ onStart, lang, onLanguageChange }: WelcomePageProps) {
+export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: WelcomePageProps) {
   const t = TRANSLATIONS[lang];
 
   // Mouse position tracking for the 3D parallax effect
@@ -57,10 +59,8 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
 
   return (
     <div 
-      className="min-h-[100dvh] w-full relative bg-slate-950 text-white flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden px-4 md:px-8 py-12"
-      style={{
-        background: "radial-gradient(circle at 50% 50%, #0b1528 0%, #030712 100%)"
-      }}
+      className={`flex-1 min-h-[100dvh] w-full relative ${theme.bgPage.split("/")[0]} ${theme.textMain} flex flex-col items-center justify-center overflow-x-hidden px-4 md:px-8 py-12 touch-scroll`}
+      
       id="welcome-page-container"
     >
       {/* Floating Language Selector on Welcome Screen */}
