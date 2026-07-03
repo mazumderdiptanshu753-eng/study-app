@@ -96,7 +96,7 @@ export default function Dashboard({
             <div className="pt-2">
               <a 
                 href="https://whatsapp.com/channel/0029VbD7Yyt3AzNVccgfh93K" 
-                target="_top" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-2xl font-bold text-sm md:text-base transition-all shadow-lg hover:shadow-xl active:scale-95 border border-white/20 w-full sm:w-auto text-center flex-wrap"
               >
