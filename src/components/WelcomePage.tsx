@@ -215,7 +215,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
             {/* Background glowing ring inside card */}
             <div className="absolute inset-10 rounded-full border border-teal-500/20 animate-pulse duration-3000 pointer-events-none z-0"></div>
             <div className="absolute inset-16 rounded-full border border-dashed border-slate-700/60 animate-spin duration-15000 pointer-events-none z-0"></div>
-
+            
             {/* 3D Layer 1: App Logo Stack (Highest translateZ) */}
             <div 
               style={{ transform: "translateZ(80px)" }} 
@@ -246,12 +246,9 @@ export default function WelcomePage({ onStart, lang, onLanguageChange }: Welcome
                 DEVOLOPED BY:- DIPTANSHU MAZUMDER
               </span>
             </div>
-
           </motion.div>
         </motion.div>
-
       </div>
-
       {/* Small floating branding */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-slate-600 font-bold uppercase tracking-widest select-none pointer-events-none">
         Crafted for Excellence • {t.brandName}

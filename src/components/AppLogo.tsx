@@ -14,6 +14,13 @@ export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
     xl: "h-36 w-36"
   };
 
+  const scale = {
+    sm: "scale-[0.65]",
+    md: "scale-[0.8] sm:scale-100",
+    lg: "scale-[1.65]",
+    xl: "scale-[3]"
+  };
+
   return (
     <div 
       className={`relative overflow-hidden rounded-xl bg-[#c81d25] flex flex-col items-center justify-center p-1 select-none shadow-sm ${dims[size]} ${className}`}
@@ -28,8 +35,8 @@ export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
         }}
       ></div>
 
-      {/* Internal Content Container */}
-      <div className="relative z-10 flex flex-col items-center justify-between w-full h-full py-1">
+      {/* Internal Content Container - Scaled based on size */}
+      <div className={`relative z-10 flex flex-col items-center justify-between w-full h-full py-1 ${scale[size]}`}>
         
         {/* Books & Trophy Stack */}
         <div className="flex flex-col items-center -space-y-0.5 mt-0.5">
@@ -73,6 +80,7 @@ export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
             Study Hub
           </span>
         </div>
+
       </div>
     </div>
   );

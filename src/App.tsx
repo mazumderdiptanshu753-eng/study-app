@@ -14,7 +14,8 @@ import {
   LogOut,
   Video,
   Shield,
-  RefreshCcw
+  RefreshCcw,
+  Download
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -22,6 +23,7 @@ import SupportChat from "./components/SupportChat";
 import StudentRegistration from "./components/StudentRegistration";
 import AppLogo from "./components/AppLogo";
 import WelcomePage from "./components/WelcomePage";
+import SplashScreen from "./components/SplashScreen";
 import VideoPortal from "./components/VideoPortal";
 import AdminPanel from "./components/AdminPanel";
 import GeneralKnowledgePage from "./components/GeneralKnowledgePage";
@@ -60,6 +62,8 @@ export default function App() {
     return preloaded;
   });
 
+  
+
   const [profile, setProfile] = useState<StudentProfile | null>(() => {
     const local = localStorage.getItem("student_profile");
     if (!local) return null;
@@ -89,8 +93,24 @@ export default function App() {
   });
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk">("dashboard");
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk">("dashboard");
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 4000);
+    return () => clearTimeout(splashTimer);
+  }, []);
+
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "videos" | "admin" | "gk") => {
+    setIsPageLoading(true);
+    setTimeout(() => {
+      _setCurrentTab(tab);
+      setIsPageLoading(false);
+    }, 300);
+  };
   
   // App States initialized with preloaded educational notes
   const [notes, setNotes] = useState<StudyNote[]>(() => {
@@ -123,7 +143,7 @@ export default function App() {
   // Redirect to dashboard if a non-admin gets to the admin tab
   useEffect(() => {
     if (currentTab === "admin" && (!profile || profile.role !== "Admin")) {
-      setCurrentTab("dashboard");
+      _setCurrentTab("dashboard");
     }
   }, [currentTab, profile]);
 
@@ -224,13 +244,20 @@ export default function App() {
   };
 
   const handleRegister = (newProfile: StudentProfile) => {
-    setProfile(newProfile);
-    localStorage.setItem("student_profile", JSON.stringify(newProfile));
-
     setUsers(prev => {
-      const exists = prev.some(u => u.email.trim().toLowerCase() === newProfile.email.trim().toLowerCase());
+      const existingUser = prev.find(u => u.email.trim().toLowerCase() === newProfile.email.trim().toLowerCase());
+      if (existingUser && existingUser.role === "Admin") {
+        newProfile.role = "Admin";
+        newProfile.avatarUrl = "👑";
+      }
+
+      setProfile(newProfile);
+      localStorage.setItem("student_profile", JSON.stringify(newProfile));
+
+      
+
       let updated;
-      if (exists) {
+      if (existingUser) {
         updated = prev.map(u => u.email.trim().toLowerCase() === newProfile.email.trim().toLowerCase() ? newProfile : u);
       } else {
         updated = [...prev, newProfile];
@@ -245,11 +272,15 @@ export default function App() {
       const updated = prev.map(user => {
         if (user.email.trim().toLowerCase() === email.trim().toLowerCase()) {
           const newRole = user.role === "Admin" ? "Student" : "Admin";
-          return {
+          const updatedUser = {
             ...user,
             role: newRole,
             avatarUrl: newRole === "Admin" ? "👑" : "🎓"
           };
+          
+          
+          
+          return updatedUser as StudentProfile;
         }
         return user;
       });
@@ -288,7 +319,9 @@ export default function App() {
 
   return (
     <AnimatePresence mode="wait">
-      {(!profile && !hasStartedWelcome) ? (
+      {showSplash ? (
+        <SplashScreen key="splash" theme={theme} lang={lang} />
+      ) : (!profile && !hasStartedWelcome) ? (
         <motion.div
           key="welcome"
           initial={{ opacity: 0 }}
@@ -311,7 +344,7 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`h-[100dvh] flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`fixed inset-0 flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Visual Navigation Header Banner */}
       <header className={`shrink-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
@@ -410,8 +443,7 @@ export default function App() {
           {/* Theme & Language Selectors container */}
           <div className="flex items-center gap-1 sm:gap-1.5 ml-auto mr-1 sm:mr-3">
             
-            {/* Dynamic Theme Picker Selector */}
-            <div className="hidden md:flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
+            <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
               {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
                 const tConfig = THEMES[tid];
                 const isActive = themeId === tid;
@@ -524,15 +556,24 @@ export default function App() {
         ) : (
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentTab}
+              key={currentTab + (isPageLoading ? "-loading" : "")}
               initial={{ opacity: 0, scale: 0.98, y: 5 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: -5 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="h-full"
             >
-              {/* Render Active View Tab */}
-              {currentTab === "dashboard" && (
+              {isPageLoading ? (
+                <div className="flex flex-col items-center justify-center h-[50vh]">
+                  <div className={`h-12 w-12 rounded-full border-4 ${theme.borderCard} border-t-current animate-spin ${theme.textHeading}`} />
+                  <p className={`mt-4 font-bold text-sm ${theme.textHeading} animate-pulse`}>
+                    {lang === "bn" ? "লোড হচ্ছে..." : "Loading..."}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Render Active View Tab */}
+                  {currentTab === "dashboard" && (
                 <Dashboard
                   lang={lang}
                   stats={stats}
@@ -593,6 +634,8 @@ export default function App() {
                   theme={theme}
                   onBack={() => setCurrentTab("dashboard")}
                 />
+              )}
+              </>
               )}
             </motion.div>
           </AnimatePresence>

@@ -30,10 +30,10 @@ export default function ImportantQuestions({ theme, lang }: ImportantQuestionsPr
     setExpandedIndex(null);
     try {
       const response = await fetch("/api/important-questions");
-      if (!response.ok) {
-        throw new Error("Failed to fetch questions");
-      }
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch questions");
+      }
       setQnaList(data.qnaList || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");

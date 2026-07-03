@@ -13,15 +13,15 @@
     
     /* Make app fixed size (native app feel) */
     width: 100%;
-    min-height: 100dvh;
-    overflow-x: hidden;
-    overscroll-behavior-y: none;
+    height: 100%;
+    overflow: hidden;
+    
   }
   
   #root {
     width: 100%;
-    min-height: 100%;
-    overflow-x: hidden;
+    height: 100%;
+    overflow: hidden;
   }
   
   /* Re-enable text selection for text inputs, textareas, and specific elements */
@@ -43,7 +43,7 @@
   /* Support clean momentum touch scrolling on Android */
   .touch-scroll {
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    
   }
 
   /* Hide default scrollbars for modern minimalist mobile layouts */
