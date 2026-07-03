@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import AppLogo from './AppLogo';
 import { ThemeConfig } from '../lib/themes';
 import { Language } from '../lib/translations';
+import pkg from '../../package.json';
 
 interface SplashScreenProps {
   key?: string;
@@ -90,9 +91,24 @@ export default function SplashScreen({ theme, lang }: SplashScreenProps) {
           <h1 className={`text-5xl md:text-6xl font-black tracking-tight ${theme.textHeading} mb-3 drop-shadow-lg`}>
             StudyHub
           </h1>
-          <p className="text-sm md:text-base tracking-[0.3em] uppercase font-bold bg-gradient-to-r from-teal-500 via-amber-500 to-rose-500 bg-clip-text text-transparent">
+          <p className="text-sm md:text-base tracking-[0.3em] uppercase font-bold bg-gradient-to-r from-teal-500 via-amber-500 to-rose-500 bg-clip-text text-transparent mb-4">
             {lang === 'bn' ? 'শিক্ষা পোর্টাল' : 'Academic Portal'}
           </p>
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.9, duration: 0.5, type: "spring" }}
+            className="inline-flex items-center justify-center"
+          >
+            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase shadow-[0_0_15px_rgba(0,0,0,0.1)] ${theme.isDark ? 'bg-slate-800/80 text-teal-400 border border-teal-500/30' : 'bg-white/80 text-teal-600 border border-teal-200'} backdrop-blur-md`}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+              </span>
+              V {pkg.version}
+            </div>
+          </motion.div>
         </motion.div>
       </div>
 
