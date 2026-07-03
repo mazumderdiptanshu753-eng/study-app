@@ -15,7 +15,8 @@ import {
   Video,
   Shield,
   RefreshCcw,
-  Download
+  Download,
+  Radio
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -133,7 +134,7 @@ export default function App() {
   useEffect(() => {
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 4000);
+    }, 5000);
     return () => clearTimeout(splashTimer);
   }, []);
 
@@ -431,7 +432,7 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`min-h-[100dvh] flex flex-col ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`min-h-[100dvh] flex flex-col ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Visual Navigation Header Banner */}
       <header className={`sticky top-0 z-50 w-full border-b ${theme.borderHeader} ${theme.bgHeader} transition-colors duration-300`}>
@@ -572,28 +573,26 @@ export default function App() {
                 id="lang-switcher-bn"
                 className={`px-2 py-0.5 text-[10px] font-black rounded transition-all cursor-pointer ${
                   lang === "bn"
-                    ? `${theme.primaryBtn} ${theme.primaryBtnText} shadow-3xs`
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-3xs"
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                বাংলা
+                BN
               </button>
             </div>
           </div>
 
-          {/* User profile identifier */}
+          {/* User Profile Summary */}
           {profile ? (
-            <div className="flex items-center gap-1.5 md:gap-3 bg-slate-100/30 dark:bg-slate-800/20 border border-slate-200/40 dark:border-slate-700/40 rounded-xl p-1 md:p-1.5 md:pr-3">
-              <div className={`h-8 w-8 rounded-full ${theme.primaryBg} border ${theme.borderCard} flex items-center justify-center text-sm shadow-3xs shrink-0 overflow-hidden`}>
-                {profile.avatarUrl && (profile.avatarUrl.startsWith("data:image") || profile.avatarUrl.startsWith("http")) ? (
-                  <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  profile.avatarUrl || "🎓"
-                )}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200/80 dark:bg-slate-700/80 border border-slate-300 dark:border-slate-600 shadow-sm text-lg">
+                {profile.avatarUrl || "🎓"}
               </div>
-              <div className="hidden sm:block text-left leading-tight min-w-0">
+              <div className="hidden sm:block text-left leading-none max-w-[100px]">
                 <div className="flex items-center gap-1.5">
-                  <span className={`font-bold text-xs ${theme.textHeading} block truncate max-w-[120px]`}>{profile.fullName}</span>
+                  <span className="font-bold text-xs text-slate-700 dark:text-slate-200 block truncate">
+                    {profile.name}
+                  </span>
                   {profile.role === "Admin" ? (
                     <span className="inline-flex items-center px-1 py-0.5 text-[8px] font-black tracking-wide rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
                       {lang === "bn" ? "প্রশাসক" : "Admin"}
@@ -636,7 +635,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-8 sm:px-6 relative touch-scroll">
+      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-32 md:py-8 sm:px-6 relative touch-scroll">
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
@@ -658,53 +657,46 @@ export default function App() {
                   </p>
                 </div>
               ) : (
-                <>
-                  {/* Render Active View Tab */}
-                  {currentTab === "dashboard" && (
-                <Dashboard
-                  lang={lang}
-                  stats={stats}
+              <>
+              {currentTab === "dashboard" && (
+                <Dashboard 
+                  stats={stats} 
                   notes={notes}
-                  theme={theme}
-                  role={profile.role}
                   onNavigate={(tab) => {
-                    setCurrentTab(tab as any);
+                    setCurrentTab(tab);
                     setSelectedNote(null);
                   }}
-                  onSelectNote={(note) => {
-                    setSelectedNote(note);
-                    setCurrentTab("notes");
-                  }}
+                  lang={lang}
+                  theme={theme}
+                  profile={profile}
                 />
               )}
-
               {currentTab === "notes" && (
-                <NotesManager
-                  lang={lang}
+                <NotesManager 
                   notes={notes}
+                  onAddNote={handleAddNote}
+                  onDeleteNote={handleDeleteNote}
                   selectedNote={selectedNote}
                   onSelectNote={setSelectedNote}
-                  onSaveNote={handleSaveNote}
-                  onDeleteNote={handleDeleteNote}
-                  onUpdateNoteAI={(id, updates) => {
-                    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
-                  }}
+                  onSummarize={handleSummarizeNote}
+                  onGenerateFlashcards={handleGenerateFlashcards}
                   isLoadingAI={isLoadingAI}
-                  onTriggerSummary={handleTriggerSummary}
-                  onTriggerFlashcards={handleTriggerFlashcards}
-                  role={profile.role}
+                  lang={lang}
                   theme={theme}
                 />
               )}
-
               {currentTab === "chat" && (
-                <SupportChat lang={lang} profile={profile} theme={theme} />
+                <SupportChat lang={lang} theme={theme} profile={profile} />
               )}
-
               {currentTab === "videos" && (
-                <VideoPortal lang={lang} profile={profile} theme={theme} onVideosCountChange={setVideosCount} />
+                <VideoPortal 
+                  lang={lang} 
+                  theme={theme} 
+                  profile={profile} 
+                  onBack={() => setCurrentTab("dashboard")} 
+                  onVideoCountChange={setVideosCount}
+                />
               )}
-
               {currentTab === "admin" && profile.role === "Admin" && (
                 <AdminPanel
                   lang={lang}
@@ -715,8 +707,7 @@ export default function App() {
                   theme={theme}
                 />
               )}
-
-                                          {currentTab === "liveClasses" && (
+              {currentTab === "liveClasses" && (
                 <LiveClasses
                   lang={lang}
                   theme={theme}
@@ -754,7 +745,8 @@ export default function App() {
 
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
-        <div className={`fixed bottom-0 left-0 right-0 z-50 ${theme.bgHeader} border-t ${theme.borderHeader} md:hidden flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] px-6 transition-colors duration-300`}>
+        <div className="fixed bottom-4 left-4 right-4 z-50 md:hidden pb-[env(safe-area-inset-bottom,0px)]">
+          <div className={`flex justify-around items-center h-16 px-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
           <button
             onClick={() => setCurrentTab("dashboard")}
             className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
@@ -782,7 +774,7 @@ export default function App() {
           >
             <BookOpen className="h-5 w-5 mb-1" style={{ color: currentTab === "notes" ? "currentColor" : "#94a3b8" }} />
             <span className="text-[10px] tracking-tight">
-              {lang === "bn" ? "স্টাডি নোটস" : "Notes"}
+              {lang === "bn" ? "নোটস" : "Notes"}
             </span>
           </button>
  
@@ -805,18 +797,18 @@ export default function App() {
  
           <button
             onClick={() => {
-              setCurrentTab("videos");
+              setCurrentTab("liveClasses");
               setSelectedNote(null);
             }}
             className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
-              currentTab === "videos"
+              currentTab === "liveClasses"
                 ? `${theme.primaryText} font-bold`
                 : `${theme.textMuted} font-medium`
             }`}
           >
-            <Video className="h-5 w-5 mb-1" style={{ color: currentTab === "videos" ? "currentColor" : "#94a3b8" }} />
+            <Radio className="h-5 w-5 mb-1" style={{ color: currentTab === "liveClasses" ? "currentColor" : "#94a3b8" }} />
             <span className="text-[10px] tracking-tight">
-              {lang === "bn" ? "ভিডিও" : "Videos"}
+              {lang === "bn" ? "লাইভ ক্লাস" : "Live"}
             </span>
           </button>
 
@@ -838,6 +830,7 @@ export default function App() {
               </span>
             </button>
           )}
+          </div>
         </div>
       )}
     </motion.div>

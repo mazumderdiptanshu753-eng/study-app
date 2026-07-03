@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, ArrowRight, BookOpen, Compass, Award, Shield, ChevronRight } from "lucide-react";
+import { Sparkles, ArrowRight, BookOpen, Compass, Award, Shield, ChevronRight, GraduationCap } from "lucide-react";
 import AppLogo from "./AppLogo";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -14,64 +14,49 @@ interface WelcomePageProps {
 
 export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: WelcomePageProps) {
   const t = TRANSLATIONS[lang];
-
-  // Mouse position tracking for the 3D parallax effect
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
-  // Background floating stars / particles
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number; duration: number }>>([]);
-
-  useEffect(() => {
-    // Generate static random positions for particles to avoid hydration mismatches
-    const tempParticles = Array.from({ length: 35 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      delay: Math.random() * 5,
-      duration: Math.random() * 10 + 10
-    }));
-    setParticles(tempParticles);
-  }, []);
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    
-    // Calculate normalized coordinates (-0.5 to 0.5)
-    const mouseX = (e.clientX - rect.left) / width - 0.5;
-    const mouseY = (e.clientY - rect.top) / height - 0.5;
-
-    // Set rotation angles (max 25 degrees)
-    setRotateX(-mouseY * 30);
-    setRotateY(mouseX * 30);
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateXValue = ((y - centerY) / centerY) * -12;
+    const rotateYValue = ((x - centerX) / centerX) * 12;
+    setRotateX(rotateXValue);
+    setRotateY(rotateYValue);
   };
 
   const handleMouseLeave = () => {
-    // Reset back to center smoothly
     setRotateX(0);
     setRotateY(0);
   };
 
   return (
     <div 
-      className={`flex-1 min-h-[100dvh] w-full relative ${theme.bgPage.split("/")[0]} ${theme.textMain} flex flex-col items-center justify-center overflow-x-hidden px-4 md:px-8 py-12 touch-scroll`}
-      
+      className={`flex-1 min-h-[100dvh] w-full relative ${theme.isDark ? "bg-[#0b0f19]" : "bg-slate-50"} ${theme.textMain} flex flex-col items-center justify-center overflow-x-hidden px-4 md:px-8 py-12 touch-scroll`}
       id="welcome-page-container"
     >
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-50 animate-blob ${theme.isDark ? 'bg-indigo-900/40' : 'bg-teal-200/40'}`}></div>
+        <div className={`absolute top-[20%] right-[-10%] w-[60%] h-[60%] rounded-full mix-blend-multiply filter blur-[100px] opacity-50 animate-blob animation-delay-2000 ${theme.isDark ? 'bg-fuchsia-900/40' : 'bg-rose-200/40'}`}></div>
+        <div className={`absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-50 animate-blob animation-delay-4000 ${theme.isDark ? 'bg-cyan-900/40' : 'bg-amber-200/40'}`}></div>
+      </div>
+
       {/* Floating Language Selector on Welcome Screen */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-full p-1.5 backdrop-blur-md">
+      <div className={`absolute top-4 right-4 z-50 flex items-center gap-1 ${theme.isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-200'} border rounded-full p-1.5 backdrop-blur-md shadow-sm`}>
         <button
           onClick={() => onLanguageChange("en")}
           id="btn-lang-welcome-en"
           className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase transition-all duration-200 cursor-pointer ${
             lang === "en" 
-              ? "bg-teal-500 text-slate-950 shadow-sm font-bold"
-              : "text-slate-400 hover:text-white"
+              ? `${theme.primaryBtn} ${theme.primaryBtnText} shadow-sm font-bold`
+              : `${theme.textMuted} hover:${theme.primaryText}`
           }`}
         >
           English
@@ -81,126 +66,87 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
           id="btn-lang-welcome-bn"
           className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase transition-all duration-200 cursor-pointer ${
             lang === "bn" 
-              ? "bg-teal-500 text-slate-950 shadow-sm font-bold"
-              : "text-slate-400 hover:text-white"
+              ? `${theme.primaryBtn} ${theme.primaryBtnText} shadow-sm font-bold`
+              : `${theme.textMuted} hover:${theme.primaryText}`
           }`}
         >
           বাংলা
         </button>
       </div>
 
-      {/* Glow Effects in the Background */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none animate-pulse duration-10000"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-red-500/5 rounded-full blur-3xl pointer-events-none animate-pulse duration-[8000ms]"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-      {/* Floating Particle Stars */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {particles.map((p) => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full bg-white/40"
-            style={{
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-            }}
-            animate={{
-              y: ["0px", "-100px", "0px"],
-              opacity: [0.2, 0.8, 0.2]
-            }}
-            transition={{
-              duration: p.duration,
-              repeat: Infinity,
-              delay: p.delay,
-              ease: "easeInOut"
-            }}
-          />
-        ))}
-      </div>
-
       {/* Outer Content Layout Grid */}
-      <div className="relative z-10 max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div className="relative z-10 max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
         
         {/* Left Side: Modern Core App Branding / Information */}
-        <div className="lg:col-span-6 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start">
+        <div className="lg:col-span-6 xl:col-span-7 space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start pt-10 lg:pt-0">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-semibold tracking-wider uppercase backdrop-blur-md"
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${theme.badgeBg} ${theme.badgeText} text-xs font-bold tracking-wider uppercase shadow-sm`}
           >
-            <Sparkles className="h-4.5 w-4.5 text-amber-400 fill-amber-300 animate-pulse" />
+            <Sparkles className="h-4.5 w-4.5 animate-pulse" />
             {t.welcomeSubtitle}
           </motion.div>
-
-          <div className="space-y-3">
+          
+          <div className="space-y-4">
             <motion.h1 
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
-              className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight"
+              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.1]"
             >
-              {t.welcomeTitlePrefix} <br/>
-              <span className="bg-gradient-to-r from-teal-400 via-amber-400 to-rose-400 bg-clip-text text-transparent">{t.welcomeTitleAccent}</span>
+              <span className={`block ${theme.textHeading}`}>{t.welcomeTitlePrefix}</span>
+              <span className={`bg-gradient-to-r from-teal-500 via-amber-500 to-rose-500 bg-clip-text text-transparent inline-block pb-2`}>
+                {t.welcomeTitleAccent}
+              </span>
             </motion.h1>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className={`${theme.textMuted} text-base sm:text-lg max-w-xl font-medium leading-relaxed`}
+            >
+              {lang === "bn" 
+                ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে এআই দ্বারা গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
+                : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards for a seamless learning experience."}
+            </motion.p>
           </div>
-
-          {/* Quick core metrics / features row */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.45 }}
-            className="grid grid-cols-2 gap-4 w-full max-w-sm pt-4"
-          >
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-center backdrop-blur-sm">
-              <BookOpen className="h-5 w-5 text-teal-400 mx-auto mb-1.5" />
-              <div className="text-2xs text-slate-400 font-bold">{t.mathSubject}</div>
-            </div>
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-center backdrop-blur-sm">
-              <Compass className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
-              <div className="text-2xs text-slate-400 font-bold">{t.aiSummaries}</div>
-            </div>
-          </motion.div>
 
           {/* Start Button Section */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.6 }}
-            className="pt-6"
+            className="pt-4 flex flex-col items-center lg:items-start"
           >
-            {/* UNIQUE GLOWING INTERACTIVE START BUTTON */}
             <button
               onClick={onStart}
-              id="unique-welcome-start-button"
-              className="group relative inline-flex items-center justify-center p-0.5 rounded-full overflow-hidden font-extrabold text-sm tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg shadow-teal-500/20"
+              className={`group relative inline-flex items-center justify-center overflow-hidden rounded-full p-4 px-8 font-extrabold text-sm tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-xl ${theme.primaryBtn} ${theme.primaryBtnText}`}
             >
-              {/* Spinning multi-color neon orbit outline */}
-              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-teal-400 via-amber-400 to-rose-400 rounded-full animate-spin duration-3000"></span>
-              
-              {/* Inner capsule layout */}
-              <span className="relative flex items-center gap-3 px-8 py-4 bg-slate-950 rounded-full transition-all group-hover:bg-opacity-90">
-                <span className="bg-gradient-to-r from-teal-200 to-amber-200 bg-clip-text text-transparent font-black tracking-widest text-xs uppercase">
+              <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
+              <span className="relative flex items-center gap-3">
+                <span className="tracking-widest uppercase">
                   {t.welcomeStartButton}
                 </span>
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/20 text-teal-300 group-hover:bg-teal-500 group-hover:text-slate-950 transition-all duration-300">
-                  <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 transition-all duration-300 group-hover:bg-white group-hover:text-slate-900 group-hover:shadow-md">
+                  <ArrowRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
                 </span>
               </span>
             </button>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center lg:text-left mt-3 ml-2">
+            <p className={`text-[10px] ${theme.textMuted} font-bold uppercase tracking-wider text-center lg:text-left mt-4 opacity-70`}>
               {t.secureSessionNotice}
             </p>
           </motion.div>
         </div>
 
+        {/* Right Side: 3D App Presentation Card */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="lg:col-span-6 flex items-center justify-center perspective-[1000px] h-[360px] sm:h-[450px]"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className="lg:col-span-6 xl:col-span-5 flex items-center justify-center perspective-[1000px] h-[400px] sm:h-[500px]"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
@@ -210,49 +156,57 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               transformStyle: "preserve-3d",
               transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
             }}
-            className="relative w-80 sm:w-96 aspect-square bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center backdrop-blur-md cursor-grab active:cursor-grabbing select-none transition-all duration-150"
+            className={`relative w-[300px] sm:w-[360px] aspect-[4/5] ${theme.bgCard} border ${theme.borderCard} rounded-[2.5rem] p-8 shadow-2xl flex flex-col items-center justify-center backdrop-blur-xl cursor-grab active:cursor-grabbing select-none transition-transform duration-150 ease-out`}
           >
             {/* Background glowing ring inside card */}
-            <div className="absolute inset-10 rounded-full border border-teal-500/20 animate-pulse duration-3000 pointer-events-none z-0"></div>
-            <div className="absolute inset-16 rounded-full border border-dashed border-slate-700/60 animate-spin duration-15000 pointer-events-none z-0"></div>
+            <div className={`absolute inset-6 rounded-[2rem] border ${theme.heroOuterBorder} opacity-50 animate-pulse duration-[3000ms] pointer-events-none`}></div>
             
-            {/* 3D Layer 1: App Logo Stack (Highest translateZ) */}
+            {/* 3D Layer 1: App Logo Stack */}
             <div 
               style={{ transform: "translateZ(80px)" }} 
-              className="relative z-10 mb-6 drop-shadow-[0_20px_35px_rgba(200,29,37,0.3)] transition-transform duration-300"
+              className="relative z-10 mb-8 transition-transform duration-300 shadow-2xl rounded-3xl overflow-hidden bg-gradient-to-br from-white/10 to-transparent p-1"
             >
-              <AppLogo size="xl" className="border-4 border-slate-950/40 scale-105" />
+              <div className={`${theme.primaryBg} rounded-3xl p-4`}>
+                <AppLogo size="xl" className="scale-110" />
+              </div>
             </div>
 
-            {/* 3D Layer 2: Label & Title (Medium translateZ) */}
+            {/* 3D Layer 2: Label & Title */}
             <div 
               style={{ transform: "translateZ(50px)" }}
-              className="text-center space-y-1 relative z-10 transition-transform duration-300"
+              className="text-center space-y-2 relative z-10 transition-transform duration-300 w-full"
             >
-              <h3 className="text-xl font-black tracking-widest uppercase text-slate-100">
+              <h3 className={`text-2xl font-black tracking-widest uppercase ${theme.textHeading}`}>
                 {t.brandName}
               </h3>
+              <div className="flex justify-center gap-2 mt-4">
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold ${theme.badgeBg} ${theme.badgeText}`}>
+                  {lang === "bn" ? "অধ্যয়ন" : "Study"}
+                </span>
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-bold ${theme.accentBg} ${theme.accentText}`}>
+                  {lang === "bn" ? "এআই" : "AI"}
+                </span>
+              </div>
             </div>
 
             {/* 3D Layer 3: Developer attribution (Dynamic 3D float) */}
             <div 
               style={{ 
-                transform: "translateZ(35px)",
+                transform: "translateZ(60px)",
                 backfaceVisibility: "hidden"
               }}
-              className="text-center relative z-10 mt-6 transition-transform duration-300"
+              className="absolute bottom-[-1.5rem] text-center relative z-20 mt-10 transition-transform duration-300 w-[110%]"
             >
-              <span className="text-xs sm:text-sm font-black tracking-widest text-teal-300 font-mono bg-slate-900 border-2 border-teal-400 px-5 py-2.5 rounded-xl shadow-[0_4px_20px_rgba(13,148,136,0.4)] block uppercase">
-                DEVOLOPED BY:- DIPTANSHU MAZUMDER
-              </span>
+              <div className={`flex items-center justify-center gap-2 ${theme.isDark ? 'bg-slate-800' : 'bg-slate-900'} text-white px-5 py-3 rounded-2xl shadow-xl border border-white/10`}>
+                <span className="text-xs sm:text-sm md:text-base font-black tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-amber-300">
+                  Developed By: Diptanshu Mazumder
+                </span>
+              </div>
             </div>
           </motion.div>
         </motion.div>
       </div>
-      {/* Small floating branding */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-slate-600 font-bold uppercase tracking-widest select-none pointer-events-none">
-        Crafted for Excellence • {t.brandName}
-      </div>
+
     </div>
   );
 }
