@@ -7,8 +7,80 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Ensure data directory exists
+const DATA_DIR = path.join(process.cwd(), "data");
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
-async function withRetry(operation, maxRetries = 3) {
+const DB_FILE = path.join(DATA_DIR, "db.json");
+
+interface ChatMessage {
+  id: string;
+  senderName: string;
+  senderEmail: string;
+  senderRole: "Admin" | "Student";
+  message: string;
+  timestamp: string;
+  studentEmail: string;
+  studentName: string;
+}
+
+interface StudentProfile {
+  fullName: string;
+  email: string;
+  grade: string;
+  preferredSubject: string;
+  registeredAt: string;
+  avatarUrl?: string;
+  role: "Admin" | "Student";
+}
+
+interface Database {
+  users: StudentProfile[];
+  chatMessages: ChatMessage[];
+}
+
+// Default DB State
+let db: Database = {
+  users: [],
+  chatMessages: [
+    {
+      id: "welcome-demo",
+      senderName: "Admin (Diptanshu)",
+      senderEmail: "mazumderdiptanshu753@gmail.com",
+      senderRole: "Admin",
+      message: "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      studentEmail: "demo@studyhub.com",
+      studentName: "Demo Student"
+    }
+  ]
+};
+
+// Load DB from file
+if (fs.existsSync(DB_FILE)) {
+  try {
+    const fileData = fs.readFileSync(DB_FILE, "utf-8");
+    const parsed = JSON.parse(fileData);
+    if (parsed.users) db.users = parsed.users;
+    if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
+  } catch (error) {
+    console.error("Error loading db.json:", error);
+  }
+}
+
+// Save DB to file
+function saveDB() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
+  } catch (error) {
+    console.error("Error saving db.json:", error);
+  }
+}
+
+async function withRetry(operation: any, maxRetries = 3) {
+
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -27,6 +99,14 @@ async function withRetry(operation, maxRetries = 3) {
 }
 
 const app = express();
+// Add global no-cache headers to prevent mobile browsers from caching the app
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
 app.use(express.json());
 
 const PORT = 3000;
@@ -42,11 +122,6 @@ function getGeminiClient(): GoogleGenAI {
     }
     aiInstance = new GoogleGenAI({
       apiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
     });
   }
   return aiInstance;
@@ -80,7 +155,7 @@ Explain the answer thoroughly. Follow this strict schema:
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -140,7 +215,7 @@ Provide a structured response:
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -187,7 +262,7 @@ Note Content:
 Return a list of flashcards.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -256,7 +331,7 @@ Please provide a highly detailed response. Follow this strict schema:
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: contents,
       config: {
         responseMimeType: "application/json",
@@ -303,7 +378,7 @@ Make sure the topics are relevant for competitive government exams (History, Geo
 Format the output strictly as JSON following this schema.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -357,7 +432,7 @@ Use the following seed to ensure variety but consistency for this week: ${seed}.
 Format the output strictly as JSON following this schema.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -391,36 +466,13 @@ Format the output strictly as JSON following this schema.`;
 });
 
 // --- Chat Application APIs ---
-interface ChatMessage {
-  id: string;
-  senderName: string;
-  senderEmail: string;
-  senderRole: "Admin" | "Student";
-  message: string;
-  timestamp: string;
-  studentEmail: string;
-  studentName: string;
-}
-
-const chatMessages: ChatMessage[] = [
-  {
-    id: "welcome-demo",
-    senderName: "Admin (Diptanshu)",
-    senderEmail: "mazumderdiptanshu753@gmail.com",
-    senderRole: "Admin",
-    message: "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    studentEmail: "demo@studyhub.com",
-    studentName: "Demo Student"
-  }
-];
 
 // Get Chat Messages
 app.get("/api/chat/messages", (req: express.Request, res: express.Response) => {
   const { email, role, name } = req.query;
   
   if (role === "Admin") {
-    return res.json(chatMessages);
+    return res.json(db.chatMessages);
   }
 
   if (!email) {
@@ -428,7 +480,7 @@ app.get("/api/chat/messages", (req: express.Request, res: express.Response) => {
   }
 
   const studentEmail = (email as string).trim().toLowerCase();
-  const studentMessages = chatMessages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
+  const studentMessages = db.chatMessages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
 
   // If new student, insert an auto-welcome message so they don't see a blank chat
   if (studentMessages.length === 0 && name) {
@@ -442,7 +494,8 @@ app.get("/api/chat/messages", (req: express.Request, res: express.Response) => {
       studentEmail: studentEmail,
       studentName: name as string
     };
-    chatMessages.push(welcomeMsg);
+    db.chatMessages.push(welcomeMsg);
+    saveDB();
     return res.json([welcomeMsg]);
   }
 
@@ -468,7 +521,8 @@ app.post("/api/chat/messages", (req: express.Request, res: express.Response) => 
     studentName
   };
 
-  chatMessages.push(newMsg);
+  db.chatMessages.push(newMsg);
+  saveDB();
   res.status(201).json(newMsg);
 });
 
@@ -487,7 +541,7 @@ app.post("/api/chat/ai-reply", async (req: express.Request, res: express.Respons
 Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes or summarizing). Keep it very human, conversational, and direct. Do not use AI jargon.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents: prompt,
     });
 
@@ -504,7 +558,8 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       studentName
     };
 
-    chatMessages.push(aiMsg);
+    db.chatMessages.push(aiMsg);
+    saveDB();
     res.json(aiMsg);
   } catch (error: any) {
     console.error("Error generating Admin AI reply:", error);
@@ -519,9 +574,29 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       studentEmail: req.body.studentEmail.trim().toLowerCase(),
       studentName: req.body.studentName
     };
-    chatMessages.push(fallbackMsg);
+    db.chatMessages.push(fallbackMsg);
+    saveDB();
     res.json(fallbackMsg);
   }
+});
+
+// --- Users API (Admin Panel Persistence) ---
+app.get("/api/users", (req: express.Request, res: express.Response) => {
+  res.json(db.users);
+});
+
+app.post("/api/users", (req: express.Request, res: express.Response) => {
+  const user = req.body;
+  if (!user.email) return res.status(400).json({ error: "Email is required" });
+  
+  const existing = db.users.find(u => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
+  if (existing) {
+    Object.assign(existing, user);
+  } else {
+    db.users.push(user);
+  }
+  saveDB();
+  res.json(db.users);
 });
 
 // --- App Updates API ---
@@ -570,7 +645,7 @@ async function startServer() {
     
     app.use(express.static(distPath, {
       setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
+        if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.webmanifest') || filePath.endsWith('.json')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
