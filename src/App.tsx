@@ -35,6 +35,17 @@ import AIStudyAssistant from "./components/AIStudyAssistant";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot 
+} from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "./lib/firebase";
 
 export default function App() {
   const [lang, setLang] = useState<Language>(() => {
@@ -101,6 +112,15 @@ export default function App() {
   const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes">("dashboard");
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
+
+  useEffect(() => {
+    const handleSetSubject = (e: any) => {
+      setSelectedGovtJobSubject(e.detail);
+    };
+    window.addEventListener("setGovtJobSubject", handleSetSubject);
+    return () => window.removeEventListener("setGovtJobSubject", handleSetSubject);
+  }, []);
 
   // Load users from central backend API
   const fetchUsers = async () => {
@@ -152,7 +172,7 @@ export default function App() {
     }, 300);
   };
   
-  // App States initialized with preloaded educational notes
+  // App States initialized with preloaded educational notes or sync from Firestore
   const [notes, setNotes] = useState<StudyNote[]>(() => {
     const local = localStorage.getItem("study_notes");
     if (local) return JSON.parse(local);
@@ -175,7 +195,53 @@ export default function App() {
   // Loading indicator for AI tasks
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
-  // Sync to local storage for local persistence
+  // Sync personal study notes with Firestore real-time database when student is logged in
+  useEffect(() => {
+    if (!profile?.email) {
+      // Fallback to local storage if not logged in
+      const local = localStorage.getItem("study_notes");
+      if (local) {
+        try {
+          setNotes(JSON.parse(local));
+        } catch (e) {
+          setNotes([]);
+        }
+      } else {
+        setNotes([]);
+      }
+      return;
+    }
+
+    const email = profile.email.trim().toLowerCase();
+    const path = "notes";
+    const notesQuery = query(
+      collection(db, path),
+      where("userEmail", "==", email),
+      orderBy("timestamp", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      notesQuery,
+      (snapshot) => {
+        const fetchedNotes = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+          } as StudyNote;
+        });
+        setNotes(fetchedNotes);
+        localStorage.setItem("study_notes", JSON.stringify(fetchedNotes));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, path);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [profile?.email]);
+
+  // Sync to local storage for local offline persistence fallback
   useEffect(() => {
     localStorage.setItem("study_notes", JSON.stringify(notes));
   }, [notes]);
@@ -187,7 +253,61 @@ export default function App() {
     }
   }, [currentTab, profile]);
 
-  // Handle AI Note Summarizer API
+  // Save or update manually written note or AI updated fields
+  const handleSaveNote = async (noteData: Omit<StudyNote, "id" | "timestamp"> & { id?: string; timestamp?: string }) => {
+    const isNew = !noteData.id;
+    const noteId = noteData.id || `note-${Date.now()}`;
+    const timestamp = noteData.timestamp || new Date().toISOString();
+    
+    const finalNote: StudyNote = {
+      ...noteData,
+      id: noteId,
+      timestamp: timestamp,
+    };
+
+    if (profile?.email) {
+      const path = `notes/${noteId}`;
+      const payload = {
+        ...finalNote,
+        userEmail: profile.email.trim().toLowerCase()
+      };
+      try {
+        await setDoc(doc(db, "notes", noteId), payload, { merge: true });
+        setSelectedNote(finalNote);
+      } catch (error) {
+        handleFirestoreError(error, isNew ? OperationType.CREATE : OperationType.UPDATE, path);
+      }
+    } else {
+      if (isNew) {
+        setNotes(prev => [finalNote, ...prev]);
+      } else {
+        setNotes(prev => prev.map(n => n.id === noteId ? finalNote : n));
+      }
+      setSelectedNote(finalNote);
+    }
+  };
+
+  // Delete note from Firestore/local storage
+  const handleDeleteNote = async (id: string) => {
+    if (profile?.email) {
+      const path = `notes/${id}`;
+      try {
+        await deleteDoc(doc(db, "notes", id));
+        if (selectedNote?.id === id) {
+          setSelectedNote(null);
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, path);
+      }
+    } else {
+      setNotes(prev => prev.filter(n => n.id !== id));
+      if (selectedNote?.id === id) {
+        setSelectedNote(null);
+      }
+    }
+  };
+
+  // Handle AI Note Summarizer API and sync to cloud
   const handleTriggerSummary = async (note: StudyNote) => {
     setIsLoadingAI(true);
     try {
@@ -203,23 +323,13 @@ export default function App() {
 
       const result = await response.json();
       
-      const updatedNotes = notes.map(n => {
-        if (n.id === note.id) {
-          return {
-            ...n,
-            summaryPoints: result.summaryPoints,
-            tags: result.tags
-          };
-        }
-        return n;
-      });
+      const updatedNote: StudyNote = {
+        ...note,
+        summaryPoints: result.summaryPoints,
+        tags: result.tags
+      };
 
-      setNotes(updatedNotes);
-      // Update selected state as well
-      const updatedSelected = updatedNotes.find(n => n.id === note.id);
-      if (updatedSelected) {
-        setSelectedNote(updatedSelected);
-      }
+      await handleSaveNote(updatedNote);
     } catch (e: any) {
       console.error(e);
       alert(`Failed to summarize: ${e.message}`);
@@ -228,7 +338,7 @@ export default function App() {
     }
   };
 
-  // Handle AI Flashcard Generation API
+  // Handle AI Flashcard Generation API and sync to cloud
   const handleTriggerFlashcards = async (note: StudyNote) => {
     setIsLoadingAI(true);
     try {
@@ -244,43 +354,18 @@ export default function App() {
 
       const result = await response.json();
       
-      const updatedNotes = notes.map(n => {
-        if (n.id === note.id) {
-          return {
-            ...n,
-            flashcards: result.flashcards
-          };
-        }
-        return n;
-      });
+      const updatedNote: StudyNote = {
+        ...note,
+        flashcards: result.flashcards
+      };
 
-      setNotes(updatedNotes);
-      const updatedSelected = updatedNotes.find(n => n.id === note.id);
-      if (updatedSelected) {
-        setSelectedNote(updatedSelected);
-      }
+      await handleSaveNote(updatedNote);
     } catch (e: any) {
       console.error(e);
       alert(`Failed to build cards: ${e.message}`);
     } finally {
       setIsLoadingAI(false);
     }
-  };
-
-  // Save new manually written note
-  const handleSaveNote = (noteData: Omit<StudyNote, "id" | "timestamp">) => {
-    const newNote: StudyNote = {
-      ...noteData,
-      id: `note-${Date.now()}`,
-      timestamp: new Date().toISOString()
-    };
-    setNotes(prev => [newNote, ...prev]);
-    setSelectedNote(newNote);
-  };
-
-  // Delete note
-  const handleDeleteNote = (id: string) => {
-    setNotes(prev => prev.filter(n => n.id !== id));
   };
 
   const recordActivityLog = async (action: "Login" | "Logout", userProfile: StudentProfile) => {
@@ -595,7 +680,12 @@ export default function App() {
                   onSelectNote={setSelectedNote}
                   onSaveNote={handleSaveNote}
                   onDeleteNote={handleDeleteNote}
-                  onUpdateNoteAI={() => {}} 
+                  onUpdateNoteAI={async (id, updates) => {
+                    const original = notes.find(n => n.id === id);
+                    if (original) {
+                      await handleSaveNote({ ...original, ...updates });
+                    }
+                  }} 
                   isLoadingAI={isLoadingAI}
                   onTriggerSummary={handleTriggerSummary}
                   onTriggerFlashcards={handleTriggerFlashcards}
@@ -656,6 +746,8 @@ export default function App() {
                   lang={lang}
                   theme={theme}
                   profile={profile}
+                  initialSubject={selectedGovtJobSubject}
+                  onBack={() => setCurrentTab("dashboard")}
                 />
               )}
               </>

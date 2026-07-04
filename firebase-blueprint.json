@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "StudyNote": {
+      "title": "StudyNote",
+      "description": "User created and synchronized study notes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "subject": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "summaryPoints": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "flashcards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "front": { "type": "string" },
+              "back": { "type": "string" }
+            }
+          }
+        },
+        "attachmentUrl": { "type": "string" },
+        "attachmentName": { "type": "string" },
+        "attachmentType": { "type": "string" }
+      },
+      "required": ["id", "userEmail", "title", "content", "subject", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/notes/{noteId}": {
+      "schema": "StudyNote",
+      "description": "Personal study notes collection grouped by user identity"
+    }
+  }
+}

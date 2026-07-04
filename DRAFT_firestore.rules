@@ -98,18 +98,5 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
-
-    // 8. Video Lectures Rules
-    match /videos/{videoId} {
-      allow read: if isSignedIn();
-      allow create, delete: if isAdmin();
-      allow update: if isSignedIn();
-    }
-
-    // 9. AI PDF Notes Rules
-    match /aiPdfNotes/{noteId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
   }
 }

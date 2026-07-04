@@ -19,6 +19,17 @@ import {
 import { StudentProfile, VideoLecture, VideoComment, Subject } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  updateDoc 
+} from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 
 interface VideoPortalProps {
   profile: StudentProfile | null;
@@ -117,12 +128,46 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
   // Comment input state
   const [newCommentText, setNewCommentText] = useState("");
 
-  // Set initial selected video if list is not empty
+  // Real-time Firestore Sync for Videos
   useEffect(() => {
-    if (videos.length > 0 && !selectedVideo) {
+    const path = "videos";
+    const videosQuery = query(
+      collection(db, path),
+      orderBy("timestamp", "desc")
+    );
+
+    const unsubscribe = onSnapshot(
+      videosQuery,
+      (snapshot) => {
+        const fetchedVideos = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+          } as VideoLecture;
+        });
+        setVideos(fetchedVideos);
+        localStorage.setItem("video_lectures", JSON.stringify(fetchedVideos));
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, path);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Keep selected video synchronized with real-time updates from videos array (e.g., comments)
+  useEffect(() => {
+    if (selectedVideo) {
+      const updated = videos.find(v => v.id === selectedVideo.id);
+      if (updated) {
+        setSelectedVideo(updated);
+      }
+    } else if (videos.length > 0) {
       setSelectedVideo(videos[0]);
     }
-  }, [videos, selectedVideo]);
+  }, [videos]);
 
   // Save to local storage on changes
   const saveVideos = (updated: VideoLecture[]) => {
@@ -131,7 +176,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
   };
 
   // Add new video (Admin Only)
-  const handleAddVideoSubmit = (e: React.FormEvent) => {
+  const handleAddVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
@@ -166,33 +211,40 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       comments: []
     };
 
-    const updatedVideos = [newLecture, ...videos];
-    saveVideos(updatedVideos);
-    setSelectedVideo(newLecture);
-    
-    // Reset Form
-    setNewTitle("");
-    setNewDescription("");
-    setNewUrl("");
-    setIsAddingVideo(false);
+    const path = `videos/${newLecture.id}`;
+    try {
+      await setDoc(doc(db, "videos", newLecture.id), newLecture);
+      setSelectedVideo(newLecture);
+      
+      // Reset Form
+      setNewTitle("");
+      setNewDescription("");
+      setNewUrl("");
+      setIsAddingVideo(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    }
   };
 
   // Delete Video (Admin Only)
-  const handleDeleteVideo = (videoId: string, e: React.MouseEvent) => {
+  const handleDeleteVideo = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const msg = lang === "bn" ? "আপনি কি এই ভিডিও লেকচারটি মুছে ফেলতে চান?" : "Are you sure you want to delete this video lecture?";
     if (!window.confirm(msg)) return;
 
-    const updated = videos.filter(v => v.id !== videoId);
-    saveVideos(updated);
-
-    if (selectedVideo?.id === videoId) {
-      setSelectedVideo(updated.length > 0 ? updated[0] : null);
+    const path = `videos/${videoId}`;
+    try {
+      await deleteDoc(doc(db, "videos", videoId));
+      if (selectedVideo?.id === videoId) {
+        setSelectedVideo(null);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   };
 
   // Add Comment (All Logged-in Students & Admins)
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVideo || !newCommentText.trim()) return;
 
@@ -206,49 +258,34 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       timestamp: new Date().toISOString()
     };
 
-    const updatedVideos = videos.map(vid => {
-      if (vid.id === selectedVideo.id) {
-        const updatedComments = [...vid.comments, newComment];
-        // Also update selected video state
-        setSelectedVideo({
-          ...vid,
-          comments: updatedComments
-        });
-        return {
-          ...vid,
-          comments: updatedComments
-        };
-      }
-      return vid;
-    });
-
-    saveVideos(updatedVideos);
-    setNewCommentText("");
+    const updatedComments = [...selectedVideo.comments, newComment];
+    const path = `videos/${selectedVideo.id}`;
+    try {
+      await updateDoc(doc(db, "videos", selectedVideo.id), {
+        comments: updatedComments
+      });
+      setNewCommentText("");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
   };
 
   // Delete Comment (Admin can delete all, Student can delete their own)
-  const handleDeleteComment = (commentId: string) => {
+  const handleDeleteComment = async (commentId: string) => {
     if (!selectedVideo) return;
     
     const msg = lang === "bn" ? "আপনি কি এই মন্তব্যটি মুছে ফেলতে চান?" : "Are you sure you want to delete this comment?";
     if (!window.confirm(msg)) return;
 
-    const updatedVideos = videos.map(vid => {
-      if (vid.id === selectedVideo.id) {
-        const updatedComments = vid.comments.filter(c => c.id !== commentId);
-        setSelectedVideo({
-          ...vid,
-          comments: updatedComments
-        });
-        return {
-          ...vid,
-          comments: updatedComments
-        };
-      }
-      return vid;
-    });
-
-    saveVideos(updatedVideos);
+    const updatedComments = selectedVideo.comments.filter(c => c.id !== commentId);
+    const path = `videos/${selectedVideo.id}`;
+    try {
+      await updateDoc(doc(db, "videos", selectedVideo.id), {
+        comments: updatedComments
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
   };
 
   const containerVariants = {

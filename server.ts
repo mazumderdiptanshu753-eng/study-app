@@ -4,22 +4,8 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { initializeApp } from "firebase/app";
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  setDoc, 
-  addDoc, 
-  deleteDoc,
-  query, 
-  where, 
-  orderBy,
-  updateDoc,
-  arrayUnion
-} from "firebase/firestore";
+import admin from "firebase-admin";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 dotenv.config();
 
@@ -91,12 +77,14 @@ interface Database {
   forumPosts?: ForumPost[];
   liveClasses?: LiveClass[];
   govtJobNotes?: any[];
+  aiPdfNotes?: any[];
 }
 
 // Default DB State
 let db: Database = {
   users: [],
   activityLogs: [],
+  aiPdfNotes: [],
   chatMessages: [
     {
       id: "welcome-demo",
@@ -119,6 +107,7 @@ if (fs.existsSync(DB_FILE)) {
     if (parsed.users) db.users = parsed.users;
     if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
     if (parsed.activityLogs) db.activityLogs = parsed.activityLogs;
+    if (parsed.aiPdfNotes) db.aiPdfNotes = parsed.aiPdfNotes;
   } catch (error) {
     console.error("Error loading db.json:", error);
   }
@@ -135,20 +124,31 @@ function saveDB() {
 
 // Initialize Firebase Firestore using the config file
 let firestore: any = null;
-try {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    const firebaseApp = initializeApp(firebaseConfig);
-    const dbId = firebaseConfig.firestoreDatabaseId || "(default)";
-    firestore = getFirestore(firebaseApp, dbId);
-    console.log(`Firebase Firestore initialized successfully with database: ${dbId}`);
-  } else {
-    console.warn("firebase-applet-config.json not found, using local JSON fallback");
+(async () => {
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const firebaseApp = admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+      const dbId = firebaseConfig.firestoreDatabaseId || "(default)";
+      const tempFirestore = getFirestore(firebaseApp, dbId);
+      
+      // Proactively verify Firestore connection & IAM permissions at startup
+      console.log(`Testing Firestore connection to database: ${dbId}...`);
+      await tempFirestore.collection("users").limit(1).get();
+      
+      firestore = tempFirestore;
+      console.log(`Firebase Firestore initialized and verified successfully! Using Firestore database: ${dbId}`);
+    } else {
+      console.warn("firebase-applet-config.json not found, using local JSON fallback");
+    }
+  } catch (error: any) {
+    console.warn("Firestore connection test failed (likely due to cross-project IAM restrictions). Falling back to local JSON database. Error:", error.message || error);
+    firestore = null;
   }
-} catch (error) {
-  console.error("Failed to initialize Firebase Firestore:", error);
-}
+})();
 
 async function withRetry(operation: any, maxRetries = 3) {
 
@@ -945,9 +945,8 @@ app.get("/api/chat/messages", async (req: express.Request, res: express.Response
   
   try {
     if (firestore) {
-      const chatCol = collection(firestore, "chatMessages");
-      const snapshot = await getDocs(chatCol);
-      let messages = snapshot.docs.map(doc => doc.data() as ChatMessage);
+      const snapshot = await firestore.collection("chatMessages").get();
+      let messages = snapshot.docs.map((doc: any) => doc.data() as ChatMessage);
       
       if (role !== "Admin") {
         if (!email) {
@@ -973,8 +972,7 @@ app.get("/api/chat/messages", async (req: express.Request, res: express.Response
           studentEmail: studentEmail,
           studentName: name as string
         };
-        const msgDocRef = doc(chatCol, welcomeMsg.id);
-        await setDoc(msgDocRef, welcomeMsg);
+        await firestore.collection("chatMessages").doc(welcomeMsg.id).set(welcomeMsg);
         return res.json([welcomeMsg]);
       }
 
@@ -1036,9 +1034,7 @@ app.post("/api/chat/messages", async (req: express.Request, res: express.Respons
 
   try {
     if (firestore) {
-      const chatCol = collection(firestore, "chatMessages");
-      const msgDocRef = doc(chatCol, newMsg.id);
-      await setDoc(msgDocRef, newMsg);
+      await firestore.collection("chatMessages").doc(newMsg.id).set(newMsg);
       res.status(201).json(newMsg);
     } else {
       db.chatMessages.push(newMsg);
@@ -1084,9 +1080,7 @@ Since you are the administrator, write a helpful, friendly, and brief response (
     };
 
     if (firestore) {
-      const chatCol = collection(firestore, "chatMessages");
-      const msgDocRef = doc(chatCol, aiMsg.id);
-      await setDoc(msgDocRef, aiMsg);
+      await firestore.collection("chatMessages").doc(aiMsg.id).set(aiMsg);
     } else {
       db.chatMessages.push(aiMsg);
       saveDB();
@@ -1107,9 +1101,7 @@ Since you are the administrator, write a helpful, friendly, and brief response (
     };
     
     if (firestore) {
-      const chatCol = collection(firestore, "chatMessages");
-      const msgDocRef = doc(chatCol, fallbackMsg.id);
-      await setDoc(msgDocRef, fallbackMsg);
+      await firestore.collection("chatMessages").doc(fallbackMsg.id).set(fallbackMsg);
     } else {
       db.chatMessages.push(fallbackMsg);
       saveDB();
@@ -1123,9 +1115,8 @@ Since you are the administrator, write a helpful, friendly, and brief response (
 app.get("/api/forum/posts", async (req: express.Request, res: express.Response) => {
   try {
     if (firestore) {
-      const postsCol = collection(firestore, "forumPosts");
-      const snapshot = await getDocs(postsCol);
-      let postsList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("forumPosts").get();
+      let postsList = snapshot.docs.map((doc: any) => doc.data());
       postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       res.json(postsList);
     } else {
@@ -1150,8 +1141,7 @@ app.post("/api/forum/posts", async (req: express.Request, res: express.Response)
 
   try {
     if (firestore) {
-      const postDocRef = doc(firestore, "forumPosts", post.id);
-      await setDoc(postDocRef, post);
+      await firestore.collection("forumPosts").doc(post.id).set(post);
       res.status(201).json(post);
     } else {
       if (!db.forumPosts) db.forumPosts = [];
@@ -1175,13 +1165,13 @@ app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: e
 
   try {
     if (firestore) {
-      const postDocRef = doc(firestore, "forumPosts", postId);
-      const postSnap = await getDoc(postDocRef);
-      if (postSnap.exists()) {
-        const postData = postSnap.data();
+      const postDocRef = firestore.collection("forumPosts").doc(postId);
+      const postSnap = await postDocRef.get();
+      if (postSnap.exists) {
+        const postData = postSnap.data() || {};
         const replies = postData.replies || [];
         replies.push(reply);
-        await setDoc(postDocRef, { replies }, { merge: true });
+        await postDocRef.set({ replies }, { merge: true });
         res.status(201).json(reply);
       } else {
         res.status(404).json({ error: "Post not found" });
@@ -1209,9 +1199,8 @@ app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: e
 app.get("/api/live-classes", async (req: express.Request, res: express.Response) => {
   try {
     if (firestore) {
-      const classesCol = collection(firestore, "liveClasses");
-      const snapshot = await getDocs(classesCol);
-      let classesList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("liveClasses").get();
+      let classesList = snapshot.docs.map((doc: any) => doc.data());
       classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
       res.json(classesList);
     } else {
@@ -1235,8 +1224,7 @@ app.post("/api/live-classes", async (req: express.Request, res: express.Response
 
   try {
     if (firestore) {
-      const classDocRef = doc(firestore, "liveClasses", cls.id);
-      await setDoc(classDocRef, cls);
+      await firestore.collection("liveClasses").doc(cls.id).set(cls);
       res.status(201).json(cls);
     } else {
       if (!db.liveClasses) db.liveClasses = [];
@@ -1256,8 +1244,7 @@ app.patch("/api/live-classes/:id", async (req: express.Request, res: express.Res
   
   try {
     if (firestore) {
-      const classDocRef = doc(firestore, "liveClasses", id);
-      await setDoc(classDocRef, { status }, { merge: true });
+      await firestore.collection("liveClasses").doc(id).set({ status }, { merge: true });
       res.json({ success: true });
     } else {
       if (!db.liveClasses) db.liveClasses = [];
@@ -1281,8 +1268,7 @@ app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Re
   
   try {
     if (firestore) {
-      const classDocRef = doc(firestore, "liveClasses", id);
-      await deleteDoc(classDocRef);
+      await firestore.collection("liveClasses").doc(id).delete();
       res.json({ success: true });
     } else {
       if (!db.liveClasses) db.liveClasses = [];
@@ -1300,9 +1286,8 @@ app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Re
 app.get("/api/users", async (req: express.Request, res: express.Response) => {
   try {
     if (firestore) {
-      const usersCol = collection(firestore, "users");
-      const snapshot = await getDocs(usersCol);
-      const usersList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("users").get();
+      const usersList = snapshot.docs.map((doc: any) => doc.data());
       res.json(usersList);
     } else {
       res.json(db.users);
@@ -1320,13 +1305,12 @@ app.post("/api/users", async (req: express.Request, res: express.Response): Prom
   try {
     if (firestore) {
       const emailKey = user.email.trim().toLowerCase();
-      const userDocRef = doc(firestore, "users", emailKey);
-      await setDoc(userDocRef, user, { merge: true });
+      const userDocRef = firestore.collection("users").doc(emailKey);
+      await userDocRef.set(user, { merge: true });
       
       // Fetch updated list of all users to return
-      const usersCol = collection(firestore, "users");
-      const snapshot = await getDocs(usersCol);
-      const usersList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("users").get();
+      const usersList = snapshot.docs.map((doc: any) => doc.data());
       res.json(usersList);
     } else {
       const existing = db.users.find(u => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
@@ -1351,13 +1335,11 @@ app.delete("/api/users", async (req: express.Request, res: express.Response): Pr
   try {
     if (firestore) {
       const emailKey = email.trim().toLowerCase();
-      const userDocRef = doc(firestore, "users", emailKey);
-      await deleteDoc(userDocRef);
+      await firestore.collection("users").doc(emailKey).delete();
       
       // Fetch updated list
-      const usersCol = collection(firestore, "users");
-      const snapshot = await getDocs(usersCol);
-      const usersList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("users").get();
+      const usersList = snapshot.docs.map((doc: any) => doc.data());
       res.json(usersList);
     } else {
       const index = db.users.findIndex(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
@@ -1377,9 +1359,8 @@ app.delete("/api/users", async (req: express.Request, res: express.Response): Pr
 app.get("/api/activity-logs", async (req: express.Request, res: express.Response) => {
   try {
     if (firestore) {
-      const logsCol = collection(firestore, "activityLogs");
-      const snapshot = await getDocs(logsCol);
-      let logsList = snapshot.docs.map(doc => doc.data());
+      const snapshot = await firestore.collection("activityLogs").get();
+      let logsList = snapshot.docs.map((doc: any) => doc.data());
       logsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       res.json(logsList);
     } else {
@@ -1400,8 +1381,7 @@ app.post("/api/activity-logs", async (req: express.Request, res: express.Respons
 
   try {
     if (firestore) {
-      const logDocRef = doc(firestore, "activityLogs", log.id);
-      await setDoc(logDocRef, log);
+      await firestore.collection("activityLogs").doc(log.id).set(log);
       res.status(201).json(log);
     } else {
       if (!db.activityLogs) db.activityLogs = [];
@@ -1420,13 +1400,13 @@ app.get("/api/govt-job-notes", async (req: express.Request, res: express.Respons
   try {
     const { subject } = req.query;
     if (firestore) {
-      const notesCol = collection(firestore, "govtJobNotes");
-      let q = query(notesCol, orderBy("timestamp", "desc"));
+      let q: any = firestore.collection("govtJobNotes");
       if (subject) {
-        q = query(notesCol, where("subject", "==", subject), orderBy("timestamp", "desc"));
+        q = q.where("subject", "==", subject);
       }
-      const snapshot = await getDocs(q);
-      const notesList = snapshot.docs.map(doc => doc.data());
+      q = q.orderBy("timestamp", "desc");
+      const snapshot = await q.get();
+      const notesList = snapshot.docs.map((doc: any) => doc.data());
       res.json(notesList);
     } else {
       let notes = db.govtJobNotes || [];
@@ -1452,8 +1432,7 @@ app.post("/api/govt-job-notes", async (req: express.Request, res: express.Respon
 
   try {
     if (firestore) {
-      const noteDocRef = doc(firestore, "govtJobNotes", note.id);
-      await setDoc(noteDocRef, note);
+      await firestore.collection("govtJobNotes").doc(note.id).set(note);
       res.status(201).json(note);
     } else {
       if (!db.govtJobNotes) db.govtJobNotes = [];
@@ -1479,11 +1458,11 @@ app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: e
 
   try {
     if (firestore) {
-      const noteRef = doc(firestore, "govtJobNotes", id);
-      const noteSnap = await getDoc(noteRef);
-      if (noteSnap.exists()) {
-        await updateDoc(noteRef, {
-          comments: arrayUnion(comment)
+      const noteRef = firestore.collection("govtJobNotes").doc(id);
+      const noteSnap = await noteRef.get();
+      if (noteSnap.exists) {
+        await noteRef.update({
+          comments: FieldValue.arrayUnion(comment)
         });
         res.status(201).json(comment);
       } else {
@@ -1511,8 +1490,7 @@ app.delete("/api/govt-job-notes/:id", async (req: express.Request, res: express.
   const { id } = req.params;
   try {
     if (firestore) {
-      const noteDocRef = doc(firestore, "govtJobNotes", id);
-      await deleteDoc(noteDocRef);
+      await firestore.collection("govtJobNotes").doc(id).delete();
       res.json({ success: true });
     } else {
       if (!db.govtJobNotes) db.govtJobNotes = [];
@@ -1525,6 +1503,397 @@ app.delete("/api/govt-job-notes/:id", async (req: express.Request, res: express.
     res.status(500).json({ error: error.message });
   }
 });
+
+// --- AI PDF Notes Endpoints ---
+
+// Monthly incrementing helper
+function getNextMonthName(existingNotes: any[]): string {
+  if (existingNotes.length === 0) {
+    return "July 2026";
+  }
+  
+  const months = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+  
+  let latestYear = 2026;
+  let latestMonthIndex = 6; // July
+  
+  for (const note of existingNotes) {
+    if (note.month) {
+      const parts = note.month.split(" ");
+      if (parts.length === 2) {
+        const mIndex = months.indexOf(parts[0]);
+        const year = parseInt(parts[1], 10);
+        if (mIndex !== -1 && !isNaN(year)) {
+          if (year > latestYear || (year === latestYear && mIndex > latestMonthIndex)) {
+            latestYear = year;
+            latestMonthIndex = mIndex;
+          }
+        }
+      }
+    }
+  }
+  
+  latestMonthIndex++;
+  if (latestMonthIndex >= 12) {
+    latestMonthIndex = 0;
+    latestYear++;
+  }
+  
+  return `${months[latestMonthIndex]} ${latestYear}`;
+}
+
+app.get("/api/ai-pdf-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const { subject } = req.query;
+    let notesList = [];
+    if (firestore) {
+      let q: any = firestore.collection("aiPdfNotes");
+      if (subject) {
+        q = q.where("subject", "==", subject);
+      }
+      const snapshot = await q.get();
+      notesList = snapshot.docs.map((doc: any) => doc.data());
+    } else {
+      notesList = db.aiPdfNotes || [];
+      if (subject) {
+        notesList = notesList.filter((n: any) => n.subject === subject);
+      }
+    }
+    
+    notesList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(notesList);
+  } catch (error: any) {
+    console.error("Error fetching AI PDF notes:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/ai-pdf-notes/generate", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const { subject } = req.body;
+    if (!subject) {
+      return res.status(400).json({ error: "Subject is required." });
+    }
+
+    let existingNotes = [];
+    if (firestore) {
+      const snapshot = await firestore.collection("aiPdfNotes").where("subject", "==", subject).get();
+      existingNotes = snapshot.docs.map((doc: any) => doc.data());
+    } else {
+      existingNotes = (db.aiPdfNotes || []).filter((n: any) => n.subject === subject);
+    }
+
+    const nextMonth = getNextMonthName(existingNotes);
+
+    const subjectNameMap: any = {
+      math: "Mathematics & Quantitative Aptitude (Shortcuts, Formulas, and MCQs)",
+      reasoning: "Reasoning & Mental Ability",
+      english: "English Grammar & Comprehension",
+      science: "General Science (Physics, Chemistry, Biology)",
+      history: "History (Indian Subcontinent History, BCS & WB specific)",
+      geography: "Geography, Environment & Disaster Management",
+      polity: "Constitution & Government Policy (Polity)",
+      economics: "Economics & Development Planning"
+    };
+    const subjectName = subjectNameMap[subject] || subject;
+
+    const ai = getGeminiClient();
+    const prompt = `You are an expert Government Job Preparation Coach and Content Designer for exams like BCS, Bank Exams, Primary, PSC, SSC in West Bengal and Bangladesh. 
+Generate a comprehensive, high-yield Monthly Study Guide & Notes in PDF style.
+
+Subject: ${subjectName}
+Release Month: ${nextMonth}
+
+Ensure the content is detailed, engaging, and covers extremely important topics, short tricks, formulas, or high-yield facts. 
+Write primarily in Bengali, with English translations/terms where appropriate (especially for Math, Science, English, and Economics) so students find it highly practical.
+
+The response MUST match the JSON schema exactly and be comprehensive. Make the 'theoryContent' long and thorough (around 500-1000 words). Include at least 5 high-yield multiple choice questions (MCQs) in the 'mcqs' section with proper explanation of the answers.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            introduction: { type: Type.STRING },
+            keyTopics: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            theoryContent: { type: Type.STRING },
+            mcqs: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  correctAnswer: { type: Type.STRING },
+                  explanation: { type: Type.STRING }
+                },
+                required: ["question", "options", "correctAnswer", "explanation"]
+              }
+            }
+          },
+          required: ["title", "introduction", "keyTopics", "theoryContent", "mcqs"]
+        }
+      }
+    });
+
+    const parsedData = JSON.parse(response.text.trim());
+    
+    const newPdfNote = {
+      id: `pdfn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      subject,
+      title: parsedData.title || `${subjectName} Monthly Study Guide`,
+      introduction: parsedData.introduction || "",
+      keyTopics: parsedData.keyTopics || [],
+      theoryContent: parsedData.theoryContent || "",
+      mcqs: parsedData.mcqs || [],
+      month: nextMonth,
+      timestamp: new Date().toISOString()
+    };
+
+    if (firestore) {
+      await firestore.collection("aiPdfNotes").doc(newPdfNote.id).set(newPdfNote);
+    } else {
+      if (!db.aiPdfNotes) db.aiPdfNotes = [];
+      db.aiPdfNotes.push(newPdfNote);
+      saveDB();
+    }
+
+    res.status(201).json(newPdfNote);
+  } catch (error: any) {
+    console.error("Error generating AI PDF note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/ai-pdf-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    if (firestore) {
+      await firestore.collection("aiPdfNotes").doc(id).delete();
+      res.json({ success: true });
+    } else {
+      if (!db.aiPdfNotes) db.aiPdfNotes = [];
+      db.aiPdfNotes = db.aiPdfNotes.filter(n => n.id !== id);
+      saveDB();
+      res.json({ success: true });
+    }
+  } catch (error: any) {
+    console.error("Error deleting AI PDF note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Database Seeding Logic for AI PDF Notes
+async function seedAiPdfNotes() {
+  try {
+    let count = 0;
+    if (firestore) {
+      const snap = await firestore.collection("aiPdfNotes").get();
+      count = snap.size;
+    } else {
+      if (!db.aiPdfNotes) db.aiPdfNotes = [];
+      count = db.aiPdfNotes.length;
+    }
+
+    if (count > 0) {
+      console.log("AI PDF Notes already seeded.");
+      return;
+    }
+
+    const seedData = [
+      {
+        id: "pdfn-seed-math",
+        subject: "math",
+        title: "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
+        introduction: "এই গাইডটিতে শতকরা ও অনুপাতের জটিল অংকগুলো মাত্র ৫-১০ সেকেন্ডে সমাধান করার শর্টকাট টেকনিক ও গুরুত্বপূর্ণ প্রশ্ন আলোচনা করা হয়েছে।",
+        keyTopics: ["Percentage Rules", "Ratio & Proportion", "BCS Prep Hacks"],
+        theoryContent: "### ১. শতকরা নির্নয়ের ম্যাজিক ট্রিক (Percentage Shortcuts):\nশতকরা অংকগুলো সহজে করার জন্য ভগ্নাংশে রূপান্তর করা শিখতে হবে।\n* ২০% = ১/৫\n* ২৫% = ১/৪\n* ৫০% = ১/২\n\n**উদাহরণ ১:** চালের মূল্য ২০% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচের কোনো পরিবর্তন হবে না?\n* **শর্টকাট সূত্র:** (R / (100 + R)) * 100\n* সমাধান: (২০ / ১২০) * ১০০ = ১৬.৬৭%\n\n### ২. অনুপাত ও অংশীদারিত্ব (Ratio & Proportion Hacks):\nযদি A:B = 2:3 এবং B:C = 4:5 হয়, তবে A:B:C = ?\n* **শর্টকাট 'দ' পদ্ধতি:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * উত্তর: 8:12:15",
+        mcqs: [
+          {
+            question: "চালের মূল্য ২৫% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচ অপরিবর্তিত থাকবে?",
+            options: ["২০%", "২৫%", "১৬.৬৭%", "১৫%"],
+            correctAnswer: "২০%",
+            explanation: "সূত্র: (R / (100+R)) * 100 => (25/125)*100 = 20%."
+          },
+          {
+            question: "যদি A:B = 3:4 এবং B:C = 5:6 হয়, তবে A:B:C কত?",
+            options: ["15:20:24", "15:24:20", "3:5:6", "9:12:16"],
+            correctAnswer: "15:20:24",
+            explanation: "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. সুতরাং অনুপাতটি ১৫:২০:২৪।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-reasoning",
+        subject: "reasoning",
+        title: "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
+        introduction: "এই গাইডটিতে রিজনিং বা মানসিক দক্ষতার সবচেয়ে গুরুত্বপূর্ণ টপিক কোডিং-ডিকোডিং এবং দিক নির্ণয় সংক্রান্ত শর্টকাট ট্রিক্স দেওয়া হলো।",
+        keyTopics: ["Alphabet Series Codes", "Direction & Distances", "Visual Analogy"],
+        theoryContent: "### ১. কোডিং-ডিকোডিং সহজ করার নিয়ম:\nইংরেজি বর্ণমালার অবস্থান সহজে মনে রাখার জন্য **EJOTY** সূত্র ব্যবহার করুন:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n**উদাহরণ:** যদি CAT কে ২৫ লেখা হয়, তবে DOG কে কত লেখা হবে?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### ২. দিক নির্ণয় (Direction Sense):\nসব সময় নিজের ডানদিককে পূর্ব (East), বামদিককে পশ্চিম (West), সামনের দিককে উত্তর (North), এবং পিছনের দিককে দক্ষিণ (South) হিসেবে ধরে নিন। পিথাগোরাসের উপপাদ্য ( can be applied: অতিভুজ² = লম্ব² + ভূমি²) ব্যবহার করে দূরত্ব বের করুন।",
+        mcqs: [
+          {
+            question: "এক ব্যক্তি উত্তর দিকে ৪ কিমি হাঁটার পর ডানদিকে ঘুরে ৩ কিমি হাঁটলো। সে শুরুর স্থান থেকে এখন কত দূরে আছে?",
+            options: ["৫ কিমি", "৭ কিমি", "১ কিমি", "১২ কিমি"],
+            correctAnswer: "৫ কিমি",
+            explanation: "পিথাগোরাসের উপপাদ্য অনুসারে, দূরত্ব = √(৪² + ৩²) = √(১৬ + ৯) = √২৫ = ৫ কিমি।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-english",
+        subject: "english",
+        title: "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
+        introduction: "চাকরির পরীক্ষায় ইংরেজিতে সবচেয়ে বেশি আসা Subject-Verb Agreement এর জটিল নিয়মগুলো বাংলায় সহজ ব্যাখ্যাসহ শিখুন।",
+        keyTopics: ["Collective Noun Rules", "Either/Or, Neither/Nor Cases", "Prepositional Phrases"],
+        theoryContent: "### Rule 1: Collective Nouns\nCollective Noun সাধারণত singular verb গ্রহণ করে। কিন্তু তারা যদি বিভক্ত মতবাদ প্রকাশ করে, তবে plural verb হয়।\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or বা Neither... nor দ্বারা দুটি Subject যুক্ত থাকলে, verb সর্বদা দ্বিতীয়/নিকটবর্তী Subject অনুয়ায়ী পরিবর্তিত হয়।\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, তাই are হয়েছে)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, তাই is হয়েছে)",
+        mcqs: [
+          {
+            question: "Identify the correct sentence:",
+            options: [
+              "Many a boy has done his homework.",
+              "Many a boy have done their homework.",
+              "Many a boys have done his homework.",
+              "Many boys has done their homework."
+            ],
+            correctAnswer: "Many a boy has done his homework.",
+            explanation: "'Many a' এর পর singular noun এবং singular verb বসে। তাই 'Many a boy has' সঠিক।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-science",
+        subject: "science",
+        title: "July 2026 - General Science: Physics Laws & Human Physiology Basics",
+        introduction: "পদার্থবিজ্ঞানের প্রধান সূত্রাবলী এবং জীববিজ্ঞানের মানবদেহ সম্পর্কিত অতি গুরুত্বপূর্ণ প্রশ্ন ও উত্তর।",
+        keyTopics: ["Newton's Laws of Motion", "Human Blood & Circulation", "Optical Instruments"],
+        theoryContent: "### ১. নিউটনের গতিসূত্র (Newton's Laws of Motion):\n* **প্রথম সূত্র:** বাহ্যিক বল প্রয়োগ না করলে স্থির বস্তু চিরকাল স্থির এবং গতিশীল বস্তু চিরকাল সুষম গতিতে চলতে থাকবে (জড়তার ধারণা)।\n* **দ্বিতীয় সূত্র:** বস্তুর ভরবেগের পরিবর্তনের হার তার উপর প্রযুক্ত বলের সমানুপাতিক (F = ma)।\n* **তৃতীয় সূত্র:** প্রত্যেক ক্রিয়ারই একটি সমান ও বিপরীত প্রতিক্রিয়া আছে।\n\n### ২. মানব রক্ত সংবহন (Human Blood Group):\n* **সর্বজনীন দাতা (Universal Donor):** O Negative (O-)\n* **সর্বজনীন গ্রহীতা (Universal Recipient):** AB Positive (AB+)",
+        mcqs: [
+          {
+            question: "কোন রক্ত গ্রুপকে সর্বজনীন দাতা বলা হয়?",
+            options: ["O-", "O+", "AB+", "A-"],
+            correctAnswer: "O-",
+            explanation: "O Negative রক্তের গ্রুপে কোনো অ্যান্টিজেন থাকে না, তাই এটি যেকোনো রোগীকে দেওয়া যায়।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-history",
+        subject: "history",
+        title: "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
+        introduction: "প্রাচীন বাংলার শাসন ব্যবস্থা এবং সিপাহী বিদ্রোহ থেকে শুরু করে ১৯৪৭ সাল পর্যন্ত স্বাধীনতা সংগ্রামের সালভিত্তিক সারসংক্ষেপ।",
+        keyTopics: ["Mauryan & Gupta Rule", "Mughal Bengal", "Indian Independence Movement"],
+        theoryContent: "### ১. প্রাচীন বাংলার ইতিহাস:\n* প্রথম স্বাধীন নরপতি বা রাজা ছিলেন **শশাঙ্ক** (যার রাজধানী ছিল কর্ণসুবর্ণ)।\n* পাল বংশের প্রতিষ্ঠাতা ছিলেন **গোপাল**, যিনি বাংলায় প্রথম গণতান্ত্রিক পদ্ধতিতে নির্বাচিত রাজা ছিলেন।\n\n### ২. ভারতের স্বাধীনতা সংগ্রাম (১৮৫৭ - ১৯৪৭):\n* **১৮৫৭:** সিপাহী বিদ্রোহ (মঙ্গল পান্ডে প্রথম শহীদ হন)।\n* **১৯০৫:** বঙ্গভঙ্গ (লর্ড কার্জন দ্বারা)।\n* **১৯১১:** বঙ্গভঙ্গ রদ (লর্ড হার্ডিঞ্জ দ্বারা)।\n* **১৯৪২:** ভারত ছাড়ো আন্দোলন।\n* **১৯৪৭:** ভারত ও পাকিস্তানের স্বাধীনতা লাভ।",
+        mcqs: [
+          {
+            question: "বাংলার প্রথম স্বাধীন ও সার্বভৌম রাজা কে ছিলেন?",
+            options: ["শশাঙ্ক", "গোপাল", "ধর্মপাল", "লক্ষণ সেন"],
+            correctAnswer: "শশাঙ্ক",
+            explanation: "রাজা শশাঙ্ক সপ্তম শতাব্দীর শুরুতে প্রাচীন বাংলার গৌড় রাজ্যের প্রথম স্বাধীন ও সার্বভৌম শাসক ছিলেন।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-geography",
+        subject: "geography",
+        title: "July 2026 - Geography: Physical Geography of Bengal & River Systems",
+        introduction: "বাংলাদেশ ও ভারতের ভৌগোলিক অবস্থান, ভূপ্রকৃতি, নদনদী এবং জলবায়ু পরিবর্তন সংক্রান্ত গুরুত্বপূর্ণ তথ্যাবলী।",
+        keyTopics: ["Geographical Boundaries", "River Systems of Bengal", "Natural Disasters"],
+        theoryContent: "### ১. বাংলার ভৌগোলিক অবস্থান ও সীমানা:\n* বাংলার উপর দিয়ে **কর্কটক্রান্তি রেখা (Tropic of Cancer)** অতিবাহিত হয়েছে।\n* পৃথিবীর দীর্ঘতম সমুদ্র সৈকত **কক্সবাজার** এবং বৃহত্তম ম্যানগ্রোভ বন **সুন্দরবন** বাংলায় অবস্থিত।\n\n### ২. নদনদী ও উপনদী:\n* পদ্মা নদী ভারতে **গঙ্গা** নামে পরিচিত। এটি চাঁপাইনবাবগঞ্জ দিয়ে বাংলাদেশে প্রবেশ করেছে।\n* ব্রহ্মপুত্র নদ কুড়িগ্রাম জেলার মধ্য দিয়ে বাংলাদেশে প্রবেশ করে পরবর্তীতে যমুনা নামে প্রবাহিত হয়েছে।",
+        mcqs: [
+          {
+            question: "কর্কটক্রান্তি রেখা বাংলার কোন অংশের উপর দিয়ে গিয়েছে?",
+            options: ["ঠিক মাঝখান দিয়ে", "উত্তরাঞ্চল দিয়ে", "দক্ষিণাঞ্চল দিয়ে", "সীমান্তবর্তী এলাকা দিয়ে"],
+            correctAnswer: "ঠিক মাঝখান দিয়ে",
+            explanation: "২৩.৫ ডিগ্রি উত্তর অক্ষাংশ বা কর্কটক্রান্তি রেখা বাংলার (বাংলাদেশ ও পশ্চিমবঙ্গ) প্রায় মাঝখান দিয়ে প্রবাহিত হয়েছে।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-polity",
+        subject: "polity",
+        title: "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
+        introduction: "সংবিধানের প্রধান বৈশিষ্ট্যসমূহ, মৌলিক অধিকার, এবং সরকারি নীতি নির্ধারণের মূল উৎসসমূহ সহজ ভাষায় আলোচনা।",
+        keyTopics: ["Preamble & Structure", "Fundamental Rights", "Directive Principles"],
+        theoryContent: "### ১. সংবিধানের কাঠামো:\n* সংবিধান হলো রাষ্ট্রের সর্বোচ্চ আইন।\n* মূল সংবিধানে নাগরিকদের মৌলিক অধিকারগুলো সুনির্দিষ্টভাবে বর্ণনা করা থাকে।\n\n### ২. মৌলিক অধিকারসমূহ (Fundamental Rights):\n* আইন বা আদালতের মাধ্যমে মৌলিক অধিকার প্রয়োগ করা যায়।\n* রাষ্ট্রের জরুরি অবস্থায় নাগরিক অধিকার সাময়িকভাবে স্থগিত করা হতে পারে।",
+        mcqs: [
+          {
+            question: "কোনো দেশের সংবিধানের প্রধান কাজ কী?",
+            options: [
+              "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+              " his/her basic tax",
+              "বিদেশি সম্পর্ক নিয়ন্ত্রণ করা",
+              "বিচারকদের বেতন নির্ধারণ করা"
+            ],
+            correctAnswer: "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+            explanation: "সংবিধান রাষ্ট্রের মৌলিক আইন যা সরকারের কাঠামো ও নাগরিকদের অধিকারের গ্যারান্টি দেয়।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: "pdfn-seed-economics",
+        subject: "economics",
+        title: "July 2026 - Economics: National Income & Five-Year Planning Analysis",
+        introduction: "জিডিপি, জিএনপি এবং পঞ্চবার্ষিক পরিকল্পনা ও বাজেট সংক্রান্ত অর্থনৈতিক জটিল শব্দসমূহের সহজ বিশ্লেষণ।",
+        keyTopics: ["National Income (GDP, GNP)", "Inflation & Banking", "Five-Year Plans"],
+        theoryContent: "### ১. জাতীয় আয় পরিমাপের উপাদান:\n* **GDP (Gross Domestic Product):** একটি দেশের ভৌগোলিক সীমানার ভিতরে উৎপাদিত মোট পণ্য ও সেবার মূল্য।\n* **GNP (Gross National Product):** দেশের নাগরিকদের উৎপাদিত মোট পণ্য ও সেবা (দেশ এবং বিদেশে)।\n\n### ২. মুদ্রাস্ফীতি (Inflation):\n* বাজারে মুদ্রার সরবরাহ বেড়ে গেলে পণ্যের দাম বাড়ে এবং টাকার মান কমে যায়, একে মুদ্রাস্ফীতি বলে।",
+        mcqs: [
+          {
+            question: "GDP এবং GNP এর মধ্যে প্রধান পার্থক্য কী?",
+            options: [
+              "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
+              "ট্যাক্স ও ভ্যাট সংক্রান্ত হিসাব",
+              "আমদানি ও রপ্তানির অনুপাত",
+              "কোনো পার্থক্য নেই"
+            ],
+            correctAnswer: "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
+            explanation: "GDP গণনা করা হয় ভৌগোলিক সীমানার ভেতরের উৎপাদনের ওপর ভিত্তি করে, আর GNP দেশের সকল নাগরিকের মোট আয়ের ওপর ভিত্তি করে।"
+          }
+        ],
+        month: "July 2026",
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    if (firestore) {
+      for (const note of seedData) {
+        await firestore.collection("aiPdfNotes").doc(note.id).set(note);
+      }
+    } else {
+      db.aiPdfNotes = seedData;
+      saveDB();
+    }
+    console.log("AI PDF Notes successfully seeded in database!");
+  } catch (error) {
+    console.error("Error seeding AI PDF notes:", error);
+  }
+}
 
 // --- App Updates API ---
 app.get("/api/updates/check", (req: express.Request, res: express.Response) => {
@@ -1588,6 +1957,13 @@ async function startServer() {
       res.setHeader('Expires', '0');
       res.sendFile(path.join(distPath, "index.html"));
     });
+  }
+
+  // Seed AI PDF Notes
+  try {
+    await seedAiPdfNotes();
+  } catch (err) {
+    console.error("Failed to seed AI PDF notes:", err);
   }
 
   app.listen(PORT, "0.0.0.0", () => {
