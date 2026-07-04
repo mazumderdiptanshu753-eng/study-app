@@ -4,7 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import admin from "firebase-admin";
+import * as admin from "firebase-admin";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 dotenv.config();
@@ -102,12 +102,14 @@ let db: Database = {
 // Load DB from file
 if (fs.existsSync(DB_FILE)) {
   try {
-    const fileData = fs.readFileSync(DB_FILE, "utf-8");
-    const parsed = JSON.parse(fileData);
-    if (parsed.users) db.users = parsed.users;
-    if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
-    if (parsed.activityLogs) db.activityLogs = parsed.activityLogs;
-    if (parsed.aiPdfNotes) db.aiPdfNotes = parsed.aiPdfNotes;
+    const fileData = fs.readFileSync(DB_FILE, "utf-8").trim();
+    if (fileData) {
+      const parsed = JSON.parse(fileData);
+      if (parsed.users) db.users = parsed.users;
+      if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
+      if (parsed.activityLogs) db.activityLogs = parsed.activityLogs;
+      if (parsed.aiPdfNotes) db.aiPdfNotes = parsed.aiPdfNotes;
+    }
   } catch (error) {
     console.error("Error loading db.json:", error);
   }
@@ -129,9 +131,43 @@ let firestore: any = null;
     const configPath = path.join(process.cwd(), "firebase-applet-config.json");
     if (fs.existsSync(configPath)) {
       const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      const firebaseApp = admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
+      
+      const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+      const isRender = process.env.RENDER === "true" || !process.env.APPLET_ID;
+      const hasServiceAccount = !!saEnv || !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      
+      if (isRender && !hasServiceAccount) {
+        console.warn("⚠️ Running on Render / External environment without Google Service Account credentials.");
+        console.warn("⚠️ Firestore database will not be connected. Falling back to local JSON database.");
+        console.warn("💡 To connect Firestore on Render: ");
+        console.warn("   1. Go to Firebase Console -> Project Settings -> Service Accounts.");
+        console.warn("   2. Generate a new private key (JSON file).");
+        console.warn("   3. Add a new environment variable 'FIREBASE_SERVICE_ACCOUNT' in Render Dashboard.");
+        console.warn("   4. Paste the entire content of the downloaded JSON file as the value.");
+        firestore = null;
+        return;
+      }
+
+      let firebaseApp;
+      if (saEnv) {
+        try {
+          const serviceAccount = JSON.parse(saEnv);
+          firebaseApp = admin.initializeApp({
+            credential: (admin as any).credential.cert(serviceAccount),
+            projectId: serviceAccount.project_id || firebaseConfig.projectId
+          });
+          console.log("Initialized Firebase Admin using FIREBASE_SERVICE_ACCOUNT environment variable.");
+        } catch (err: any) {
+          console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", err.message);
+        }
+      }
+
+      if (!firebaseApp) {
+        firebaseApp = admin.initializeApp({
+          projectId: firebaseConfig.projectId,
+        });
+      }
+
       const dbId = firebaseConfig.firestoreDatabaseId || "(default)";
       const tempFirestore = getFirestore(firebaseApp, dbId);
       
