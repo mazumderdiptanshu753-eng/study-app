@@ -30,6 +30,8 @@ import AdminPanel from "./components/AdminPanel";
 import GeneralKnowledgePage from "./components/GeneralKnowledgePage";
 import CommunityForum from "./components/CommunityForum";
 import LiveClasses from "./components/LiveClasses";
+import GovtJobNotes from "./components/GovtJobNotes";
+import AIStudyAssistant from "./components/AIStudyAssistant";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -96,7 +98,7 @@ export default function App() {
   });
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "videos" | "admin" | "gk" | "forum" | "liveClasses">("dashboard");
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes">("dashboard");
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -120,7 +122,7 @@ export default function App() {
         }
       }
     } catch (e) {
-      console.error("Failed to fetch users:", e);
+      console.warn("Failed to fetch users (transient network or server restart):", e);
     }
   };
 
@@ -132,13 +134,17 @@ export default function App() {
   }, [profile?.email]);
 
   useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme.isDark);
+  }, [theme.isDark]);
+
+  useEffect(() => {
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
     }, 4000);
     return () => clearTimeout(splashTimer);
   }, []);
 
-  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "videos" | "admin" | "gk" | "forum" | "liveClasses") => {
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes") => {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
@@ -498,9 +504,6 @@ export default function App() {
           {/* User Profile Summary */}
           {profile ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-slate-200/80 dark:bg-slate-700/80 border border-slate-300 dark:border-slate-600 shadow-sm text-lg">
-                {profile.avatarUrl || "🎓"}
-              </div>
               <div className="hidden sm:block text-left leading-none max-w-[100px]">
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-xs text-slate-700 dark:text-slate-200 block truncate">
@@ -534,10 +537,7 @@ export default function App() {
                 G
               </div>
               <div className="text-left leading-none">
-                <span className="font-semibold text-2xs text-slate-500 dark:text-slate-400 block">
-                  {lang === "bn" ? "অতিথি শিক্ষার্থী" : "Guest Student"}
-                </span>
-                <span className="text-5xs text-slate-400">
+                <span className="font-semibold text-xs text-slate-500 dark:text-slate-400 block">
                   {lang === "bn" ? "নিবন্ধিত নয়" : "Not Registered"}
                 </span>
               </div>
@@ -548,7 +548,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area Container */}
-      <main className="flex-1 w-full mx-auto max-w-7xl px-4 pt-6 pb-32 md:py-8 sm:px-6 relative touch-scroll">
+      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-16 md:pt-8 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative touch-scroll`}>
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
@@ -579,21 +579,27 @@ export default function App() {
                     setCurrentTab(tab);
                     setSelectedNote(null);
                   }}
+                  onSelectNote={(note) => {
+                    setSelectedNote(note);
+                    setCurrentTab("notes");
+                  }}
                   lang={lang}
                   theme={theme}
-                  profile={profile}
+                  role={profile?.role || "Student"}
                 />
               )}
               {currentTab === "notes" && (
                 <NotesManager 
                   notes={notes}
-                  onAddNote={handleAddNote}
-                  onDeleteNote={handleDeleteNote}
                   selectedNote={selectedNote}
                   onSelectNote={setSelectedNote}
-                  onSummarize={handleSummarizeNote}
-                  onGenerateFlashcards={handleGenerateFlashcards}
+                  onSaveNote={handleSaveNote}
+                  onDeleteNote={handleDeleteNote}
+                  onUpdateNoteAI={() => {}} 
                   isLoadingAI={isLoadingAI}
+                  onTriggerSummary={handleTriggerSummary}
+                  onTriggerFlashcards={handleTriggerFlashcards}
+                  role={profile?.role || "Student"}
                   lang={lang}
                   theme={theme}
                 />
@@ -601,13 +607,15 @@ export default function App() {
               {currentTab === "chat" && (
                 <SupportChat lang={lang} theme={theme} profile={profile} />
               )}
+              {currentTab === "aiAssistant" && (
+                <AIStudyAssistant lang={lang} theme={theme} />
+              )}
               {currentTab === "videos" && (
                 <VideoPortal 
                   lang={lang} 
                   theme={theme} 
                   profile={profile} 
-                  onBack={() => setCurrentTab("dashboard")} 
-                  onVideoCountChange={setVideosCount}
+                  onVideosCountChange={setVideosCount}
                 />
               )}
               {currentTab === "admin" && profile.role === "Admin" && (
@@ -641,6 +649,13 @@ export default function App() {
                   lang={lang}
                   theme={theme}
                   onBack={() => setCurrentTab("dashboard")}
+                />
+              )}
+              {currentTab === "govtJobNotes" && (
+                <GovtJobNotes
+                  lang={lang}
+                  theme={theme}
+                  profile={profile}
                 />
               )}
               </>
@@ -691,6 +706,23 @@ export default function App() {
             </span>
           </button>
  
+          <button
+            onClick={() => {
+              setCurrentTab("aiAssistant");
+              setSelectedNote(null);
+            }}
+            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+              currentTab === "aiAssistant"
+                ? `${theme.primaryText} font-bold`
+                : `${theme.textMuted} font-medium`
+            }`}
+          >
+            <Sparkles className="h-5 w-5 mb-1" style={{ color: currentTab === "aiAssistant" ? "currentColor" : "#94a3b8" }} />
+            <span className="text-[10px] tracking-tight">
+              {lang === "bn" ? "এআই সহকারী" : "AI Helper"}
+            </span>
+          </button>
+          
           <button
             onClick={() => {
               setCurrentTab("chat");

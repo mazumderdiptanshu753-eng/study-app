@@ -12,11 +12,12 @@ import {
   Maximize2,
   CheckSquare as BookOpenCheck,
   TrendingUp,
-  Award
-
-,
+  Award,
   Users,
   Radio,
+  Quote,
+  RefreshCw,
+  Zap
 } from "lucide-react";
 import { StudyNote, UserStats } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
@@ -27,7 +28,7 @@ import SolveWithAI from "./SolveWithAI";
 interface DashboardProps {
   stats: UserStats;
   notes: StudyNote[];
-  onNavigate: (tab: "notes" | "chat" | "videos" | "gk" | "forum" | "liveClasses") => void;
+  onNavigate: (tab: "notes" | "chat" | "videos" | "gk" | "forum" | "liveClasses" | "govtJobNotes") => void;
   onSelectNote: (note: StudyNote) => void;
   lang: Language;
   theme: ThemeConfig;
@@ -46,6 +47,34 @@ export default function Dashboard({
   const t = TRANSLATIONS[lang];
   const totalNotes = notes.length;
   const [showCalcModal, setShowCalcModal] = useState(false);
+  const [quoteIdx, setQuoteIdx] = useState(0);
+
+  const studyAdvice = [
+    {
+      en: "Focus on one small topic today. Micro-habits beat giant plans!",
+      bn: "আজ একটি ছোট বিষয়ের উপর ফোকাস করুন। ছোট ছোট অভ্যাস বড় লক্ষ্যের চেয়েও শক্তিশালী!"
+    },
+    {
+      en: "Take a 5-minute break after every 25 minutes of active reading.",
+      bn: "প্রতি ২৫ মিনিট সক্রিয়ভাবে পড়ার পর ৫ মিনিটের জন্য একটি ছোট বিরতি নিন।"
+    },
+    {
+      en: "Don't just read; summarize and explain it aloud or use Study Hub's AI.",
+      bn: "শুধু মুখস্থ করবেন না; নিজের ভাষায় সারসংক্ষেপ করুন বা স্টাডি হাবের এআই ব্যবহার করুন।"
+    },
+    {
+      en: "Study hard, stay curious, and track your progress daily in Workspace.",
+      bn: "মনোযোগ দিয়ে পড়ুন, কৌতুহলী থাকুন এবং ওয়ার্কস্পেসে প্রতিদিনের প্রগ্রেস ট্র্যাক করুন।"
+    },
+    {
+      en: "Sleep is where memories consolidate. Never compromise on 7-8 hours!",
+      bn: "ঘুমের মধ্যেই স্মৃতিগুলো মস্তিষ্কে স্থায়ী হয়। ৭-৮ ঘণ্টার ঘুমে কখনোই ছাড় দেবেন না!"
+    }
+  ];
+
+  const rotateQuote = () => {
+    setQuoteIdx((prev) => (prev + 1) % studyAdvice.length);
+  };
 
   // Group notes by subject for stats
   const subjectCounts = notes.reduce((acc, note) => {
@@ -73,85 +102,129 @@ export default function Dashboard({
       initial="hidden"
       animate="show"
     >
-      {/* Hero Welcome Header (Restyled) */}
-      <motion.div variants={itemVariants} className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${theme.heroGradient} p-8 sm:p-10 text-white shadow-xl border ${theme.heroOuterBorder}`}>
+      {/* Hero Welcome Header (Restyled to Previous Classic Compact Style) */}
+      <motion.div variants={itemVariants} className={`relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r ${theme.heroGradient} p-4 sm:p-8 md:p-10 text-white shadow-lg border ${theme.heroOuterBorder}`}>
         <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white/10 blur-3xl mix-blend-overlay"></div>
         <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-teal-300/20 blur-3xl mix-blend-overlay"></div>
         
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="max-w-2xl space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold tracking-widest uppercase backdrop-blur-md text-white shadow-sm border border-white/10">
-              <Sparkles className="h-4 w-4 text-amber-200 animate-pulse" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
+          <div className="max-w-2xl space-y-2 md:space-y-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[10px] sm:text-xs font-bold tracking-widest uppercase backdrop-blur-md text-white shadow-sm border border-white/10">
+              <Sparkles className="h-3.5 w-3.5 text-amber-200 animate-pulse" />
               {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "Interactive Study & AI Hub"}
             </span>
-            <h1 className={`text-4xl font-black tracking-tighter md:text-5xl ${theme.isDark ? theme.textHeroTitle : "text-white"} drop-shadow-md`}>
+            <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter ${theme.isDark ? theme.textHeroTitle : "text-white"} drop-shadow-md`}>
               {lang === "bn" ? "স্টাডি হাবে স্বাগতম" : "Welcome to STUDY HUB"}
             </h1>
             
-            <p className={`${theme.isDark ? theme.textHeroSub : "text-white/90"} font-medium text-sm md:text-base leading-relaxed max-w-xl drop-shadow-sm`}>
+            <p className={`${theme.isDark ? theme.textHeroSub : "text-white/90"} font-medium text-xs sm:text-sm md:text-base leading-relaxed max-w-xl drop-shadow-sm`}>
               {lang === "bn"
                  ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
                  : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards."}
             </p>
-            <div className="pt-2">
+            <div className="pt-1 md:pt-2">
               <a 
                 href="https://whatsapp.com/channel/0029VbD7Yyt3AzNVccgfh93K" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-[#25D366] to-[#1DA851] text-white rounded-2xl font-bold text-sm md:text-base transition-all shadow-[0_8px_30px_rgba(37,211,102,0.3)] hover:shadow-[0_8px_30px_rgba(37,211,102,0.5)] active:scale-95 border border-white/20 w-full sm:w-auto text-center flex-wrap group animate-[pulse_4s_ease-in-out_infinite]"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:px-5 sm:py-3.5 bg-gradient-to-r from-[#25D366] to-[#1DA851] text-white rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm md:text-base transition-all shadow-[0_8px_30px_rgba(37,211,102,0.3)] hover:shadow-[0_8px_30px_rgba(37,211,102,0.5)] active:scale-95 border border-white/20 w-full sm:w-auto text-center group animate-[pulse_4s_ease-in-out_infinite]"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 00-5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
                 {lang === "bn" ? "আমাদের হোয়াটসঅ্যাপ চ্যানেলে যুক্ত হোন" : "Join our WhatsApp Channel"}
               </a>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-3 shrink-0 w-full md:w-auto md:max-w-md lg:max-w-lg mt-6 md:mt-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 shrink-0 w-full md:w-auto md:max-w-md lg:max-w-xl mt-4 md:mt-0">
             <button
               onClick={() => onNavigate("notes")}
-              className={`inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl px-4 py-4 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-lg ${theme.heroBtnBg} ${theme.heroBtnText} hover:opacity-90 hover:shadow-xl hover:-translate-y-0.5 text-center`}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroBtnBg} ${theme.heroBtnText} hover:opacity-90 hover:shadow-xl hover:-translate-y-0.5 text-center`}
             >
-              <BookOpen className="h-5 w-5 mb-1" />
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 mb-0.5 sm:mb-1" />
               <span>{lang === "bn" ? "নোট ওয়ার্কস্পেস" : "Notes Workspace"}</span>
             </button>
             
             <button
               onClick={() => onNavigate("liveClasses")}
-              className={`inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl px-4 py-4 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
             >
-              <Radio className="h-5 w-5 text-rose-500 mb-1 animate-pulse" />
+              <Radio className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 mb-0.5 sm:mb-1 animate-pulse" />
               <span>{lang === "bn" ? "লাইভ ক্লাস" : "Live Classes"}</span>
             </button>
 
             <button
-              onClick={() => onNavigate("chat")}
-              className={`inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl px-4 py-4 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
+              onClick={() => onNavigate("videos")}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
             >
-              <MessageSquare className="h-5 w-5 mb-1 text-blue-400" />
+              <Video className="h-4 w-4 sm:h-5 sm:w-5 mb-0.5 sm:mb-1 text-teal-400" />
+              <span>{lang === "bn" ? "ভিডিও লেকচার" : "Video Lectures"}</span>
+            </button>
+
+            <button
+              onClick={() => onNavigate("chat")}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
+            >
+              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 mb-0.5 sm:mb-1 text-blue-400" />
               <span>{lang === "bn" ? "সাপোর্ট চ্যাট" : "Support Chat"}</span>
             </button>
 
             <button
               onClick={() => onNavigate("forum")}
-              className={`inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl px-4 py-4 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
             >
-              <Users className="h-5 w-5 mb-1 text-teal-400" />
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 mb-0.5 sm:mb-1 text-teal-400" />
               <span>{lang === "bn" ? "ডিসকাশন ফোরাম" : "Community Forum"}</span>
             </button>
 
             <button
               onClick={() => onNavigate("gk")}
-              className={`col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
+              className={`inline-flex flex-col items-center justify-center gap-1 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:px-4 sm:py-4 text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer shadow-md ${theme.heroSecondaryBtn} hover:bg-white/30 hover:-translate-y-0.5 text-center`}
             >
-              <Award className="h-5 w-5 text-amber-400" />
-              <span>{lang === "bn" ? "সরকারি চাকরি প্রস্তুতি ও খবর" : "Govt. Job Prep & News"}</span>
+              <Award className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" />
+              <span>{lang === "bn" ? "চাকরি প্রস্তুতি" : "Job Prep & News"}</span>
             </button>
           </div>
         </div>
       </motion.div>
 
+
+
+      {/* Govt Job Subjects Section */}
+      <motion.div variants={itemVariants} className="w-full mb-8">
+        <div className="flex items-center justify-between mb-4 px-2">
+          <h2 className={`text-lg md:text-xl font-black ${theme.textHeading} tracking-tight uppercase flex items-center gap-2`}>
+            <Award className={`h-6 w-6 ${theme.primaryText}`} />
+            {lang === "bn" ? "সরকারি চাকরির প্রস্তুতির বিষয়সমূহ" : "Govt Job Preparation Subjects"}
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {[
+            { id: "math", name_bn: "অঙ্ক (Math)", name_en: "Mathematics", icon: "📐", color: "from-blue-500 to-cyan-500" },
+            { id: "reasoning", name_bn: "রিজনিং (Reasoning)", name_en: "Reasoning", icon: "🧠", color: "from-purple-500 to-indigo-500" },
+            { id: "english", name_bn: "ইংরেজি (English)", name_en: "English", icon: "📝", color: "from-rose-500 to-pink-500" },
+            { id: "science", name_bn: "সাধারণ বিজ্ঞান", name_en: "General Science", icon: "🔬", color: "from-teal-500 to-emerald-500" },
+            { id: "history", name_bn: "ইতিহাস", name_en: "History", icon: "🏛️", color: "from-amber-500 to-orange-500" },
+            { id: "geography", name_bn: "ভূগোল", name_en: "Geography", icon: "🌍", color: "from-green-500 to-lime-500" },
+            { id: "polity", name_bn: "সংবিধান (Polity)", name_en: "Polity", icon: "⚖️", color: "from-slate-500 to-gray-500" },
+            { id: "economics", name_bn: "অর্থনীতি (Economics)", name_en: "Economics", icon: "📈", color: "from-indigo-500 to-blue-600" }
+          ].map((subj) => (
+            <button
+              key={subj.id}
+              onClick={() => { onNavigate("govtJobNotes"); window.dispatchEvent(new CustomEvent("setGovtJobSubject", { detail: subj.id })); }}
+              className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer hover:-translate-y-1`}
+            >
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${subj.color} flex items-center justify-center text-xl shadow-inner`}>
+                {subj.icon}
+              </div>
+              <span className={`text-xs font-bold ${theme.textHeading} text-center`}>
+                {lang === "bn" ? subj.name_bn : subj.name_en}
+              </span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Main Grid Layout (Restyled: 12-col grid) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
@@ -175,10 +248,13 @@ export default function Dashboard({
               </div>
             </div>
 
-            <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-sm transition-all hover:shadow-md ${theme.hoverBorderCard}`}>
+            <div 
+              onClick={() => onNavigate("videos")}
+              className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-5 shadow-sm transition-all hover:shadow-md hover:scale-[1.02] active:scale-95 ${theme.hoverBorderCard} cursor-pointer`}
+            >
               <div className="flex items-center justify-between mb-3">
                 <span className={`text-[11px] font-bold ${theme.textMuted} uppercase tracking-wider block`}>
-                  {lang === "bn" ? "ভিডিও" : "Videos"}
+                  {lang === "bn" ? "ভিডিও পোর্টাল" : "Videos Portal"}
                 </span>
                 <div className={`rounded-xl ${theme.accentBg} p-2.5 ${theme.accentText}`}>
                   <Video className="h-4 w-4" />
@@ -216,54 +292,6 @@ export default function Dashboard({
                 <Maximize2 className="h-4 w-4" />
                 {lang === "bn" ? "ক্যালকুলেটর খুলুন" : "Open Calculator"}
               </button>
-            </div>
-          </div>
-
-          {/* Subject Distribution */}
-          <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-6 shadow-sm space-y-5`}>
-            <div className="flex items-center gap-2">
-              <TrendingUp className={`h-5 w-5 ${theme.textMuted}`} />
-              <h3 className={`font-black ${theme.textHeading} text-sm tracking-wide uppercase`}>
-                {lang === "bn" ? "নোটস বিতরণ বিন্যাস" : "Notes Subject Distribution"}
-              </h3>
-            </div>
-            
-            <div className="space-y-4">
-              {Object.keys(subjectCounts).length > 0 ? (
-                Object.entries(subjectCounts).map(([subj, count]) => {
-                  const percentage = Math.round((count / totalNotes) * 100);
-                  const subjDisplay = subj === "Mathematics" ? t.mathSubject : subj;
-                  return (
-                    <div key={subj} className="space-y-2">
-                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 font-bold">
-                        <span className="flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${theme.primaryBtn}`}></span>
-                          {subjDisplay}
-                        </span>
-                        <span className={theme.textMuted}>
-                          {count} ({percentage}%)
-                        </span>
-                      </div>
-                      <div className={`h-2 w-full ${theme.primaryBg} rounded-full overflow-hidden`}>
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 1, delay: 0.2 }}
-                          className={`h-full ${theme.primaryBtn} rounded-full`}
-                        ></motion.div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-xl p-4 text-center border border-dashed border-slate-200 dark:border-slate-700">
-                  <p className={`text-xs ${theme.textMuted} font-semibold`}>
-                    {role === "Admin"
-                      ? (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নতুন নোট তৈরি করুন।" : "Create notes under various subjects to see distribution here.")
-                      : (lang === "bn" ? "বিষয়ভিত্তিক ডিস্ট্রিবিউশন দেখতে নোট প্রয়োজন।" : "Notes needed to see subject distribution.")}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 

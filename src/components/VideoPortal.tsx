@@ -86,7 +86,15 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
 
   const [videos, setVideos] = useState<VideoLecture[]>(() => {
     const local = localStorage.getItem("video_lectures");
-    return local ? JSON.parse(local) : PRELOADED_VIDEOS;
+    if (local) {
+      try {
+        const parsed = JSON.parse(local) as VideoLecture[];
+        return parsed.filter(v => !v.id.startsWith("pre-vid-"));
+      } catch (e) {
+        return PRELOADED_VIDEOS;
+      }
+    }
+    return PRELOADED_VIDEOS;
   });
 
   // Keep parent in sync with video counts

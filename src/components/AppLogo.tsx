@@ -2,7 +2,7 @@ import React from "react";
 
 interface AppLogoProps {
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "xxl";
 }
 
 export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
@@ -11,14 +11,16 @@ export default function AppLogo({ className = "", size = "md" }: AppLogoProps) {
     sm: "h-8 w-8",
     md: "h-10 w-10 sm:h-12 sm:w-12",
     lg: "h-20 w-20",
-    xl: "h-36 w-36"
+    xl: "h-36 w-36",
+    xxl: "h-48 w-48"
   };
 
   const scale = {
     sm: "scale-[0.65]",
     md: "scale-[0.8] sm:scale-100",
     lg: "scale-[1.65]",
-    xl: "scale-[3]"
+    xl: "scale-[3]",
+    xxl: "scale-[4]"
   };
 
   return (

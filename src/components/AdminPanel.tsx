@@ -77,7 +77,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
     cannotModifyPrimary: isBengali ? "প্রধান অ্যাডমিনকে পরিবর্তন করা সম্ভব নয়।" : "The primary system administrator cannot be demoted."
   };
 
-  const filteredUsers = users.filter(user => 
+  const validUsers = users.filter(u => u && u.email && u.fullName);
+  const filteredUsers = validUsers.filter(user => 
     (user?.fullName || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
     (user?.email || "").toLowerCase().includes((searchTerm || "").toLowerCase())
   );
@@ -237,14 +238,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                       
                       {/* Name and Email */}
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-9 w-9 rounded-full bg-teal-500/10 border ${theme.borderCard} flex items-center justify-center text-base shrink-0 overflow-hidden`}>
-                            {user.avatarUrl && (user.avatarUrl.startsWith("data:image") || user.avatarUrl.startsWith("http")) ? (
-                              <img src={user.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              user.avatarUrl || "🎓"
-                            )}
-                          </div>
+                        <div className="flex items-center gap-2">
                           <div className="min-w-0">
                             <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
                             <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px] sm:max-w-xs`}>{user.email}</span>

@@ -359,31 +359,6 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
               {t.solveBtn}
             </button>
           </div>
-
-          {/* Quick-try samples */}
-          {inputMode === "text" && (
-            <div className="space-y-2 pt-2">
-              <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                {t.sampleLabel}
-              </span>
-              <div className="flex flex-col gap-2">
-                {samples.map((sample, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSampleClick(sample)}
-                    className={`w-full text-left ${
-                      theme.isDark 
-                        ? "bg-slate-900/50 hover:bg-slate-900 border-slate-800/80 text-slate-200" 
-                        : "bg-slate-50/50 hover:bg-slate-100/60 border-slate-150 text-slate-700"
-                    } border px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between cursor-pointer group`}
-                  >
-                    <span className="truncate pr-4">{sample}</span>
-                    <CornerDownLeft className={`h-4 w-4 ${theme.primaryText} opacity-70 group-hover:translate-x-[-3px] transition-transform shrink-0`} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </motion.div>
         )}
 

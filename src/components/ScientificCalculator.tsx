@@ -140,24 +140,24 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-3xs p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-50 pb-3">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-3xs p-5 space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-3">
         <div>
-          <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-1.5">
             <span className="text-emerald-500">🧮</span> {t.title}
           </h3>
-          <p className="text-[10px] text-slate-400 font-medium">{t.subtitle}</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{t.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Rad/Deg Toggle Switch */}
-          <div className="flex bg-slate-100 rounded-lg p-0.5 text-3xs font-extrabold">
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 text-3xs font-extrabold">
             <button
               onClick={() => setIsRad(false)}
               className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                 !isRad 
-                  ? "bg-white text-emerald-700 shadow-3xs" 
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-3xs" 
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               {t.deg}
@@ -166,8 +166,8 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
               onClick={() => setIsRad(true)}
               className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                 isRad 
-                  ? "bg-white text-emerald-700 shadow-3xs" 
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-3xs" 
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               {t.rad}
@@ -177,7 +177,7 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
           {onClose && (
             <button
               onClick={onClose}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-1.5 rounded-lg border border-rose-100 transition-all cursor-pointer"
+              className="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 p-1.5 rounded-lg border border-rose-100 dark:border-rose-900/30 transition-all cursor-pointer"
               title={lang === "bn" ? "বন্ধ করুন" : "Close Calculator"}
             >
               <X className="h-4 w-4" />
@@ -227,31 +227,31 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 1: Memory & Backspace */}
         <button 
           onClick={() => handleMemory("MC")} 
-          className="py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-500 transition-colors cursor-pointer"
+          className="py-2 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[10px] font-black text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
         >
           MC
         </button>
         <button 
           onClick={() => handleMemory("MR")} 
-          className="py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-500 transition-colors cursor-pointer"
+          className="py-2 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[10px] font-black text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
         >
           MR
         </button>
         <button 
           onClick={() => handleMemory("M+")} 
-          className="py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-500 transition-colors cursor-pointer"
+          className="py-2 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[10px] font-black text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
         >
           M+
         </button>
         <button 
           onClick={() => handleMemory("M-")} 
-          className="py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-500 transition-colors cursor-pointer"
+          className="py-2 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[10px] font-black text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
         >
           M-
         </button>
         <button 
           onClick={handleBackspace} 
-          className="py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors flex items-center justify-center cursor-pointer"
+          className="py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-colors flex items-center justify-center cursor-pointer"
           title="Backspace"
         >
           <Delete className="h-3.5 w-3.5" />
@@ -260,31 +260,31 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 2: Sci functions */}
         <button 
           onClick={() => appendToDisplay("sin(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           sin
         </button>
         <button 
           onClick={() => appendToDisplay("cos(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           cos
         </button>
         <button 
           onClick={() => appendToDisplay("tan(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           tan
         </button>
         <button 
           onClick={() => appendToDisplay("π")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
         >
           π
         </button>
         <button 
           onClick={clearDisplay} 
-          className="py-2.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-xs font-black text-amber-700 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-black text-amber-700 dark:text-amber-400 transition-colors cursor-pointer"
         >
           C
         </button>
@@ -292,31 +292,31 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 3: Advanced operations & numbers */}
         <button 
           onClick={() => appendToDisplay("log(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           log
         </button>
         <button 
           onClick={() => appendToDisplay("7")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           7
         </button>
         <button 
           onClick={() => appendToDisplay("8")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           8
         </button>
         <button 
           onClick={() => appendToDisplay("9")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           9
         </button>
         <button 
           onClick={() => appendToDisplay("/")} 
-          className="py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
         >
           ÷
         </button>
@@ -324,31 +324,31 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 4: Ln, 4, 5, 6, * */}
         <button 
           onClick={() => appendToDisplay("ln(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           ln
         </button>
         <button 
           onClick={() => appendToDisplay("4")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           4
         </button>
         <button 
           onClick={() => appendToDisplay("5")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           5
         </button>
         <button 
           onClick={() => appendToDisplay("6")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           6
         </button>
         <button 
           onClick={() => appendToDisplay("*")} 
-          className="py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
         >
           ×
         </button>
@@ -356,31 +356,31 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 5: Sqrt, 1, 2, 3, - */}
         <button 
           onClick={() => appendToDisplay("sqrt(")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
         >
           √
         </button>
         <button 
           onClick={() => appendToDisplay("1")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           1
         </button>
         <button 
           onClick={() => appendToDisplay("2")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           2
         </button>
         <button 
           onClick={() => appendToDisplay("3")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           3
         </button>
         <button 
           onClick={() => appendToDisplay("-")} 
-          className="py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
         >
           -
         </button>
@@ -388,26 +388,26 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
         {/* Row 6: Exp, 0, ., +, = */}
         <button 
           onClick={() => appendToDisplay("^")} 
-          className="py-2.5 rounded-lg bg-emerald-50/50 hover:bg-emerald-50 text-xs font-bold text-emerald-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
           title="Exponent (base^power)"
         >
           x<sup>y</sup>
         </button>
         <button 
           onClick={() => appendToDisplay("0")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           0
         </button>
         <button 
           onClick={() => appendToDisplay(".")} 
-          className="py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-black text-slate-800 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-black text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
         >
           .
         </button>
         <button 
           onClick={() => appendToDisplay("+")} 
-          className="py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+          className="py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
         >
           +
         </button>
@@ -421,27 +421,27 @@ export default function ScientificCalculator({ lang, onClose }: ScientificCalcul
       </div>
 
       {/* Helper brackets and constants */}
-      <div className="flex gap-2 justify-center text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2 bg-slate-50/30 rounded-lg p-1.5">
+      <div className="flex gap-2 justify-center text-[10px] text-slate-400 dark:text-slate-500 font-bold border-t border-slate-50 dark:border-slate-800 pt-2 bg-slate-50/30 dark:bg-slate-800/30 rounded-lg p-1.5">
         <button 
           onClick={() => appendToDisplay("(")} 
-          className="px-3 py-1 rounded hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+          className="px-3 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
         >
           (
         </button>
         <button 
           onClick={() => appendToDisplay(")")} 
-          className="px-3 py-1 rounded hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+          className="px-3 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
         >
           )
         </button>
         <button 
           onClick={() => appendToDisplay("e")} 
-          className="px-3 py-1 rounded hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+          className="px-3 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
         >
           e
         </button>
-        <div className="h-4 w-px bg-slate-200 self-center"></div>
-        <div className="flex items-center gap-1 text-[9px] text-slate-400 font-medium px-2">
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 self-center"></div>
+        <div className="flex items-center gap-1 text-[9px] text-slate-400 dark:text-slate-500 font-medium px-2">
           <Info className="h-3 w-3 shrink-0 text-slate-400" />
           <span>
             {isBengali 

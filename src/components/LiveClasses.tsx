@@ -4,7 +4,7 @@ import { ThemeConfig } from "../lib/themes";
 import { Language } from "../lib/translations";
 import { Radio, Calendar, Clock, Video, Plus, X, Trash2, Edit2, PlayCircle, Users, CheckSquare 
 } from "lucide-react";
-import { UserProfile } from "../types";
+import { StudentProfile } from "../types";
 
 interface LiveClass {
   id: string;
@@ -20,7 +20,7 @@ interface LiveClass {
 interface LiveClassesProps {
   theme: ThemeConfig;
   lang: Language;
-  profile: UserProfile | null;
+  profile: StudentProfile | null;
   onBack: () => void;
 }
 

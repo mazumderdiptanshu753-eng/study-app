@@ -16,7 +16,9 @@ import {
   deleteDoc,
   query, 
   where, 
-  orderBy 
+  orderBy,
+  updateDoc,
+  arrayUnion
 } from "firebase/firestore";
 
 dotenv.config();
@@ -88,6 +90,7 @@ interface Database {
   activityLogs?: any[];
   forumPosts?: ForumPost[];
   liveClasses?: LiveClass[];
+  govtJobNotes?: any[];
 }
 
 // Default DB State
@@ -362,6 +365,105 @@ Return a list of flashcards.`;
   }
 });
 
+
+
+// --- AI Study Assistant ---
+app.post("/api/study-assistant/chat", async (req, res) => {
+  try {
+    const { messages, lang } = req.body;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Messages array is required." });
+    }
+
+    const ai = getGeminiClient();
+    const isBengali = lang === "bn";
+    
+    let chatHistory = "You are a helpful and intelligent AI Study Assistant designed to help students understand their academic subjects. Be encouraging, clear, and educational.\n\n";
+    chatHistory += "Language of explanation: " + (isBengali ? "Bengali (বাংলা)" : "English") + "\n\n";
+    
+    // Format previous messages
+    for (const msg of messages) {
+      chatHistory += `${msg.role === 'user' ? 'Student' : 'Assistant'}: ${msg.content}\n`;
+    }
+    
+    chatHistory += "Assistant:";
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: chatHistory,
+    });
+    
+    if (response.text) {
+      res.json({ text: response.text });
+    } else {
+      res.status(500).json({ error: "Failed to generate response." });
+    }
+  } catch (error) {
+    console.error("AI Assistant Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Notes Summarizer ---
+app.post("/api/summarize-note", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const { title, content: noteContent } = req.body;
+    if (!noteContent) {
+      return res.status(400).json({ error: "Content is required." });
+    }
+
+    const ai = getGeminiClient();
+    
+    const prompt = `You are an expert AI Study Assistant. Please summarize the following academic notes into a short, concise, and easy-to-understand summary. 
+    Highlight key points and important takeaways.
+    
+    Notes Title: ${title}
+    Notes content:
+    """
+    ${noteContent}
+    """
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    
+    if (response.text) {
+      res.json({ summary: response.text });
+    } else {
+      res.status(500).json({ error: "Failed to generate summary." });
+    }
+  } catch (error: any) {
+    console.error("Summarizer Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- AI Flashcards Generator ---
+app.post("/api/generate-flashcards", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const { title, content: noteContent } = req.body;
+    const ai = getGeminiClient();
+    
+    const prompt = `Create 3-5 study flashcards based on these notes. Return ONLY a JSON array of objects with "question" and "answer" string keys.
+    Notes Title: ${title}
+    Notes content: ${noteContent}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    
+    res.json({ flashcards: JSON.parse(text) });
+  } catch (error: any) {
+    console.error("Flashcard Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // 5. Solve Math with AI
 app.post("/api/solve-math", async (req: express.Request, res: express.Response): Promise<any> => {
@@ -1309,6 +1411,117 @@ app.post("/api/activity-logs", async (req: express.Request, res: express.Respons
     }
   } catch (error: any) {
     console.error("Error saving activity log:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Govt Job Notes API ---
+app.get("/api/govt-job-notes", async (req: express.Request, res: express.Response) => {
+  try {
+    const { subject } = req.query;
+    if (firestore) {
+      const notesCol = collection(firestore, "govtJobNotes");
+      let q = query(notesCol, orderBy("timestamp", "desc"));
+      if (subject) {
+        q = query(notesCol, where("subject", "==", subject), orderBy("timestamp", "desc"));
+      }
+      const snapshot = await getDocs(q);
+      const notesList = snapshot.docs.map(doc => doc.data());
+      res.json(notesList);
+    } else {
+      let notes = db.govtJobNotes || [];
+      if (subject) {
+        notes = notes.filter(n => n.subject === subject);
+      }
+      notes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      res.json(notes);
+    }
+  } catch (error: any) {
+    console.error("Error fetching govt job notes:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/govt-job-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+  const note = req.body;
+  if (!note.title || !note.content || !note.subject) return res.status(400).json({ error: "Missing fields" });
+  
+  note.id = `gjn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  note.timestamp = new Date().toISOString();
+  note.comments = [];
+
+  try {
+    if (firestore) {
+      const noteDocRef = doc(firestore, "govtJobNotes", note.id);
+      await setDoc(noteDocRef, note);
+      res.status(201).json(note);
+    } else {
+      if (!db.govtJobNotes) db.govtJobNotes = [];
+      db.govtJobNotes.push(note);
+      saveDB();
+      res.status(201).json(note);
+    }
+  } catch (error: any) {
+    console.error("Error saving govt job note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  const comment = req.body;
+  if (!comment.authorEmail || !comment.authorName || !comment.text) {
+    return res.status(400).json({ error: "Missing comment fields" });
+  }
+  
+  comment.id = `cmt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  comment.timestamp = new Date().toISOString();
+
+  try {
+    if (firestore) {
+      const noteRef = doc(firestore, "govtJobNotes", id);
+      const noteSnap = await getDoc(noteRef);
+      if (noteSnap.exists()) {
+        await updateDoc(noteRef, {
+          comments: arrayUnion(comment)
+        });
+        res.status(201).json(comment);
+      } else {
+        res.status(404).json({ error: "Note not found" });
+      }
+    } else {
+      if (!db.govtJobNotes) db.govtJobNotes = [];
+      const note = db.govtJobNotes.find(n => n.id === id);
+      if (note) {
+        if (!note.comments) note.comments = [];
+        note.comments.push(comment);
+        saveDB();
+        res.status(201).json(comment);
+      } else {
+        res.status(404).json({ error: "Note not found" });
+      }
+    }
+  } catch (error: any) {
+    console.error("Error adding comment to govt job note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/govt-job-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    if (firestore) {
+      const noteDocRef = doc(firestore, "govtJobNotes", id);
+      await deleteDoc(noteDocRef);
+      res.json({ success: true });
+    } else {
+      if (!db.govtJobNotes) db.govtJobNotes = [];
+      db.govtJobNotes = db.govtJobNotes.filter(n => n.id !== id);
+      saveDB();
+      res.json({ success: true });
+    }
+  } catch (error: any) {
+    console.error("Error deleting govt job note:", error);
     res.status(500).json({ error: error.message });
   }
 });

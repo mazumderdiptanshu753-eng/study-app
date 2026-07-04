@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ThemeConfig } from "../lib/themes";
 import { Language } from "../lib/translations";
 import { MessageCircle, Users, Search, Plus, X, Send, Clock, User, MessageSquare } from "lucide-react";
-import { UserProfile } from "../types"; // Assuming types are in types.ts or we can use any
+import { StudentProfile } from "../types";
 
 interface ForumReply {
   id: string;

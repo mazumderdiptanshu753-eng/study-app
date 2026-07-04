@@ -18,12 +18,11 @@ import {
   AlertCircle,
   Fingerprint,
   ShieldCheck,
-  BadgeAlert,
-  Camera,
-  Upload,
-  X,
-  Trash2,
-  GraduationCap
+  GraduationCap,
+  Crown,
+  Laptop,
+  CheckSquare,
+  Star
 } from "lucide-react";
 import { StudentProfile, GradeLevel, Subject } from "../types";
 import AppLogo from "./AppLogo";
@@ -42,162 +41,29 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   const t = TRANSLATIONS[lang];
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [grade, setGrade] = useState<GradeLevel>("High School");
   const [preferredSubject, setPreferredSubject] = useState<Subject>("Mathematics");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // OTP Verification States
-  const [step, setStep] = useState<"form" | "otp">("form");
-  const [generatedOtp, setGeneratedOtp] = useState("");
-  const [enteredOtp, setEnteredOtp] = useState(["", "", "", ""]);
-  const [otpError, setOtpError] = useState<string | null>(null);
-  const [timer, setTimer] = useState(59);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [otpSuccess, setOtpSuccess] = useState(false);
-
-  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [selectedRole, setSelectedRole] = useState<"Student" | "Admin">("Student");
 
   const isBengali = lang === "bn";
-  const isAdmin = (email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+  const isAdminEmail = (email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
 
-  // Photo / ID Card states and functions
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
+  // Watch email to auto-toggle admin role
   useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
-
-  const startCamera = async () => {
-    setCameraError(null);
-    setShowCamera(true);
-    try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1024 }, height: { ideal: 1024 }, facingMode: "user" }
-        });
-      } catch (e) {
-        // Fallback for devices without front camera or specific constraints
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true
-        });
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      streamRef.current = stream;
-    } catch (err: any) {
-      console.error("Camera access failed:", err);
-      setCameraError(
-        isBengali
-          ? "ক্যামেরা অ্যাক্সেস করা যায়নি। অনুগ্রহ করে অনুমতি দিন বা অন্য কোনো ছবি আপলোড করুন।"
-          : "Camera access failed. Please grant permissions or try uploading a photo."
-      );
-      setShowCamera(false);
+    if (isAdminEmail) {
+      setSelectedRole("Admin");
+    } else {
+      setSelectedRole("Student");
     }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setShowCamera(false);
-  };
-
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      const canvas = document.createElement("canvas");
-      // Create a square crop based on the smaller dimension
-      const size = Math.min(video.videoWidth, video.videoHeight) || 600;
-      canvas.width = size;
-      canvas.height = size;
-      
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Calculate crop to center the image
-        const startX = (video.videoWidth - size) / 2;
-        const startY = (video.videoHeight - size) / 2;
-        
-        ctx.drawImage(video, startX, startY, size, size, 0, 0, size, size);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-        setPhoto(dataUrl);
-        stopCamera();
-      }
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Generate dynamic 4-digit OTP code when transitioning to OTP step
-  const generateAndSetOtp = () => {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    console.log(`YOUR OTP FOR VERIFYING STUDY HUB ACCOUNT AS A STUDENT IS ${code}`);
-    setGeneratedOtp(code);
-    setEnteredOtp(["", "", "", ""]);
-    setOtpError(null);
-    setTimer(59);
-    setOtpSuccess(false);
-  };
-
-  // Timer effect for OTP countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (step === "otp" && timer > 0 && !otpSuccess) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [step, timer, otpSuccess]);
-
-  // Handle key inputs inside the OTP individual fields
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value.charAt(value.length - 1);
-    }
-    const updated = [...enteredOtp];
-    updated[index] = value;
-    setEnteredOtp(updated);
-    setOtpError(null);
-
-    // Auto-focus next input field
-    if (value && index < 3) {
-      otpInputsRef.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !enteredOtp[index] && index > 0) {
-      otpInputsRef.current[index - 1]?.focus();
-    }
-  };
+  }, [email]);
 
   const handleGoogleSignIn = async () => {
     try {
       setIsSubmitting(true);
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      const isAdmin = user.email?.trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
       const profile: StudentProfile = {
         fullName: user.displayName || "Google User",
         email: user.email || "",
@@ -222,430 +88,241 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
     setIsSubmitting(true);
     setTimeout(() => {
+      const finalAvatar = isAdminEmail ? "👑" : "🎓";
       const profile: StudentProfile = {
         fullName: fullName.trim(),
         email: email.trim(),
         grade,
         preferredSubject,
         registeredAt: new Date().toISOString(),
-        avatarUrl: photo || (isAdmin ? "👑" : "🎓"),
-        role: isAdmin ? "Admin" : "Student"
+        avatarUrl: finalAvatar,
+        role: isAdminEmail ? "Admin" : "Student"
       };
       onRegister(profile);
       setIsSubmitting(false);
-    }, 800);
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    const joined = enteredOtp.join("");
-    if (joined.length < 4) return;
-
-    setIsVerifying(true);
-    setOtpError(null);
-
-    setTimeout(() => {
-      if (joined === generatedOtp || joined === "1234") {
-        setOtpSuccess(true);
-        setIsVerifying(false);
-
-        // Transition to app workspace after showing beautiful checkmark animation
-        setTimeout(() => {
-          const profile: StudentProfile = {
-            fullName: fullName.trim(),
-            email: email.trim(),
-            grade,
-            preferredSubject,
-            registeredAt: new Date().toISOString(),
-            avatarUrl: "🎓",
-            role: "Student"
-          };
-          onRegister(profile);
-        }, 1200);
-      } else {
-        setOtpError(
-          isBengali
-            ? "ভুল ওটিপি কোড। অনুগ্রহ করে সঠিক কোডটি লিখুন।"
-            : "Invalid OTP code. Please enter the correct code."
-        );
-        setIsVerifying(false);
-      }
-    }, 1000);
+    }, 850);
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="min-h-[85vh] flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8"
-    >
-      <div className={`max-w-5xl w-full grid md:grid-cols-12 ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-2xl overflow-hidden transition-all duration-500`}>
-        
-        {/* Left Grid: Features Promo, Welcome & Real-Time Glass Student ID Card (5 columns) */}
-        <div className={`md:col-span-5 bg-gradient-to-br ${theme.heroGradient} p-8 text-white flex flex-col justify-between relative overflow-hidden border-r ${theme.borderCard}`}>
-          {/* Ambient background glows */}
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-48 w-48 rounded-full bg-teal-500/10 blur-xl"></div>
-
-          <div className="relative z-10 space-y-6">
-            <div className="inline-flex items-center gap-2.5 rounded-xl bg-white/10 p-2 text-xs font-semibold backdrop-blur-md border border-white/10">
-              <AppLogo size="sm" className="bg-transparent shadow-none" />
-              <span className={theme.isDark ? "text-white" : "text-slate-900"}>{t.brandName}</span>
+    <div className="w-full flex items-center justify-center py-1.5 px-1 sm:py-6 sm:px-4">
+      <div className={`max-w-md w-full ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-xl overflow-hidden transition-all duration-300 relative mx-auto`}>
+        {/* Dynamic header brand banner */}
+        <div className={`bg-gradient-to-r ${theme.heroGradient} px-3.5 py-3 sm:px-6 sm:py-5 text-white text-center relative overflow-hidden border-b ${theme.borderCard}`}>
+          <div className="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-50/10 rounded-full blur-xl"></div>
+          
+          <div className="relative z-10 flex flex-col items-center gap-1 sm:gap-1.5">
+            <div className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-0.5 text-[8px] sm:text-xs font-semibold backdrop-blur-md border border-white/10 select-none">
+              <AppLogo size="sm" className="bg-transparent shadow-none h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>{isBengali ? "স্টাডি হাব পোর্টাল" : "Study Hub Portal"}</span>
             </div>
-
-            <div className="space-y-2">
-              <h2 className={`text-2xl font-black tracking-tight ${theme.isDark ? theme.textHeroTitle : "text-slate-900"}`}>
-                {isBengali ? "আপনার অল-ইন-ওয়ান স্টাডি পোর্টাল" : "Your Ultimate Academic Portal"}
-              </h2>
-              <p className={`text-xs ${theme.isDark ? theme.textHeroSub : "text-slate-700/95"} font-semibold leading-relaxed`}>
-                {isBengali 
-                  ? "স্টাডি হাবে স্বাগতম। শিক্ষার্থীরা জ্যামিতি ও ক্যালকুলাসের কিউরেটেড অধ্যয়ন নোট পেতে পারেন, কুইজ দিয়ে নিজের দক্ষতা পরীক্ষা করতে পারেন এবং সরাসরি প্রশাসকদের সাথে চ্যাট করতে পারেন।"
-                  : "Register to explore STUDY HUB. Students can view curated Mathematics materials, notes and videos, and chat directly with our assistants."}
-              </p>
-            </div>
-
-            {/* GORGEOUS LIVE ACCESS CARD & PHOTO SNAPPER */}
-            <div className="pt-2">
-              <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest block mb-2">
-                {isBengali ? "রিয়েল-টাইম স্টুডেন্ট আইডি প্রিভিউ" : "Live Access Badge Preview"}
-              </span>
-              
-              <div className="relative rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 p-5 text-white shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden group min-h-[210px] flex flex-col justify-between">
-                {/* Holographic watermark */}
-                <div className="absolute right-[-10%] top-[-10%] w-40 h-40 bg-gradient-to-br from-blue-400/20 to-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
-                {/* Gloss flare line */}
-                <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-40 group-hover:animate-shine pointer-events-none duration-1000"></div>
-                
-                {showCamera ? (
-                  /* High-tech Viewfinder */
-                  <div className="w-full flex flex-col items-center justify-center py-2 animate-fade-in relative z-10">
-                    <div className="relative w-36 h-36 rounded-lg overflow-hidden border-2 border-emerald-400 bg-black shadow-inner flex items-center justify-center">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="absolute inset-0 h-full w-full object-cover scale-x-[-1]"
-                      />
-                      {/* Viewfinder corner brackets */}
-                      <div className="absolute inset-2 border border-white/10 pointer-events-none rounded">
-                        <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-emerald-400"></div>
-                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-emerald-400"></div>
-                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-emerald-400"></div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-emerald-400"></div>
-                      </div>
-                      
-                      {/* Live flashing indicator */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/65 px-1.5 py-0.5 rounded text-[7px] font-black tracking-wider text-emerald-400 uppercase">
-                        <span className="h-1 w-1 rounded-full bg-emerald-400 animate-ping"></span>
-                        <span>LIVE</span>
-                      </div>
-                    </div>
-                    <span className="text-[8px] text-white/70 font-semibold tracking-wider uppercase mt-3 animate-pulse">
-                      {isBengali ? "ক্যামেরার দিকে তাকান" : "Align your face inside frame"}
-                    </span>
-                  </div>
-                ) : (
-                  /* Physical Badge Card Layout */
-                  <div className="space-y-5 animate-fade-in relative z-10">
-                    {/* Header: Chip & Badge Type */}
-                    <div className="flex justify-between items-start">
-                      {/* Modern EMV Chip */}
-                      <div className="w-9 h-7 bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 rounded-md p-[1px] shadow-sm">
-                        <div className="w-full h-full border border-amber-900/20 rounded-[5px] grid grid-cols-3 grid-rows-3 gap-[1px] p-[1px] bg-amber-400/50 mix-blend-overlay">
-                           <div className="border border-amber-900/20 rounded-tl-[3px]"></div>
-                           <div className="border border-amber-900/20"></div>
-                           <div className="border border-amber-900/20 rounded-tr-[3px]"></div>
-                           <div className="border-t border-b border-amber-900/20 col-span-3"></div>
-                           <div className="border border-amber-900/20 rounded-bl-[3px]"></div>
-                           <div className="border border-amber-900/20"></div>
-                           <div className="border border-amber-900/20 rounded-br-[3px]"></div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/20 shadow-inner">
-                        {isAdmin ? (
-                          <ShieldCheck className="h-4 w-4 text-amber-300 drop-shadow-md" />
-                        ) : (
-                          <GraduationCap className="h-4 w-4 text-sky-300 drop-shadow-md" />
-                        )}
-                        <span className="text-[10px] font-black tracking-widest uppercase text-white/90 drop-shadow-md">
-                          {isAdmin ? "ADMIN" : "STUDENT"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Main Info Area: Photo & Details */}
-                    <div className="flex gap-4 items-center">
-                      {/* Photo Container */}
-                      <div className="relative group/photo shrink-0">
-                        <div className="h-24 w-20 sm:h-28 sm:w-24 rounded-lg bg-black/20 border-2 border-white/30 overflow-hidden flex items-center justify-center relative shadow-inner backdrop-blur-md">
-                          {photo ? (
-                            <img 
-                              src={photo} 
-                              alt="Student Face" 
-                              className="h-full w-full object-cover filter contrast-110" 
-                              referrerPolicy="no-referrer" 
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-white/40">
-                              <User className="h-8 w-8 animate-pulse text-white/30 mb-1" />
-                              <span className="text-[7px] font-black tracking-widest text-center leading-tight">NO<br/>PHOTO</span>
-                            </div>
-                          )}
-                          {/* Photo watermark */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
-                        </div>
-                      </div>
-
-                      {/* Student Info Details */}
-                      <div className="space-y-3 min-w-0 flex-1 text-left">
-                        <div>
-                          <span className="text-[8px] font-bold text-white/60 block uppercase tracking-widest mb-0.5">
-                            {isBengali ? "শিক্ষার্থীর নাম" : "Name"}
-                          </span>
-                          <span className="text-sm sm:text-base font-black tracking-tight block truncate text-white drop-shadow-md leading-none">
-                            {fullName.trim() || (isBengali ? "অতিথি শিক্ষার্থী" : "STUDENT VISITOR")}
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="text-[8px] font-bold text-white/60 block uppercase tracking-widest mb-0.5">
-                            {isBengali ? "ইমেইল" : "Email"}
-                          </span>
-                          <span className="text-[10px] sm:text-xs font-bold block truncate text-white/90 leading-none">
-                            {email.trim() || "guest@studyhub.com"}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                           <div>
-                             <span className="text-[7px] font-bold text-white/60 block uppercase tracking-widest">ID NO</span>
-                             <span className="text-[10px] font-mono font-bold text-white/90">SH-{isAdmin ? '001' : '1024'}</span>
-                           </div>
-                           <div className="w-px h-6 bg-white/20"></div>
-                           <div>
-                             <span className="text-[7px] font-bold text-white/60 block uppercase tracking-widest">VALID THRU</span>
-                             <span className="text-[10px] font-mono font-bold text-white/90">12/28</span>
-                           </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Footer: Barcode & Security Marker */}
-                    <div className="pt-4 border-t border-white/20 flex items-center justify-between">
-                      {/* Fake Barcode */}
-                      <div className="flex gap-[1.5px] items-center opacity-90 h-6">
-                        <div className="bg-white w-1 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-0.5 h-full rounded-sm"></div>
-                        <div className="bg-white w-1 h-full rounded-sm"></div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1.5 text-[9px] text-white font-bold bg-white/10 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-full shadow-sm">
-                        <span className={`h-2 w-2 rounded-full animate-pulse ${isAdmin ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'}`}></span>
-                        <span className="tracking-widest uppercase">{isAdmin ? "Admin Root" : "Verified"}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Camera & File Upload Controls */}
-              <div className="mt-3.5 flex flex-wrap gap-2 justify-center">
-                <button
-                  type="button"
-                  onClick={showCamera ? capturePhoto : startCamera}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-bold transition-all duration-300 shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Camera className="h-3.5 w-3.5 text-emerald-300" />
-                  {showCamera 
-                    ? (isBengali ? "ছবি তুলুন" : "Capture Photo") 
-                    : (isBengali ? "ক্যামেরা" : "Take Photo")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-bold transition-all duration-300 shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Upload className="h-3.5 w-3.5 text-teal-300" />
-                  {isBengali ? "গ্যালারি" : "Upload Image"}
-                </button>
-                
-                {photo && !showCamera && (
-                  <button
-                    type="button"
-                    onClick={() => setPhoto(null)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-200 text-[10px] font-bold transition-all duration-300 shadow-xs cursor-pointer active:scale-95"
-                    title={isBengali ? "ছবি মুছুন" : "Remove Photo"}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-rose-300" />
-                  </button>
-                )}
-                
-                {showCamera && (
-                  <button
-                    type="button"
-                    onClick={stopCamera}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-500/25 hover:bg-slate-500/40 border border-white/10 text-white text-[10px] font-bold transition-all duration-300 shadow-xs cursor-pointer active:scale-95"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    {isBengali ? "বাতিল" : "Cancel"}
-                  </button>
-                )}
-              </div>
-
-              {cameraError && (
-                <p className="text-[10px] font-semibold text-rose-300 text-center mt-2 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">
-                  {cameraError}
-                </p>
-              )}
-
-              {/* Hidden Native File Input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-
-          </div>
-
-          <div className={`relative z-10 pt-8 border-t border-white/10 flex items-center justify-between text-5xs ${theme.isDark ? theme.textHeroSub : "text-slate-600"} font-semibold`}>
-            <span></span>
-            <span className="flex items-center gap-1">
-              {isBengali ? "শিক্ষার্থীদের জন্য তৈরি" : "Made for Students"} <Heart className="h-3 w-3 text-rose-500 fill-rose-500" />
-            </span>
+            <h1 className="text-sm sm:text-lg font-black tracking-tight mt-0.5 leading-tight">
+              {isBengali ? "জ্ঞান অর্জনের সেরা ডিজিটাল মাধ্যম" : "Unleash Your Learning Potential"}
+            </h1>
+            <p className="hidden sm:block text-[9px] sm:text-[10px] text-white/80 max-w-xs mt-0.5 font-medium leading-relaxed">
+              {isBengali 
+                ? "সহজ উপায়ে প্রশ্ন সমাধান, কুইজ প্রতিযোগিতা, লেকচার এবং বিশেষজ্ঞ শিক্ষকদের সহায়তা লাভ করুন।"
+                : "Ask queries, solve equations with AI, view lectures, and get active guidance."}
+            </p>
           </div>
         </div>
 
-        {/* Right Grid: Form with Interactive Steps (7 columns) */}
-        <div className="md:col-span-7 p-8 space-y-6 flex flex-col justify-center">
-          
-          {step === "form" ? (
-            /* =========================================
-               STEP 1: LOGIN & REGISTRATION DETAILS FORM
-               ========================================= */
-            <div className="space-y-6 animate-fade-in">
-              <div className="space-y-1">
-                <h1 className={`text-2xl font-black ${theme.textHeading} tracking-tight`}>
-                  {isAdmin ? (isBengali ? "প্রশাসক প্রবেশ" : "Administrator Portal") : t.regTitle}
-                </h1>
-                <p className={`text-xs ${theme.textMuted} font-medium`}>
-                  {isAdmin 
-                    ? (isBengali ? "আপনার শংসাপত্র নিশ্চিত করে ড্যাশবোর্ডে প্রবেশ করুন।" : "Confirm your account parameters to access admin settings.")
-                    : t.regSubtitle}
-                </p>
-              </div>
-
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                {/* Full Name input */}
-                <div className="space-y-1.5">
-                  <label className={`text-2xs font-bold ${theme.textHeading} uppercase tracking-wider block`}>{t.regFullNameLabel}</label>
-                  <div className="relative">
-                    <User className={`absolute left-3.5 top-3.5 h-4 w-4 ${theme.textMuted}`} />
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={isBengali ? "যেমন: দীপ্তাংশু মজুমদার" : "e.g. Diptanshu Mazumder"}
-                      className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-10 pr-3.5 py-3 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-emerald-500 focus:bg-transparent transition-all font-semibold`}
-                    />
-                  </div>
-                </div>
-
-                {/* Email input */}
-                <div className="space-y-1.5">
-                  <label className={`text-2xs font-bold ${theme.textHeading} uppercase tracking-wider block`}>{t.regEmailLabel}</label>
-                  <div className="relative">
-                    <Mail className={`absolute left-3.5 top-3.5 h-4 w-4 ${theme.textMuted}`} />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={t.regEmailPlaceholder}
-                      className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-10 pr-3.5 py-3 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-emerald-500 focus:bg-transparent transition-all font-semibold`}
-                    />
-                  </div>
-                </div>
-
-                {/* STUDENT MOBILE NUMBER FIELD (Hidden ONLY for Admin) */}
-                {!isAdmin && email.trim() !== "" && (
-                  <div className="space-y-1.5 animate-fade-in">
-                    <div className="flex justify-between items-center">
-                      <label className={`text-2xs font-bold ${theme.textHeading} uppercase tracking-wider block`}>
-                        {isBengali ? "মোবাইল নম্বর (ঐচ্ছিক)" : "Mobile Number (Optional)"}
-                      </label>
-                      <span className="inline-flex items-center gap-0.5 rounded bg-slate-500/10 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        Optional
-                      </span>
+        {/* Dynamic Transition Canvas */}
+        <div className="p-3 sm:p-5">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="form-step"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-md mx-auto"
+            >
+              {/* Form fields */}
+              <form onSubmit={handleFormSubmit} className="space-y-2.5 sm:space-y-3.5 text-left">
+                <div className="flex items-center justify-between empty:hidden">
+                  {isAdminEmail && (
+                    <div className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full text-[9px] font-black border border-amber-500/20 animate-pulse">
+                      <Crown className="h-2.5 w-2.5 fill-amber-500" />
+                      <span>{isBengali ? "প্রশাসক ইমেইল সনাক্ত হয়েছে" : "Admin Account Detected"}</span>
                     </div>
+                  )}
+                </div>
+
+                <div className="space-y-2.5 sm:space-y-3">
+                  {/* Full Name input */}
+                  <div className="space-y-1">
+                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regFullNameLabel}
+                    </label>
                     <div className="relative">
-                      <div className="absolute left-3.5 top-3.5 flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-2">
-                        <Phone className={`h-4 w-4 ${theme.textMuted}`} />
-                        <span className={`text-[11px] font-bold ${theme.textMuted}`}>+91</span>
-                      </div>
+                      <User className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
                       <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                        placeholder={isBengali ? "যেমন: ৯৮৭৬৫-৪৩২১০" : "e.g. 98765-43210"}
-                        maxLength={10}
-                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-20 pr-3.5 py-3 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-emerald-500 focus:bg-transparent transition-all font-semibold`}
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder={isBengali ? "যেমন: দীপ্তাংশু মজুমদার" : "e.g. Diptanshu Mazumder"}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
                       />
                     </div>
-                    <p className={`text-[10px] ${theme.textMuted} font-medium`}>
-                      {isBengali 
-                        ? "আপনার অ্যাকাউন্টের সাথে যোগাযোগের জন্য মোবাইল নম্বর প্রদান করতে পারেন।" 
-                        : "Provide your phone number for receiving account updates and communications."}
-                    </p>
                   </div>
-                )}
 
+                  {/* Email input */}
+                  <div className="space-y-1">
+                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regEmailLabel}
+                    </label>
+                    <div className="relative">
+                      <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                      <input
+                        type="text"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder={t.regEmailPlaceholder}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                      />
+                    </div>
+                  </div>
 
+                  {/* Interactive Grid of Chips for Grade Level (Hidden for Admin) */}
+                  {!isAdminEmail && (
+                    <div className="space-y-1 animate-fade-in pt-0.5">
+                      <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                        {isBengali ? "আপনার বর্তমান শ্রেণী স্তর" : "Your Education Level"}
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                        {[
+                          { 
+                            id: "Middle School", 
+                            nameBnShort: "৫ম - ৮ম", 
+                            nameEnShort: "Class 5 - 8", 
+                            descBnShort: "মাধ্যমিক স্তর", 
+                            descEnShort: "Middle School", 
+                            icon: BookOpen 
+                          },
+                          { 
+                            id: "High School", 
+                            nameBnShort: "৯ম - ১২শ", 
+                            nameEnShort: "Class 9 - 12", 
+                            descBnShort: "উচ্চ মাধ্যমিক", 
+                            descEnShort: "HSC Prep", 
+                            icon: GraduationCap 
+                          },
+                          { 
+                            id: "Undergraduate", 
+                            nameBnShort: "স্নাতক ও চাকরি", 
+                            nameEnShort: "College / Job", 
+                            descBnShort: "চাকরি প্রস্তুতি", 
+                            descEnShort: "Govt & BCS", 
+                            icon: Award 
+                          }
+                        ].map((g) => {
+                          const IconComp = g.icon;
+                          const isSelected = grade === g.id;
+                          return (
+                            <button
+                              key={g.id}
+                              type="button"
+                              onClick={() => setGrade(g.id as GradeLevel)}
+                              className={`rounded-xl border p-1.5 sm:p-2 text-center flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden h-14 sm:h-20 select-none ${
+                                isSelected 
+                                  ? "border-teal-500 bg-teal-500/5 text-teal-600 dark:text-teal-400 shadow-[0_4px_12px_rgba(20,184,166,0.06)] font-black"
+                                  : `${theme.borderCard} ${theme.bgCard} ${theme.textMain} hover:border-slate-300 dark:hover:border-slate-700`
+                              }`}
+                            >
+                              <div className={`h-5 w-5 sm:h-6.5 sm:w-6.5 rounded-full flex items-center justify-center shrink-0 mb-0.5 sm:mb-1 ${
+                                isSelected ? "bg-teal-500 text-white" : "bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400"
+                              }`}>
+                                <IconComp className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                              </div>
+                              <div className="min-w-0 text-center w-full">
+                                <span className="text-[9px] sm:text-[10px] font-bold leading-tight block truncate">
+                                  {isBengali ? g.nameBnShort : g.nameEnShort}
+                                </span>
+                                <span className={`hidden sm:block text-[8px] leading-none block truncate ${isSelected ? "text-teal-600/80 dark:text-teal-400/80" : "text-slate-400 dark:text-slate-500"} mt-0.5`}>
+                                  {isBengali ? g.descBnShort : g.descEnShort}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <div className="absolute right-1 top-1 text-teal-500">
+                                  <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-teal-500 text-white dark:text-slate-950" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                {/* Submit button */}
-                <div className="pt-3 space-y-3">
-                  <button
-                    type="submit"
-                    id="btn-register-student"
-                    disabled={isSubmitting || !fullName.trim() || !email.trim()}
-                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-semibold shadow-md transition-all active:scale-98 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText}`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        {isBengali ? "ওয়ার্কস্পেস লোড হচ্ছে..." : "Setting up academic workspace..."}
-                      </>
-                    ) : (
-                      <>
-                        {isBengali ? "একাডেমিক ওয়ার্কস্পেসে প্রবেশ করুন" : "Enter Academic Workspace"}
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
+                 <div className="pt-1 sm:pt-2 space-y-1.5 sm:space-y-2">
+                  {(() => {
+                    // Premium gradients and glowing styles matching selected theme
+                    let btnGradient = "from-emerald-500 via-teal-500 to-cyan-500";
+                    let glowColor = "rgba(20, 184, 166, 0.4)";
+                    
+                    if (theme.id === "cosmic") {
+                      btnGradient = "from-indigo-500 via-purple-500 to-pink-500";
+                      glowColor = "rgba(124, 58, 237, 0.4)";
+                    } else if (theme.id === "aurora") {
+                      btnGradient = "from-cyan-500 via-sky-500 to-emerald-500";
+                      glowColor = "rgba(6, 182, 212, 0.4)";
+                    } else if (theme.id === "sunset") {
+                      btnGradient = "from-amber-500 via-orange-500 to-rose-500";
+                      glowColor = "rgba(244, 63, 94, 0.4)";
+                    }
 
-                  <div className="relative flex items-center py-2">
+                    const isDisabled = isSubmitting || !fullName.trim() || !email.trim();
+
+                    return (
+                      <motion.button
+                        type="submit"
+                        id="btn-register-student-new"
+                        disabled={isDisabled}
+                        whileHover={isDisabled ? {} : { 
+                          scale: 1.02,
+                          boxShadow: `0 8px 20px ${glowColor}`
+                        }}
+                        whileTap={isDisabled ? {} : { scale: 0.98 }}
+                        className={`w-full inline-flex items-center justify-center gap-2 rounded-xl h-9.5 sm:h-11 text-xs font-black tracking-wider uppercase shadow-md transition-all cursor-pointer relative overflow-hidden border border-white/10 ${
+                          isDisabled 
+                            ? "opacity-50 pointer-events-none bg-slate-300 dark:bg-slate-800 text-slate-500" 
+                            : `bg-gradient-to-r ${btnGradient} ${theme.primaryBtnText}`
+                        }`}
+                      >
+                        {/* Interactive gloss overlay on hover */}
+                        {!isDisabled && (
+                          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full hover:animate-shine pointer-events-none" style={{ animationDuration: "2.5s" }} />
+                        )}
+                        
+                        {isSubmitting ? (
+                          <>
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            <span className="font-bold tracking-widest">{isBengali ? "পোর্টাল প্রস্তুত হচ্ছে..." : "Configuring your study desk..."}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
+                              {isBengali ? "পড়াশোনা শুরু করুন (ড্যাশবোর্ড)" : "Launch My Study Dashboard"}
+                            </span>
+                            <motion.span
+                              animate={{ x: [0, 4, 0] }}
+                              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                            >
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </motion.span>
+                          </>
+                        )}
+                      </motion.button>
+                    );
+                  })()}
+
+                  <div className="relative flex items-center py-0.5">
                     <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-                    <span className={`mx-4 text-xs font-semibold ${theme.textMuted}`}>
-                      {isBengali ? "অথবা" : "or"}
+                    <span className={`mx-3 text-[8px] font-extrabold ${theme.textMuted} uppercase tracking-wider`}>
+                      {isBengali ? "অথবা" : "or login instantly"}
                     </span>
                     <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
                   </div>
@@ -654,9 +331,9 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={isSubmitting}
-                    className={`w-full inline-flex items-center justify-center gap-3 rounded-xl py-3 text-xs font-semibold border ${theme.borderCard} ${theme.bgPage} ${theme.textMain} hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-98 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-xs`}
+                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl h-8.5 sm:h-9.5 text-xs font-semibold border ${theme.borderCard} ${theme.bgPage} ${theme.textMain} hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all active:scale-98 disabled:opacity-50 disabled:pointer-events-none cursor-pointer`}
                   >
-                    <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 24 24" width="12" height="12" xmlns="http://www.w3.org/2000/svg">
                       <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
                         <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/>
                         <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/>
@@ -664,182 +341,23 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                         <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/>
                       </g>
                     </svg>
-                    {isBengali ? "গুগল অ্যাকাউন্ট দিয়ে সাইন ইন করুন" : "Sign in with Google"}
+                    <span>{isBengali ? "গুগল অ্যাকাউন্ট দিয়ে সাইন-ইন" : "Sign in with Google"}</span>
                   </button>
                 </div>
               </form>
-            </div>
-          ) : (
-            /* =========================================
-               STEP 2: GORGEOUS OTP VERIFICATION FLOW (Student Only)
-               ========================================= */
-            <div className="space-y-6 animate-fade-in">
-              <button
-                type="button"
-                onClick={() => setStep("form")}
-                className={`inline-flex items-center gap-1.5 text-xs font-bold ${theme.primaryText} hover:underline mb-2 cursor-pointer`}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {isBengali ? "তথ্যাদি পরিবর্তন করুন" : "Back to details"}
-              </button>
-
-              <div className="space-y-2">
-                <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 mb-1">
-                  <Fingerprint className="h-6 w-6" />
-                </div>
-                <h1 className={`text-2xl font-black ${theme.textHeading} tracking-tight`}>
-                  {isBengali ? "নিরাপদ ওটিপি যাচাইকরণ" : "Secure OTP Verification"}
-                </h1>
-                <p className={`text-xs ${theme.textMuted} font-medium leading-relaxed`}>
-                  {isBengali 
-                    ? `আমরা আপনার মোবাইল নম্বর +৯১ ${phoneNumber} এ ৪-ডিজিটের যাচাইকরণ কোড পাঠিয়েছি।` 
-                    : `We've dispatched a secure 4-digit code to your registered mobile phone +91 ${phoneNumber}.`}
-                </p>
-              </div>
-
-              {/* OTP will be received on user's device. No simulated SMS helper is rendered in-app to replicate a real gateway flow. */}
-              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 dark:bg-amber-950/10 space-y-2">
-                <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                  <ShieldCheck className="h-4 w-4 shrink-0 animate-pulse" />
-                  <span>{isBengali ? "স্যান্ডবক্স ওটিপি তথ্য" : "Sandbox Environment Info"}</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
-                  {isBengali ? (
-                    <>
-                      বাস্তব মোবাইল ফোনে এসএমএস পাঠাতে একটি পরিশোধিত গেটওয়ে (যেমন: Twilio, MSG91) প্রয়োজন। যেহেতু এটি একটি প্রিভিউ টেস্ট এনভায়রনমেন্ট, তাই আপনি সরাসরি এই টেস্ট কোডটি ব্যবহার করতে পারেন: <strong className="text-amber-700 dark:text-amber-300 font-black px-1 rounded bg-amber-500/10 border border-amber-500/20 text-xs tracking-wider">{generatedOtp}</strong> অথবা ডিফল্ট পাসকোড <strong className="text-amber-700 dark:text-amber-300 font-black px-1 rounded bg-amber-500/10 border border-amber-500/20 text-xs">1234</strong> দিয়ে সরাসরি লগইন করতে পারেন।
-                    </>
-                  ) : (
-                    <>
-                      Sending physical text messages to a phone requires a paid SMS API gateway (e.g., Twilio or MSG91). In this sandbox/preview environment, you can use the secure test code: <strong className="text-amber-700 dark:text-amber-300 font-black px-1 rounded bg-amber-500/10 border border-amber-500/20 text-xs tracking-wider">{generatedOtp}</strong> or bypass immediately using <strong className="text-amber-700 dark:text-amber-300 font-black px-1 rounded bg-amber-500/10 border border-amber-500/20 text-xs">1234</strong> to proceed.
-                    </>
-                  )}
-                </p>
-                <div className="pt-1 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (generatedOtp) {
-                        const digits = generatedOtp.split("");
-                        setEnteredOtp(digits);
-                      }
-                    }}
-                    className="text-[10px] font-extrabold text-teal-600 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 px-2.5 py-1 rounded-md border border-teal-500/20 transition-all cursor-pointer"
-                  >
-                    {isBengali ? "কোডটি স্বয়ংক্রিয়ভাবে বসান" : "Auto-fill Code"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEnteredOtp(["1", "2", "3", "4"]);
-                    }}
-                    className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-md border border-amber-500/20 transition-all cursor-pointer"
-                  >
-                    {isBengali ? "১২৩৪ বসান" : "Auto-fill 1234"}
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleVerifyOtp} className="space-y-5">
-                {/* 4 Digit Entry Boxes */}
-                <div className="space-y-2">
-                  <label className={`text-2xs font-bold ${theme.textHeading} uppercase tracking-wider block text-center`}>
-                    {isBengali ? "ভেরিফিকেশন কোড লিখুন" : "Enter Verification Code"}
-                  </label>
-                  
-                  <div className="flex gap-3.5 justify-center">
-                    {enteredOtp.map((digit, index) => (
-                      <input
-                        key={index}
-                        type="text"
-                        required
-                        pattern="\d*"
-                        maxLength={1}
-                        value={digit}
-                        ref={(el) => { otpInputsRef.current[index] = el; }}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className={`w-14 h-14 text-center rounded-xl border-2 text-xl font-mono font-black ${
-                          digit 
-                            ? "border-teal-500 bg-teal-50/15 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400" 
-                            : `${theme.borderCard} ${theme.bgPage} text-slate-800 dark:text-white`
-                        } focus:outline-hidden focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Error Banner */}
-                {otpError && (
-                  <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl flex items-center gap-2 animate-shake text-rose-800 dark:text-rose-200">
-                    <AlertCircle className="h-4.5 w-4.5 text-rose-500 shrink-0" />
-                    <span className="text-2xs font-semibold">{otpError}</span>
-                  </div>
-                )}
-
-                {/* Action CTA */}
-                <div>
-                  <button
-                    type="submit"
-                    disabled={isVerifying || otpSuccess || enteredOtp.join("").length < 4}
-                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-semibold shadow-md transition-all active:scale-98 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${
-                      otpSuccess 
-                        ? "bg-emerald-600 text-white border-transparent" 
-                        : `${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText}`
-                    }`}
-                  >
-                    {otpSuccess ? (
-                      <span className="flex items-center gap-1.5 animate-pulse">
-                        <Check className="h-4 w-4 stroke-[3px]" />
-                        {isBengali ? "যাচাই করা হয়েছে!" : "OTP Verified Successfully!"}
-                      </span>
-                    ) : isVerifying ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                        {isBengali ? "যাচাই করা হচ্ছে..." : "Verifying code securely..."}
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4" />
-                        {isBengali ? "কোড যাচাই করুন" : "Verify & Access Study Portal"}
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Countdown Timer or Resend */}
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/80">
-                  <span className={`${theme.textMuted} font-medium`}>
-                    {isBengali ? "কোড পাননি?" : "Didn't receive the SMS?"}
-                  </span>
-                  
-                  {timer > 0 ? (
-                    <span className="text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
-                      <RefreshCw className="h-3 w-3 animate-spin text-teal-500" />
-                      {isBengali ? `${timer} সেকেন্ডে পুনরায় পাঠান` : `Resend in ${timer}s`}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={generateAndSetOtp}
-                      className={`font-black ${theme.primaryText} hover:underline cursor-pointer inline-flex items-center gap-1`}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      {isBengali ? "নতুন ওটিপি কোড পাঠান" : "Resend New OTP Code"}
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          )}
-
+            </motion.div>
+          </AnimatePresence>
         </div>
 
+        {/* Playful and clean footer */}
+        <div className="p-2 sm:p-3 border-t border-slate-150 dark:border-slate-800 text-center text-[8px] sm:text-[9px] font-bold tracking-wider text-slate-400 dark:text-slate-600 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 uppercase leading-relaxed">
+          <span>{isBengali ? "শিক্ষার ডিজিটাল হাব" : "Study Hub Smart Portal"}</span>
+          <div className="hidden sm:block h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+          <span className="flex items-center gap-1 font-semibold normal-case">
+            Made with <Heart className="h-2.5 w-2.5 text-rose-500 fill-rose-500 animate-pulse" /> for academic excellence
+          </span>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
-}
-
-// Helper checking function to conditionally hide inputs in real-time
-function isEmailAdmin(emailStr?: string) {
-  return (emailStr || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
 }
