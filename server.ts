@@ -125,66 +125,8 @@ function saveDB() {
 }
 
 // Initialize Firebase Firestore using the config file
+// Set firestore to null to save everything on the local server in db.json, avoiding Google authentication credential lookups.
 let firestore: any = null;
-(async () => {
-  try {
-    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      
-      const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-      const isRender = process.env.RENDER === "true" || !process.env.APPLET_ID;
-      const hasServiceAccount = !!saEnv || !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
-      
-      if (isRender && !hasServiceAccount) {
-        console.warn("⚠️ Running on Render / External environment without Google Service Account credentials.");
-        console.warn("⚠️ Firestore database will not be connected. Falling back to local JSON database.");
-        console.warn("💡 To connect Firestore on Render: ");
-        console.warn("   1. Go to Firebase Console -> Project Settings -> Service Accounts.");
-        console.warn("   2. Generate a new private key (JSON file).");
-        console.warn("   3. Add a new environment variable 'FIREBASE_SERVICE_ACCOUNT' in Render Dashboard.");
-        console.warn("   4. Paste the entire content of the downloaded JSON file as the value.");
-        firestore = null;
-        return;
-      }
-
-      let firebaseApp;
-      if (saEnv) {
-        try {
-          const serviceAccount = JSON.parse(saEnv);
-          firebaseApp = admin.initializeApp({
-            credential: (admin as any).credential.cert(serviceAccount),
-            projectId: serviceAccount.project_id || firebaseConfig.projectId
-          });
-          console.log("Initialized Firebase Admin using FIREBASE_SERVICE_ACCOUNT environment variable.");
-        } catch (err: any) {
-          console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:", err.message);
-        }
-      }
-
-      if (!firebaseApp) {
-        firebaseApp = admin.initializeApp({
-          projectId: firebaseConfig.projectId,
-        });
-      }
-
-      const dbId = firebaseConfig.firestoreDatabaseId || "(default)";
-      const tempFirestore = getFirestore(firebaseApp, dbId);
-      
-      // Proactively verify Firestore connection & IAM permissions at startup
-      console.log(`Testing Firestore connection to database: ${dbId}...`);
-      await tempFirestore.collection("users").limit(1).get();
-      
-      firestore = tempFirestore;
-      console.log(`Firebase Firestore initialized and verified successfully! Using Firestore database: ${dbId}`);
-    } else {
-      console.warn("firebase-applet-config.json not found, using local JSON fallback");
-    }
-  } catch (error: any) {
-    console.warn("Firestore connection test failed (likely due to cross-project IAM restrictions). Falling back to local JSON database. Error:", error.message || error);
-    firestore = null;
-  }
-})();
 
 async function withRetry(operation: any, maxRetries = 3) {
 
