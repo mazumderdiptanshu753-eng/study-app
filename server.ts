@@ -180,7 +180,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-const PORT = 3000;
+const PORT = (process.env.RENDER || !process.env.APPLET_ID) && process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Lazy initialization of Gemini client
 let aiInstance: GoogleGenAI | null = null;
