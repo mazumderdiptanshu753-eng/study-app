@@ -125,20 +125,49 @@ function saveDB() {
 }
 
 // Initialize Firebase Firestore using the config file
-// Set firestore to null to save everything on the local server in db.json, avoiding Google authentication credential lookups.
 let firestore: any = null;
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    if (firebaseConfig.projectId) {
+      admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+      if (firebaseConfig.firestoreDatabaseId) {
+        // getFirestore supports passing the database ID as the parameter in modern firebase-admin versions
+        firestore = getFirestore(firebaseConfig.firestoreDatabaseId);
+      } else {
+        firestore = getFirestore();
+      }
+      console.log("Firebase Admin successfully initialized on project:", firebaseConfig.projectId);
+    }
+  }
+} catch (error: any) {
+  console.warn("Firebase Admin failed to initialize. Falling back to local db.json. Error:", error.message);
+}
 
 async function withRetry(operation: any, maxRetries = 3) {
-
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
-      if ((error.status === 503 || error.message.includes("503")) && i < maxRetries - 1) {
-        console.warn(`Received 503. Retrying ${i + 1}/${maxRetries} in ${1000 * (i + 1)}ms...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      const status = error?.status || error?.statusCode || error?.response?.status;
+      const errorMessage = error?.message || "";
+      const isTransient = !status || // If status is undefined, treat as transient network issue
+                          status === 429 || status === 503 || status === 500 || status === 502 || status === 504 ||
+                          errorMessage.includes("429") || errorMessage.includes("503") || errorMessage.includes("500") ||
+                          errorMessage.toLowerCase().includes("too many requests") || 
+                          errorMessage.toLowerCase().includes("resource exhausted") ||
+                          errorMessage.toLowerCase().includes("rate limit") || 
+                          errorMessage.toLowerCase().includes("overloaded");
+      
+      if (isTransient && i < maxRetries - 1) {
+        const delay = 1000 * (i + 1) * 1.5; // Exponential backoff: 1.5s, 3s, 4.5s
+        console.warn(`Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         throw error;
       }
@@ -169,9 +198,17 @@ function getGeminiClient(): GoogleGenAI {
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY environment variable is missing. Please add it in the Secrets panel.");
     }
-    aiInstance = new GoogleGenAI({
+    const rawClient = new GoogleGenAI({
       apiKey,
     });
+
+    // Decorate generateContent to automatically use retry logic for transient errors
+    const originalGenerateContent = rawClient.models.generateContent.bind(rawClient.models);
+    rawClient.models.generateContent = async function(this: any, ...args: any[]) {
+      return withRetry(() => originalGenerateContent(...args));
+    } as any;
+
+    aiInstance = rawClient;
   }
   return aiInstance;
 }
@@ -1901,6 +1938,18 @@ app.post("/api/updates/install", (req: express.Request, res: express.Response) =
 
 // Start express server and integrate Vite
 async function startServer() {
+  // Verify Firestore connection if initialized. Fall back to local db.json if permissions are denied or failed.
+  if (firestore) {
+    try {
+      console.log("Testing Firestore connection...");
+      await firestore.collection("users").limit(1).get();
+      console.log("Firestore connection check: SUCCESS! Server will run in Cloud DB mode.");
+    } catch (err: any) {
+      console.warn("Firestore connection check failed. Falling back to local db.json database. Error:", err.message);
+      firestore = null; // Disable firestore, fall back to db.json
+    }
+  }
+
   if (process.env.NODE_ENV !== "production") {
     app.use((req, res, next) => {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

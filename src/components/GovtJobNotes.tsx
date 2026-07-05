@@ -70,6 +70,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
   const [aiLoading, setAiLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<any | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   
   // MCQ Interactivity State
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -77,6 +78,385 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
   const isBengali = lang === "bn";
   const isAdmin = profile?.role === "Admin";
+
+  const downloadStandaloneHtml = (pdf: any) => {
+    if (!pdf) return;
+
+    const convertMarkdownToHtml = (markdown: string) => {
+      if (!markdown) return "";
+      
+      // Escape HTML
+      let html = markdown
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+        
+      // Split into paragraphs/blocks by double newlines
+      const blocks = html.split(/\n\n+/);
+      
+      return blocks.map(block => {
+        let trimmed = block.trim();
+        if (!trimmed) return "";
+        
+        // Match headers
+        if (trimmed.startsWith("### ")) {
+          return `<h3 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-top: 24px; margin-bottom: 12px; font-family: sans-serif;">${trimmed.slice(4)}</h3>`;
+        }
+        if (trimmed.startsWith("## ")) {
+          return `<h2 style="font-size: 1.5rem; font-weight: 700; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; margin-top: 32px; margin-bottom: 16px; font-family: sans-serif;">${trimmed.slice(3)}</h2>`;
+        }
+        if (trimmed.startsWith("# ")) {
+          return `<h1 style="font-size: 1.875rem; font-weight: 800; color: #0f172a; margin-top: 36px; margin-bottom: 20px; font-family: sans-serif;">${trimmed.slice(2)}</h1>`;
+        }
+        
+        // Match unordered list items
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          const items = trimmed.split(/\n[\-\*]\s+/).map((item) => {
+            let cleanItem = item.replace(/^[\-\*]\s+/, "");
+            cleanItem = cleanItem.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+            return `<li style="margin-bottom: 8px; color: #334155; line-height: 1.6;">${cleanItem}</li>`;
+          });
+          return `<ul style="margin-top: 8px; margin-bottom: 16px; padding-left: 24px;">${items.join("")}</ul>`;
+        }
+        
+        // Bold formatting **text**
+        trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        
+        // Italic formatting *text*
+        trimmed = trimmed.replace(/\*(.*?)\*/g, "<em>$1</em>");
+        
+        // Standard paragraph
+        return `<p style="margin-top: 0; margin-bottom: 16px; color: #334155; line-height: 1.7; font-size: 1rem;">${trimmed.replace(/\n/g, "<br/>")}</p>`;
+      }).join("\n");
+    };
+
+    const theoryHtml = convertMarkdownToHtml(pdf.theoryContent || "");
+
+    const mcqsHtml = (pdf.mcqs || []).map((mcq: any, idx: number) => {
+      const optionsHtml = mcq.options.map((option: string) => {
+        const isCorrect = option === mcq.correctAnswer;
+        return `
+          <div class="option ${isCorrect ? 'correct' : ''}">
+            <span class="bullet">${isCorrect ? '✓' : '•'}</span>
+            <span class="text">${option}</span>
+            ${isCorrect ? `<span class="badge">${isBengali ? 'সঠিক উত্তর' : 'Correct'}</span>` : ''}
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="mcq-card">
+          <h3 class="mcq-question">${idx + 1}. ${mcq.question}</h3>
+          <div class="options-grid">
+            ${optionsHtml}
+          </div>
+          ${mcq.explanation ? `
+            <div class="explanation-box">
+              <strong>${isBengali ? 'ব্যাখ্যা:' : 'Explanation:'}</strong>
+              <p>${mcq.explanation}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join("");
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="${isBengali ? 'bn' : 'en'}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${pdf.title}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Hind Siliguri', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #f1f5f9;
+      margin: 0;
+      padding: 40px 16px;
+    }
+    
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: white;
+      padding: 50px 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 20px;
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .brand {
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.05em;
+    }
+    
+    .edition-badge {
+      background: #0f172a;
+      color: white;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .title-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 0;
+      margin-bottom: 16px;
+      line-height: 1.25;
+    }
+    
+    .intro-text {
+      font-style: italic;
+      color: #475569;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 40px;
+      padding: 4px 20px;
+      border-left: 4px solid #0d9488;
+      background-color: #f8fafc;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .theory-section {
+      font-size: 1.05rem;
+      color: #334155;
+    }
+    
+    .mcq-section {
+      margin-top: 60px;
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 40px;
+    }
+    
+    .mcq-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      page-break-inside: avoid;
+    }
+    
+    .mcq-question {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    @media (min-width: 640px) {
+      .options-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .option {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    
+    .option.correct {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+      font-weight: 600;
+    }
+    
+    .option .bullet {
+      font-size: 1.1rem;
+    }
+    
+    .option.correct .bullet {
+      color: #15803d;
+    }
+    
+    .badge {
+      margin-left: auto;
+      background: #15803d;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    
+    .explanation-box {
+      margin-top: 16px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 0.85rem;
+    }
+    
+    .explanation-box strong {
+      color: #0369a1;
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .explanation-box p {
+      margin: 0;
+      color: #0c4a6e;
+    }
+    
+    .footer {
+      margin-top: 60px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 30px;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+    
+    .print-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #0d9488;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-weight: 700;
+      box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      z-index: 999;
+    }
+    
+    .print-btn:hover {
+      background: #0f766e;
+      transform: translateY(-2px);
+    }
+    
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .container {
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      
+      .print-btn {
+        display: none;
+      }
+      
+      .mcq-card {
+        border: 1px solid #cbd5e1;
+        background: white;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">STUDY HUB ACADEMY</div>
+      <div class="edition-badge">${pdf.month} EDITION</div>
+    </div>
+    
+    <div class="title-section">
+      <h1>${pdf.title}</h1>
+      <p style="color: #64748b; font-size: 0.9rem;">
+        ${isBengali ? 'প্রকাশকাল:' : 'Published:'} ${new Date(pdf.timestamp).toLocaleDateString()}
+      </p>
+    </div>
+    
+    <div class="intro-text">
+      ${pdf.introduction}
+    </div>
+    
+    <div class="theory-section">
+      ${theoryHtml}
+    </div>
+    
+    <div class="mcq-section">
+      <h2 style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 30px; font-family: sans-serif;">
+        ${isBengali ? "গুরুত্বপূর্ণ মূল্যায়ন প্রশ্নাবলী" : "High-Yield Practice Questions"}
+      </h2>
+      ${mcqsHtml}
+    </div>
+    
+    <div class="footer">
+      <p style="font-weight: bold; margin-bottom: 8px; color: #0f172a;">STUDY HUB ACADEMY</p>
+      <p style="margin: 0; font-size: 0.8rem;">
+        ${isBengali 
+          ? "আপনার স্বপ্ন ছোঁয়ার যাত্রায় আমরা সর্বদা আপনার সাথে আছি।" 
+          : "We are with you at every step of your preparation."}
+      </p>
+    </div>
+  </div>
+  
+  <button class="print-btn" onclick="window.print()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+      <rect x="6" y="14" width="12" height="8"></rect>
+    </svg>
+    <span>${isBengali ? 'প্রিন্ট বা পিডিএফ সেভ করুন' : 'Print / Save PDF'}</span>
+  </button>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${pdf.title.replace(/[\s\W]+/g, "-")}-Study-Guide.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const fetchNotes = async (subject: string) => {
     setLoading(true);
@@ -686,7 +1066,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => window.print()}
+                    onClick={() => setShowPrintModal(true)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 text-xs font-bold transition-all"
                     title="Print or Save as PDF"
                   >
@@ -873,6 +1253,126 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                       ? "আপনার স্বপ্ন ছোঁয়ার যাত্রায় আমরা সর্বদা আপনার সাথে আছি। নিয়মিত পড়াশোনা করুন এবং সফল হোন।" 
                       : "We are with you at every step of your preparation. Keep practicing and keep moving towards your dream."}
                   </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Help / Print & Download Options */}
+      <AnimatePresence>
+        {showPrintModal && selectedPdf && (
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className={`${theme.bgCard} text-slate-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border ${theme.borderCard} p-6 space-y-6 relative`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
+                  <Printer className="h-5 w-5" />
+                  <h3 className={`text-base font-bold ${theme.textHeading}`}>
+                    {isBengali ? "প্রিন্ট এবং পিডিএফ ডাউনলোড অপশন" : "Print & PDF Download Options"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <p className={`text-xs ${theme.textMuted} leading-relaxed`}>
+                  {isBengali 
+                    ? "আইফ্রেম (iFrame) সিকিউরিটি সুবিধার কারণে ব্রাউজারের প্রিন্ট উইন্ডোটি এখানে সরাসরি কাজ নাও করতে পারে। নিচে দেওয়া সহজ এবং ১০০% কার্যকর পদ্ধতিগুলোর যেকোনো একটি ব্যবহার করুন:" 
+                    : "Due to browser security constraints inside standard sandboxed previews, the default print window may be blocked. Please choose one of the options below to get a perfect copy:"}
+                </p>
+
+                <div className="space-y-3">
+                  {/* OPTION 1: Standalone Download (BEST) */}
+                  <div className={`p-4 rounded-2xl border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 transition-all flex flex-col gap-2`}>
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                        <Download className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className={`text-xs font-bold ${theme.textHeading}`}>
+                          {isBengali ? "১. প্রিমিয়াম অফলাইন নোট ফাইল ডাউনলোড (সেরা পদ্ধতি)" : "1. Download Offline Notes File (Recommended)"}
+                        </h4>
+                        <p className={`text-[10px] ${theme.textMuted} mt-0.5 leading-normal`}>
+                          {isBengali 
+                            ? "এই নোটটি আপনার ডিভাইসে একটি ফাইল হিসেবে ডাউনলোড করুন। ফাইলটি ওপেন করলেই ব্রাউজারে সুন্দরভাবে খুলবে এবং আপনি সরাসরি প্রিন্ট বা PDF সেভ করতে পারবেন। বাংলা লেখার ফন্ট ১০০% সঠিক থাকবে!" 
+                            : "Download as a standalone offline file. Double-click to open in any browser to print/save as PDF with perfect formatting and fonts!"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        downloadStandaloneHtml(selectedPdf);
+                        setShowPrintModal(false);
+                      }}
+                      className="w-full h-9 rounded-xl text-white font-semibold text-xs bg-teal-600 hover:bg-teal-700 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                    >
+                      <Download className="h-4 w-4" />
+                      {isBengali ? "অফলাইন নোট ফাইল ডাউনলোড করুন" : "Download Offline Note"}
+                    </button>
+                  </div>
+
+                  {/* OPTION 2: Open in new tab */}
+                  <div className={`p-4 rounded-2xl border ${theme.borderCard} bg-slate-50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-all flex flex-col gap-2`}>
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        <Printer className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className={`text-xs font-bold ${theme.textHeading}`}>
+                          {isBengali ? "২. নতুন ট্যাবে খুলে সরাসরি প্রিন্ট করুন" : "2. Open in New Tab & Print"}
+                        </h4>
+                        <p className={`text-[10px] ${theme.textMuted} mt-0.5 leading-normal`}>
+                          {isBengali 
+                            ? "অ্যাপটি নতুন একটি ট্যাবে ওপেন করে সরাসরি প্রিন্ট করুন। সেখানে ব্রাউজারের প্রিন্ট উইন্ডোটি কোনো সিকিউরিটি বাধা ছাড়াই কাজ করবে।" 
+                            : "Opens the application in a new browser tab where standard direct printing works instantly without iframe limitations."}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        window.open(window.location.href, "_blank");
+                        setShowPrintModal(false);
+                      }}
+                      className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                      {isBengali ? "নতুন ট্যাবে অ্যাপ খুলুন" : "Open App in New Tab"}
+                    </button>
+                  </div>
+
+                  {/* OPTION 3: Direct Print Fallback */}
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className={theme.textMuted}>
+                      {isBengali ? "অথবা সরাসরি চেষ্টা করুন:" : "Or attempt direct print:"}
+                    </span>
+                    <button
+                      onClick={() => {
+                        window.print();
+                        setShowPrintModal(false);
+                      }}
+                      className="text-teal-600 dark:text-teal-400 font-bold hover:underline"
+                    >
+                      {isBengali ? "সরাসরি প্রিন্ট করার চেষ্টা করুন" : "Attempt Direct Print"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
