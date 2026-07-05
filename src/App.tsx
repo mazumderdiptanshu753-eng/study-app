@@ -35,17 +35,6 @@ import AIStudyAssistant from "./components/AIStudyAssistant";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot 
-} from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "./lib/firebase";
 
 export default function App() {
   const [lang, setLang] = useState<Language>(() => {
@@ -195,50 +184,18 @@ export default function App() {
   // Loading indicator for AI tasks
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
-  // Sync personal study notes with Firestore real-time database when student is logged in
+  // Sync personal study notes from local storage (Firebase / Google Authentication disabled)
   useEffect(() => {
-    if (!profile?.email) {
-      // Fallback to local storage if not logged in
-      const local = localStorage.getItem("study_notes");
-      if (local) {
-        try {
-          setNotes(JSON.parse(local));
-        } catch (e) {
-          setNotes([]);
-        }
-      } else {
+    const local = localStorage.getItem("study_notes");
+    if (local) {
+      try {
+        setNotes(JSON.parse(local));
+      } catch (e) {
         setNotes([]);
       }
-      return;
+    } else {
+      setNotes([]);
     }
-
-    const email = profile.email.trim().toLowerCase();
-    const path = "notes";
-    const notesQuery = query(
-      collection(db, path),
-      where("userEmail", "==", email),
-      orderBy("timestamp", "desc")
-    );
-
-    const unsubscribe = onSnapshot(
-      notesQuery,
-      (snapshot) => {
-        const fetchedNotes = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-          } as StudyNote;
-        });
-        setNotes(fetchedNotes);
-        localStorage.setItem("study_notes", JSON.stringify(fetchedNotes));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, path);
-      }
-    );
-
-    return () => unsubscribe();
   }, [profile?.email]);
 
   // Sync to local storage for local offline persistence fallback
@@ -253,7 +210,7 @@ export default function App() {
     }
   }, [currentTab, profile]);
 
-  // Save or update manually written note or AI updated fields
+  // Save or update manually written note or AI updated fields (Locally)
   const handleSaveNote = async (noteData: Omit<StudyNote, "id" | "timestamp"> & { id?: string; timestamp?: string }) => {
     const isNew = !noteData.id;
     const noteId = noteData.id || `note-${Date.now()}`;
@@ -265,45 +222,19 @@ export default function App() {
       timestamp: timestamp,
     };
 
-    if (profile?.email) {
-      const path = `notes/${noteId}`;
-      const payload = {
-        ...finalNote,
-        userEmail: profile.email.trim().toLowerCase()
-      };
-      try {
-        await setDoc(doc(db, "notes", noteId), payload, { merge: true });
-        setSelectedNote(finalNote);
-      } catch (error) {
-        handleFirestoreError(error, isNew ? OperationType.CREATE : OperationType.UPDATE, path);
-      }
+    if (isNew) {
+      setNotes(prev => [finalNote, ...prev]);
     } else {
-      if (isNew) {
-        setNotes(prev => [finalNote, ...prev]);
-      } else {
-        setNotes(prev => prev.map(n => n.id === noteId ? finalNote : n));
-      }
-      setSelectedNote(finalNote);
+      setNotes(prev => prev.map(n => n.id === noteId ? finalNote : n));
     }
+    setSelectedNote(finalNote);
   };
 
-  // Delete note from Firestore/local storage
+  // Delete note from local storage
   const handleDeleteNote = async (id: string) => {
-    if (profile?.email) {
-      const path = `notes/${id}`;
-      try {
-        await deleteDoc(doc(db, "notes", id));
-        if (selectedNote?.id === id) {
-          setSelectedNote(null);
-        }
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, path);
-      }
-    } else {
-      setNotes(prev => prev.filter(n => n.id !== id));
-      if (selectedNote?.id === id) {
-        setSelectedNote(null);
-      }
+    setNotes(prev => prev.filter(n => n.id !== id));
+    if (selectedNote?.id === id) {
+      setSelectedNote(null);
     }
   };
 

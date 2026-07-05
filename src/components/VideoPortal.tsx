@@ -19,17 +19,6 @@ import {
 import { StudentProfile, VideoLecture, VideoComment, Subject } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  updateDoc 
-} from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 
 interface VideoPortalProps {
   profile: StudentProfile | null;
@@ -128,34 +117,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
   // Comment input state
   const [newCommentText, setNewCommentText] = useState("");
 
-  // Real-time Firestore Sync for Videos
-  useEffect(() => {
-    const path = "videos";
-    const videosQuery = query(
-      collection(db, path),
-      orderBy("timestamp", "desc")
-    );
 
-    const unsubscribe = onSnapshot(
-      videosQuery,
-      (snapshot) => {
-        const fetchedVideos = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-          } as VideoLecture;
-        });
-        setVideos(fetchedVideos);
-        localStorage.setItem("video_lectures", JSON.stringify(fetchedVideos));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, path);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
 
   // Keep selected video synchronized with real-time updates from videos array (e.g., comments)
   useEffect(() => {
@@ -175,7 +137,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     localStorage.setItem("video_lectures", JSON.stringify(updated));
   };
 
-  // Add new video (Admin Only)
+  // Add new video (Admin Only - Local)
   const handleAddVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -211,39 +173,31 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       comments: []
     };
 
-    const path = `videos/${newLecture.id}`;
-    try {
-      await setDoc(doc(db, "videos", newLecture.id), newLecture);
-      setSelectedVideo(newLecture);
-      
-      // Reset Form
-      setNewTitle("");
-      setNewDescription("");
-      setNewUrl("");
-      setIsAddingVideo(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
+    const updatedVideos = [newLecture, ...videos];
+    saveVideos(updatedVideos);
+    setSelectedVideo(newLecture);
+    
+    // Reset Form
+    setNewTitle("");
+    setNewDescription("");
+    setNewUrl("");
+    setIsAddingVideo(false);
   };
 
-  // Delete Video (Admin Only)
+  // Delete Video (Admin Only - Local)
   const handleDeleteVideo = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const msg = lang === "bn" ? "আপনি কি এই ভিডিও লেকচারটি মুছে ফেলতে চান?" : "Are you sure you want to delete this video lecture?";
     if (!window.confirm(msg)) return;
 
-    const path = `videos/${videoId}`;
-    try {
-      await deleteDoc(doc(db, "videos", videoId));
-      if (selectedVideo?.id === videoId) {
-        setSelectedVideo(null);
-      }
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, path);
+    const updatedVideos = videos.filter(v => v.id !== videoId);
+    saveVideos(updatedVideos);
+    if (selectedVideo?.id === videoId) {
+      setSelectedVideo(updatedVideos[0] || null);
     }
   };
 
-  // Add Comment (All Logged-in Students & Admins)
+  // Add Comment (All Logged-in Students & Admins - Local)
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVideo || !newCommentText.trim()) return;
@@ -259,18 +213,12 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     };
 
     const updatedComments = [...selectedVideo.comments, newComment];
-    const path = `videos/${selectedVideo.id}`;
-    try {
-      await updateDoc(doc(db, "videos", selectedVideo.id), {
-        comments: updatedComments
-      });
-      setNewCommentText("");
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
+    const updatedVideos = videos.map(v => v.id === selectedVideo.id ? { ...v, comments: updatedComments } : v);
+    saveVideos(updatedVideos);
+    setNewCommentText("");
   };
 
-  // Delete Comment (Admin can delete all, Student can delete their own)
+  // Delete Comment (Admin can delete all, Student can delete their own - Local)
   const handleDeleteComment = async (commentId: string) => {
     if (!selectedVideo) return;
     
@@ -278,14 +226,8 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     if (!window.confirm(msg)) return;
 
     const updatedComments = selectedVideo.comments.filter(c => c.id !== commentId);
-    const path = `videos/${selectedVideo.id}`;
-    try {
-      await updateDoc(doc(db, "videos", selectedVideo.id), {
-        comments: updatedComments
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
+    const updatedVideos = videos.map(v => v.id === selectedVideo.id ? { ...v, comments: updatedComments } : v);
+    saveVideos(updatedVideos);
   };
 
   const containerVariants = {

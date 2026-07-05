@@ -1,0 +1,700 @@
+import pg from "pg";
+import fs from "fs";
+import path from "path";
+
+const { Pool } = pg;
+
+const DATA_DIR = path.join(process.cwd(), "data");
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+const DB_FILE = path.join(DATA_DIR, "db.json");
+
+// Default Local DB state
+let localDB: any = {
+  users: [],
+  chatMessages: [
+    {
+      id: "welcome-demo",
+      senderName: "Admin (Diptanshu)",
+      senderEmail: "mazumderdiptanshu753@gmail.com",
+      senderRole: "Admin",
+      message: "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      studentEmail: "demo@studyhub.com",
+      studentName: "Demo Student"
+    }
+  ],
+  activityLogs: [],
+  forumPosts: [],
+  liveClasses: [],
+  govtJobNotes: [],
+  aiPdfNotes: []
+};
+
+// Load local DB
+function loadLocalDB() {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const data = fs.readFileSync(DB_FILE, "utf-8").trim();
+      if (data) {
+        const parsed = JSON.parse(data);
+        localDB = { ...localDB, ...parsed };
+      }
+    } catch (e) {
+      console.error("Failed to load local db.json:", e);
+    }
+  }
+}
+loadLocalDB();
+
+function saveLocalDB() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(localDB, null, 2), "utf-8");
+  } catch (e) {
+    console.error("Failed to save local db.json:", e);
+  }
+}
+
+// Pool initialization
+let pool: pg.Pool | null = null;
+const connectionString = process.env.DATABASE_URL;
+
+if (connectionString) {
+  console.log("Found Neon/PostgreSQL connection string. Initializing database pool...");
+  pool = new Pool({
+    connectionString,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+} else {
+  console.log("No DATABASE_URL found. Running with local db.json file database.");
+}
+
+export async function initDatabase(): Promise<boolean> {
+  if (!pool) return false;
+  try {
+    // Test connection
+    const client = await pool.connect();
+    console.log("Successfully connected to Neon PostgreSQL database!");
+    client.release();
+
+    // Create tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        email VARCHAR(255) PRIMARY KEY,
+        "fullName" VARCHAR(255) NOT NULL,
+        grade VARCHAR(100),
+        "preferredSubject" VARCHAR(100),
+        "registeredAt" VARCHAR(100),
+        "avatarUrl" VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'Student'
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id VARCHAR(255) PRIMARY KEY,
+        "senderName" VARCHAR(255),
+        "senderEmail" VARCHAR(255),
+        "senderRole" VARCHAR(50),
+        message TEXT,
+        timestamp VARCHAR(100),
+        "studentEmail" VARCHAR(255),
+        "studentName" VARCHAR(255)
+      );
+
+      CREATE TABLE IF NOT EXISTS forum_posts (
+        id VARCHAR(255) PRIMARY KEY,
+        "authorEmail" VARCHAR(255),
+        "authorName" VARCHAR(255),
+        title VARCHAR(255),
+        content TEXT,
+        timestamp VARCHAR(100),
+        likes INTEGER DEFAULT 0,
+        replies JSONB DEFAULT '[]'::jsonb
+      );
+
+      CREATE TABLE IF NOT EXISTS live_classes (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255),
+        subject VARCHAR(255),
+        instructor VARCHAR(255),
+        "scheduledTime" VARCHAR(100),
+        link TEXT,
+        status VARCHAR(50) DEFAULT 'Scheduled',
+        "createdAt" VARCHAR(100)
+      );
+
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id VARCHAR(255) PRIMARY KEY,
+        "userEmail" VARCHAR(255),
+        "userName" VARCHAR(255),
+        action VARCHAR(100),
+        timestamp VARCHAR(100),
+        details TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS govt_job_notes (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255),
+        content TEXT,
+        subject VARCHAR(100),
+        timestamp VARCHAR(100),
+        comments JSONB DEFAULT '[]'::jsonb,
+        "authorEmail" VARCHAR(255),
+        "authorName" VARCHAR(255)
+      );
+
+      CREATE TABLE IF NOT EXISTS ai_pdf_notes (
+        id VARCHAR(255) PRIMARY KEY,
+        "fileName" VARCHAR(255),
+        title VARCHAR(255),
+        summary TEXT,
+        mcqs JSONB DEFAULT '[]'::jsonb,
+        flashcards JSONB DEFAULT '[]'::jsonb,
+        timestamp VARCHAR(100),
+        "userEmail" VARCHAR(255),
+        subject VARCHAR(100)
+      );
+    `);
+    console.log("Neon database tables ensured successfully!");
+    return true;
+  } catch (err: any) {
+    console.error("Failed to initialize PostgreSQL. Falling back to local db.json. Error:", err.message);
+    pool = null; // disable pool
+    return false;
+  }
+}
+
+// --- Users Database Queries ---
+export async function getUsers(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM users');
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching users from PG, falling back:", e);
+    }
+  }
+  return localDB.users || [];
+}
+
+export async function saveUser(user: any): Promise<any[]> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (email) 
+        DO UPDATE SET 
+          "fullName" = EXCLUDED."fullName",
+          grade = EXCLUDED.grade,
+          "preferredSubject" = EXCLUDED."preferredSubject",
+          "registeredAt" = EXCLUDED."registeredAt",
+          "avatarUrl" = EXCLUDED."avatarUrl",
+          role = EXCLUDED.role
+      `, [
+        user.email.trim().toLowerCase(),
+        user.fullName || '',
+        user.grade || '',
+        user.preferredSubject || '',
+        user.registeredAt || new Date().toISOString(),
+        user.avatarUrl || '',
+        user.role || 'Student'
+      ]);
+      return getUsers();
+    } catch (e) {
+      console.error("Error saving user to PG, falling back:", e);
+    }
+  }
+  
+  const existing = localDB.users.find((u: any) => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
+  if (existing) {
+    Object.assign(existing, user);
+  } else {
+    localDB.users.push(user);
+  }
+  saveLocalDB();
+  return localDB.users;
+}
+
+export async function deleteUser(email: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting user from PG, falling back:", e);
+    }
+  }
+  const len = localDB.users.length;
+  localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== email.trim().toLowerCase());
+  saveLocalDB();
+  return localDB.users.length < len;
+}
+
+// --- Chat Messages Database Queries ---
+export async function getChatMessages(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM chat_messages');
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching chat messages from PG, falling back:", e);
+    }
+  }
+  return localDB.chatMessages || [];
+}
+
+export async function saveChatMessage(msg: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO chat_messages (id, "senderName", "senderEmail", "senderRole", message, timestamp, "studentEmail", "studentName")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO NOTHING
+      `, [
+        msg.id,
+        msg.senderName,
+        msg.senderEmail,
+        msg.senderRole,
+        msg.message,
+        msg.timestamp,
+        msg.studentEmail,
+        msg.studentName
+      ]);
+      return msg;
+    } catch (e) {
+      console.error("Error saving chat message to PG, falling back:", e);
+    }
+  }
+  if (!localDB.chatMessages) localDB.chatMessages = [];
+  localDB.chatMessages.push(msg);
+  saveLocalDB();
+  return msg;
+}
+
+// --- Forum Posts Database Queries ---
+export async function getForumPosts(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM forum_posts');
+      return res.rows.map(row => ({
+        ...row,
+        replies: typeof row.replies === 'string' ? JSON.parse(row.replies) : (row.replies || [])
+      }));
+    } catch (e) {
+      console.error("Error fetching forum posts from PG, falling back:", e);
+    }
+  }
+  return localDB.forumPosts || [];
+}
+
+export async function saveForumPost(post: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO forum_posts (id, "authorEmail", "authorName", title, content, timestamp, likes, replies)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          content = EXCLUDED.content,
+          likes = EXCLUDED.likes,
+          replies = EXCLUDED.replies
+      `, [
+        post.id,
+        post.authorEmail,
+        post.authorName,
+        post.title,
+        post.content,
+        post.timestamp,
+        post.likes || 0,
+        JSON.stringify(post.replies || [])
+      ]);
+      return post;
+    } catch (e) {
+      console.error("Error saving forum post to PG, falling back:", e);
+    }
+  }
+  if (!localDB.forumPosts) localDB.forumPosts = [];
+  localDB.forumPosts.push(post);
+  saveLocalDB();
+  return post;
+}
+
+export async function addForumReply(postId: string, reply: any): Promise<any> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT replies FROM forum_posts WHERE id = $1', [postId]);
+      if (res.rows.length > 0) {
+        const replies = Array.isArray(res.rows[0].replies) ? res.rows[0].replies : JSON.parse(res.rows[0].replies || '[]');
+        replies.push(reply);
+        await pool.query('UPDATE forum_posts SET replies = $1 WHERE id = $2', [JSON.stringify(replies), postId]);
+        return reply;
+      }
+    } catch (e) {
+      console.error("Error adding forum reply to PG, falling back:", e);
+    }
+  }
+  if (!localDB.forumPosts) localDB.forumPosts = [];
+  const post = localDB.forumPosts.find((p: any) => p.id === postId);
+  if (post) {
+    if (!post.replies) post.replies = [];
+    post.replies.push(reply);
+    saveLocalDB();
+    return reply;
+  }
+  return null;
+}
+
+// --- Live Classes Database Queries ---
+export async function getLiveClasses(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM live_classes');
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching live classes from PG, falling back:", e);
+    }
+  }
+  return localDB.liveClasses || [];
+}
+
+export async function saveLiveClass(cls: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO live_classes (id, title, subject, instructor, "scheduledTime", link, status, "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          subject = EXCLUDED.subject,
+          instructor = EXCLUDED.instructor,
+          "scheduledTime" = EXCLUDED."scheduledTime",
+          link = EXCLUDED.link,
+          status = EXCLUDED.status
+      `, [
+        cls.id,
+        cls.title,
+        cls.subject,
+        cls.instructor,
+        cls.scheduledTime,
+        cls.link,
+        cls.status || 'Scheduled',
+        cls.createdAt
+      ]);
+      return cls;
+    } catch (e) {
+      console.error("Error saving live class to PG, falling back:", e);
+    }
+  }
+  if (!localDB.liveClasses) localDB.liveClasses = [];
+  localDB.liveClasses.push(cls);
+  saveLocalDB();
+  return cls;
+}
+
+export async function updateLiveClassStatus(id: string, status: string): Promise<any> {
+  if (pool) {
+    try {
+      const res = await pool.query(`
+        UPDATE live_classes 
+        SET status = $1 
+        WHERE id = $2 
+        RETURNING *
+      `, [status, id]);
+      if (res.rows.length > 0) {
+        return res.rows[0];
+      }
+    } catch (e) {
+      console.error("Error updating live class status in PG, falling back:", e);
+    }
+  }
+  if (!localDB.liveClasses) localDB.liveClasses = [];
+  const cls = localDB.liveClasses.find((c: any) => c.id === id);
+  if (cls) {
+    cls.status = status;
+    saveLocalDB();
+    return cls;
+  }
+  return null;
+}
+
+export async function deleteLiveClass(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM live_classes WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting live class from PG, falling back:", e);
+    }
+  }
+  const len = localDB.liveClasses.length;
+  localDB.liveClasses = (localDB.liveClasses || []).filter((c: any) => c.id !== id);
+  saveLocalDB();
+  return localDB.liveClasses.length < len;
+}
+
+// --- Activity Logs Database Queries ---
+export async function getActivityLogs(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM activity_logs');
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching activity logs from PG, falling back:", e);
+    }
+  }
+  return localDB.activityLogs || [];
+}
+
+export async function saveActivityLog(log: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO activity_logs (id, "userEmail", "userName", action, timestamp, details)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        log.id,
+        log.userEmail,
+        log.userName || '',
+        log.action,
+        log.timestamp,
+        log.details || ''
+      ]);
+      return log;
+    } catch (e) {
+      console.error("Error saving activity log to PG, falling back:", e);
+    }
+  }
+  if (!localDB.activityLogs) localDB.activityLogs = [];
+  localDB.activityLogs.unshift(log);
+  saveLocalDB();
+  return log;
+}
+
+// --- Govt Job Notes Database Queries ---
+export async function getGovtJobNotes(subject?: string): Promise<any[]> {
+  if (pool) {
+    try {
+      let queryStr = 'SELECT * FROM govt_job_notes';
+      const params: any[] = [];
+      if (subject) {
+        queryStr += ' WHERE subject = $1';
+        params.push(subject);
+      }
+      const res = await pool.query(queryStr, params);
+      return res.rows.map(row => ({
+        ...row,
+        comments: typeof row.comments === 'string' ? JSON.parse(row.comments) : (row.comments || [])
+      }));
+    } catch (e) {
+      console.error("Error fetching govt job notes from PG, falling back:", e);
+    }
+  }
+  let notes = localDB.govtJobNotes || [];
+  if (subject) {
+    notes = notes.filter((n: any) => n.subject === subject);
+  }
+  return notes;
+}
+
+export async function saveGovtJobNote(note: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO govt_job_notes (id, title, content, subject, timestamp, comments, "authorEmail", "authorName")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          content = EXCLUDED.content,
+          subject = EXCLUDED.subject,
+          comments = EXCLUDED.comments
+      `, [
+        note.id,
+        note.title,
+        note.content,
+        note.subject,
+        note.timestamp,
+        JSON.stringify(note.comments || []),
+        note.authorEmail,
+        note.authorName
+      ]);
+      return note;
+    } catch (e) {
+      console.error("Error saving govt job note to PG, falling back:", e);
+    }
+  }
+  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
+  localDB.govtJobNotes.push(note);
+  saveLocalDB();
+  return note;
+}
+
+export async function addGovtJobNoteComment(noteId: string, comment: any): Promise<any> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT comments FROM govt_job_notes WHERE id = $1', [noteId]);
+      if (res.rows.length > 0) {
+        const comments = Array.isArray(res.rows[0].comments) ? res.rows[0].comments : JSON.parse(res.rows[0].comments || '[]');
+        comments.push(comment);
+        await pool.query('UPDATE govt_job_notes SET comments = $1 WHERE id = $2', [JSON.stringify(comments), noteId]);
+        return comment;
+      }
+    } catch (e) {
+      console.error("Error adding comment to govt job note in PG, falling back:", e);
+    }
+  }
+  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
+  const note = localDB.govtJobNotes.find((n: any) => n.id === noteId);
+  if (note) {
+    if (!note.comments) note.comments = [];
+    note.comments.push(comment);
+    saveLocalDB();
+    return comment;
+  }
+  return null;
+}
+
+export async function deleteGovtJobNote(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM govt_job_notes WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting govt job note from PG, falling back:", e);
+    }
+  }
+  const len = localDB.govtJobNotes.length;
+  localDB.govtJobNotes = (localDB.govtJobNotes || []).filter((n: any) => n.id !== id);
+  saveLocalDB();
+  return localDB.govtJobNotes.length < len;
+}
+
+// --- AI PDF Notes Database Queries ---
+export async function getAiPdfNotes(subject?: string): Promise<any[]> {
+  if (pool) {
+    try {
+      let queryStr = 'SELECT * FROM ai_pdf_notes';
+      const params: any[] = [];
+      if (subject) {
+        queryStr += ' WHERE subject = $1';
+        params.push(subject);
+      }
+      const res = await pool.query(queryStr, params);
+      return res.rows.map(row => {
+        let noteData: any = {};
+        try {
+          if (row.summary && row.summary.trim().startsWith('{')) {
+            noteData = JSON.parse(row.summary);
+          }
+        } catch (e) {
+          // Fallback if not a json string
+        }
+        return {
+          id: row.id,
+          subject: row.subject,
+          title: row.title,
+          timestamp: row.timestamp,
+          mcqs: typeof row.mcqs === 'string' ? JSON.parse(row.mcqs) : (row.mcqs || []),
+          introduction: noteData.introduction || "",
+          keyTopics: noteData.keyTopics || [],
+          theoryContent: noteData.theoryContent || row.summary || "",
+          month: noteData.month || "",
+          flashcards: typeof row.flashcards === 'string' ? JSON.parse(row.flashcards) : (row.flashcards || [])
+        };
+      });
+    } catch (e) {
+      console.error("Error fetching AI PDF notes from PG, falling back:", e);
+    }
+  }
+  let notes = localDB.aiPdfNotes || [];
+  if (subject) {
+    notes = notes.filter((n: any) => n.subject === subject);
+  }
+  return notes;
+}
+
+export async function saveAiPdfNote(note: any): Promise<any> {
+  if (pool) {
+    try {
+      const summaryPayload = JSON.stringify({
+        introduction: note.introduction || "",
+        keyTopics: note.keyTopics || [],
+        theoryContent: note.theoryContent || "",
+        month: note.month || ""
+      });
+      await pool.query(`
+        INSERT INTO ai_pdf_notes (id, "fileName", title, summary, mcqs, flashcards, timestamp, "userEmail", subject)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          summary = EXCLUDED.summary,
+          mcqs = EXCLUDED.mcqs,
+          flashcards = EXCLUDED.flashcards,
+          subject = EXCLUDED.subject
+      `, [
+        note.id,
+        note.fileName || "",
+        note.title,
+        summaryPayload,
+        JSON.stringify(note.mcqs || []),
+        JSON.stringify(note.flashcards || []),
+        note.timestamp,
+        note.userEmail || "",
+        note.subject || ''
+      ]);
+      return note;
+    } catch (e) {
+      console.error("Error saving AI PDF note to PG, falling back:", e);
+    }
+  }
+  if (!localDB.aiPdfNotes) localDB.aiPdfNotes = [];
+  localDB.aiPdfNotes.push(note);
+  saveLocalDB();
+  return note;
+}
+
+export async function deleteAiPdfNote(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM ai_pdf_notes WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting AI PDF note from PG, falling back:", e);
+    }
+  }
+  const len = localDB.aiPdfNotes.length;
+  localDB.aiPdfNotes = (localDB.aiPdfNotes || []).filter(n => n.id !== id);
+  saveLocalDB();
+  return localDB.aiPdfNotes.length < len;
+}
+
+export async function getAiPdfNotesCount(): Promise<number> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT COUNT(*) FROM ai_pdf_notes');
+      return parseInt(res.rows[0].count, 10);
+    } catch (e) {
+      console.error("Error counting AI PDF notes in PG, falling back:", e);
+    }
+  }
+  return (localDB.aiPdfNotes || []).length;
+}
+
+export async function seedAiPdfNotes(seedData: any[]): Promise<any[]> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM ai_pdf_notes');
+      for (const note of seedData) {
+        await saveAiPdfNote(note);
+      }
+      return seedData;
+    } catch (e) {
+      console.error("Error seeding AI PDF notes in PG, falling back:", e);
+    }
+  }
+  localDB.aiPdfNotes = seedData;
+  saveLocalDB();
+  return seedData;
+}

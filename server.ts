@@ -4,18 +4,41 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import * as admin from "firebase-admin";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 dotenv.config();
+
+import {
+  initDatabase,
+  getUsers,
+  saveUser,
+  deleteUser,
+  getChatMessages,
+  saveChatMessage,
+  getForumPosts,
+  saveForumPost,
+  addForumReply,
+  getLiveClasses,
+  saveLiveClass,
+  updateLiveClassStatus,
+  deleteLiveClass,
+  getActivityLogs,
+  saveActivityLog,
+  getGovtJobNotes,
+  saveGovtJobNote,
+  addGovtJobNoteComment,
+  deleteGovtJobNote,
+  getAiPdfNotes,
+  saveAiPdfNote,
+  deleteAiPdfNote,
+  getAiPdfNotesCount,
+  seedAiPdfNotes
+} from "./server/db.js";
 
 // Ensure data directory exists
 const DATA_DIR = path.join(process.cwd(), "data");
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
-
-const DB_FILE = path.join(DATA_DIR, "db.json");
 
 interface ChatMessage {
   id: string;
@@ -38,7 +61,6 @@ interface StudentProfile {
   role: "Admin" | "Student";
 }
 
-
 interface ForumReply {
   id: string;
   authorEmail: string;
@@ -58,7 +80,6 @@ interface ForumPost {
   replies: ForumReply[];
 }
 
-
 interface LiveClass {
   id: string;
   title: string;
@@ -70,82 +91,9 @@ interface LiveClass {
   createdAt: string;
 }
 
-interface Database {
-  users: StudentProfile[];
-  chatMessages: ChatMessage[];
-  activityLogs?: any[];
-  forumPosts?: ForumPost[];
-  liveClasses?: LiveClass[];
-  govtJobNotes?: any[];
-  aiPdfNotes?: any[];
-}
-
-// Default DB State
-let db: Database = {
-  users: [],
-  activityLogs: [],
-  aiPdfNotes: [],
-  chatMessages: [
-    {
-      id: "welcome-demo",
-      senderName: "Admin (Diptanshu)",
-      senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
-      message: "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      studentEmail: "demo@studyhub.com",
-      studentName: "Demo Student"
-    }
-  ]
-};
-
-// Load DB from file
-if (fs.existsSync(DB_FILE)) {
-  try {
-    const fileData = fs.readFileSync(DB_FILE, "utf-8").trim();
-    if (fileData) {
-      const parsed = JSON.parse(fileData);
-      if (parsed.users) db.users = parsed.users;
-      if (parsed.chatMessages) db.chatMessages = parsed.chatMessages;
-      if (parsed.activityLogs) db.activityLogs = parsed.activityLogs;
-      if (parsed.aiPdfNotes) db.aiPdfNotes = parsed.aiPdfNotes;
-    }
-  } catch (error) {
-    console.error("Error loading db.json:", error);
-  }
-}
-
-// Save DB to file
-function saveDB() {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Error saving db.json:", error);
-  }
-}
-
-// Initialize Firebase Firestore using the config file
+// Global firestore mock variable to keep types/code happy or clean
 let firestore: any = null;
-try {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    if (firebaseConfig.projectId) {
-      admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
-      if (firebaseConfig.firestoreDatabaseId) {
-        // getFirestore supports passing the database ID as the parameter in modern firebase-admin versions
-        firestore = getFirestore(firebaseConfig.firestoreDatabaseId);
-      } else {
-        firestore = getFirestore();
-      }
-      console.log("Firebase Admin successfully initialized on project:", firebaseConfig.projectId);
-    }
-  }
-} catch (error: any) {
-  console.warn("Firebase Admin failed to initialize. Falling back to local db.json. Error:", error.message);
-}
+
 
 async function withRetry(operation: any, maxRetries = 3) {
   let lastError;
@@ -959,69 +907,37 @@ app.get("/api/chat/messages", async (req: express.Request, res: express.Response
   const { email, role, name } = req.query;
   
   try {
-    if (firestore) {
-      const snapshot = await firestore.collection("chatMessages").get();
-      let messages = snapshot.docs.map((doc: any) => doc.data() as ChatMessage);
-      
-      if (role !== "Admin") {
-        if (!email) {
-          return res.status(400).json({ error: "Email is required for students." });
-        }
-        const studentEmail = (email as string).trim().toLowerCase();
-        messages = messages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
-      }
-
-      // Sort by timestamp ascending
-      messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-      // If new student, insert an auto-welcome message
-      if (role !== "Admin" && messages.length === 0 && name && email) {
-        const studentEmail = (email as string).trim().toLowerCase();
-        const welcomeMsg: ChatMessage = {
-          id: `welcome-${Date.now()}`,
-          senderName: "Admin (Diptanshu)",
-          senderEmail: "mazumderdiptanshu753@gmail.com",
-          senderRole: "Admin",
-          message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
-          timestamp: new Date().toISOString(),
-          studentEmail: studentEmail,
-          studentName: name as string
-        };
-        await firestore.collection("chatMessages").doc(welcomeMsg.id).set(welcomeMsg);
-        return res.json([welcomeMsg]);
-      }
-
-      return res.json(messages);
-    } else {
-      if (role === "Admin") {
-        return res.json(db.chatMessages);
-      }
-
+    let messages = await getChatMessages();
+    
+    if (role !== "Admin") {
       if (!email) {
         return res.status(400).json({ error: "Email is required for students." });
       }
-
       const studentEmail = (email as string).trim().toLowerCase();
-      const studentMessages = db.chatMessages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
-
-      if (studentMessages.length === 0 && name) {
-        const welcomeMsg: ChatMessage = {
-          id: `welcome-${Date.now()}`,
-          senderName: "Admin (Diptanshu)",
-          senderEmail: "mazumderdiptanshu753@gmail.com",
-          senderRole: "Admin",
-          message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
-          timestamp: new Date().toISOString(),
-          studentEmail: studentEmail,
-          studentName: name as string
-        };
-        db.chatMessages.push(welcomeMsg);
-        saveDB();
-        return res.json([welcomeMsg]);
-      }
-
-      res.json(studentMessages);
+      messages = messages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
     }
+
+    // Sort by timestamp ascending
+    messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    // If new student, insert an auto-welcome message
+    if (role !== "Admin" && messages.length === 0 && name && email) {
+      const studentEmail = (email as string).trim().toLowerCase();
+      const welcomeMsg = {
+        id: `welcome-${Date.now()}`,
+        senderName: "Admin (Diptanshu)",
+        senderEmail: "mazumderdiptanshu753@gmail.com",
+        senderRole: "Admin" as const,
+        message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
+        timestamp: new Date().toISOString(),
+        studentEmail: studentEmail,
+        studentName: name as string
+      };
+      await saveChatMessage(welcomeMsg);
+      return res.json([welcomeMsg]);
+    }
+
+    return res.json(messages);
   } catch (error: any) {
     console.error("Error fetching chat messages:", error);
     res.status(500).json({ error: error.message });
@@ -1036,7 +952,7 @@ app.post("/api/chat/messages", async (req: express.Request, res: express.Respons
     return res.status(400).json({ error: "Missing required message details." });
   }
 
-  const newMsg: ChatMessage = {
+  const newMsg = {
     id: `msg-${Date.now()}`,
     senderName,
     senderEmail,
@@ -1048,14 +964,8 @@ app.post("/api/chat/messages", async (req: express.Request, res: express.Respons
   };
 
   try {
-    if (firestore) {
-      await firestore.collection("chatMessages").doc(newMsg.id).set(newMsg);
-      res.status(201).json(newMsg);
-    } else {
-      db.chatMessages.push(newMsg);
-      saveDB();
-      res.status(201).json(newMsg);
-    }
+    await saveChatMessage(newMsg);
+    res.status(201).json(newMsg);
   } catch (error: any) {
     console.error("Error posting chat message:", error);
     res.status(500).json({ error: error.message });
@@ -1083,62 +993,46 @@ Since you are the administrator, write a helpful, friendly, and brief response (
 
     const aiMessageText = response.text?.trim() || "Let me know if you need any help with your math studies!";
 
-    const aiMsg: ChatMessage = {
+    const aiMsg = {
       id: `ai-msg-${Date.now()}`,
       senderName: "Admin (Diptanshu - AI)",
       senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
+      senderRole: "Admin" as const,
       message: aiMessageText,
       timestamp: new Date().toISOString(),
       studentEmail: studentEmail.trim().toLowerCase(),
       studentName
     };
 
-    if (firestore) {
-      await firestore.collection("chatMessages").doc(aiMsg.id).set(aiMsg);
-    } else {
-      db.chatMessages.push(aiMsg);
-      saveDB();
-    }
+    await saveChatMessage(aiMsg);
     res.json(aiMsg);
   } catch (error: any) {
     console.error("Error generating Admin AI reply:", error);
     // Fallback message
-    const fallbackMsg: ChatMessage = {
+    const fallbackMsg = {
       id: `fallback-${Date.now()}`,
       senderName: "Admin (Diptanshu)",
       senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
+      senderRole: "Admin" as const,
       message: "Thanks for your message! I'll look into this and get back to you. Make sure to check out the Notes Workspace for your math studies!",
       timestamp: new Date().toISOString(),
       studentEmail: req.body.studentEmail.trim().toLowerCase(),
       studentName: req.body.studentName
     };
     
-    if (firestore) {
-      await firestore.collection("chatMessages").doc(fallbackMsg.id).set(fallbackMsg);
-    } else {
-      db.chatMessages.push(fallbackMsg);
-      saveDB();
-    }
+    await saveChatMessage(fallbackMsg);
     res.json(fallbackMsg);
   }
 });
 
 
+
 // --- Community Forum API ---
 app.get("/api/forum/posts", async (req: express.Request, res: express.Response) => {
   try {
-    if (firestore) {
-      const snapshot = await firestore.collection("forumPosts").get();
-      let postsList = snapshot.docs.map((doc: any) => doc.data());
-      postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      res.json(postsList);
-    } else {
-      const postsList = db.forumPosts || [];
-      postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      res.json(postsList);
-    }
+    const postsList = await getForumPosts();
+    postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(postsList);
   } catch (error: any) {
     console.error("Error fetching forum posts:", error);
     res.status(500).json({ error: error.message });
@@ -1155,15 +1049,8 @@ app.post("/api/forum/posts", async (req: express.Request, res: express.Response)
   post.replies = [];
 
   try {
-    if (firestore) {
-      await firestore.collection("forumPosts").doc(post.id).set(post);
-      res.status(201).json(post);
-    } else {
-      if (!db.forumPosts) db.forumPosts = [];
-      db.forumPosts.push(post);
-      saveDB();
-      res.status(201).json(post);
-    }
+    await saveForumPost(post);
+    res.status(201).json(post);
   } catch (error: any) {
     console.error("Error saving forum post:", error);
     res.status(500).json({ error: error.message });
@@ -1179,29 +1066,11 @@ app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: e
   reply.timestamp = new Date().toISOString();
 
   try {
-    if (firestore) {
-      const postDocRef = firestore.collection("forumPosts").doc(postId);
-      const postSnap = await postDocRef.get();
-      if (postSnap.exists) {
-        const postData = postSnap.data() || {};
-        const replies = postData.replies || [];
-        replies.push(reply);
-        await postDocRef.set({ replies }, { merge: true });
-        res.status(201).json(reply);
-      } else {
-        res.status(404).json({ error: "Post not found" });
-      }
+    const success = await addForumReply(postId, reply);
+    if (success) {
+      res.status(201).json(reply);
     } else {
-      if (!db.forumPosts) db.forumPosts = [];
-      const post = db.forumPosts.find((p: any) => p.id === postId);
-      if (post) {
-        if (!post.replies) post.replies = [];
-        post.replies.push(reply);
-        saveDB();
-        res.status(201).json(reply);
-      } else {
-        res.status(404).json({ error: "Post not found" });
-      }
+      res.status(404).json({ error: "Post not found" });
     }
   } catch (error: any) {
     console.error("Error saving forum reply:", error);
@@ -1213,16 +1082,9 @@ app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: e
 // --- Live Classes API ---
 app.get("/api/live-classes", async (req: express.Request, res: express.Response) => {
   try {
-    if (firestore) {
-      const snapshot = await firestore.collection("liveClasses").get();
-      let classesList = snapshot.docs.map((doc: any) => doc.data());
-      classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
-      res.json(classesList);
-    } else {
-      const classesList = db.liveClasses || [];
-      classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
-      res.json(classesList);
-    }
+    const classesList = await getLiveClasses();
+    classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
+    res.json(classesList);
   } catch (error: any) {
     console.error("Error fetching live classes:", error);
     res.status(500).json({ error: error.message });
@@ -1238,15 +1100,8 @@ app.post("/api/live-classes", async (req: express.Request, res: express.Response
   cls.status = cls.status || "Scheduled";
 
   try {
-    if (firestore) {
-      await firestore.collection("liveClasses").doc(cls.id).set(cls);
-      res.status(201).json(cls);
-    } else {
-      if (!db.liveClasses) db.liveClasses = [];
-      db.liveClasses.push(cls);
-      saveDB();
-      res.status(201).json(cls);
-    }
+    await saveLiveClass(cls);
+    res.status(201).json(cls);
   } catch (error: any) {
     console.error("Error saving live class:", error);
     res.status(500).json({ error: error.message });
@@ -1258,19 +1113,11 @@ app.patch("/api/live-classes/:id", async (req: express.Request, res: express.Res
   const { status } = req.body;
   
   try {
-    if (firestore) {
-      await firestore.collection("liveClasses").doc(id).set({ status }, { merge: true });
-      res.json({ success: true });
+    const updated = await updateLiveClassStatus(id, status);
+    if (updated) {
+      res.json(updated);
     } else {
-      if (!db.liveClasses) db.liveClasses = [];
-      const cls = db.liveClasses.find((c: any) => c.id === id);
-      if (cls) {
-        cls.status = status;
-        saveDB();
-        res.json(cls);
-      } else {
-        res.status(404).json({ error: "Not found" });
-      }
+      res.status(404).json({ error: "Not found" });
     }
   } catch (error: any) {
     console.error("Error updating live class:", error);
@@ -1282,15 +1129,8 @@ app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Re
   const { id } = req.params;
   
   try {
-    if (firestore) {
-      await firestore.collection("liveClasses").doc(id).delete();
-      res.json({ success: true });
-    } else {
-      if (!db.liveClasses) db.liveClasses = [];
-      db.liveClasses = db.liveClasses.filter((c: any) => c.id !== id);
-      saveDB();
-      res.json({ success: true });
-    }
+    await deleteLiveClass(id);
+    res.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting live class:", error);
     res.status(500).json({ error: error.message });
@@ -1300,15 +1140,10 @@ app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Re
 // --- Users API (Admin Panel Persistence) ---
 app.get("/api/users", async (req: express.Request, res: express.Response) => {
   try {
-    if (firestore) {
-      const snapshot = await firestore.collection("users").get();
-      const usersList = snapshot.docs.map((doc: any) => doc.data());
-      res.json(usersList);
-    } else {
-      res.json(db.users);
-    }
+    const usersList = await getUsers();
+    res.json(usersList);
   } catch (error: any) {
-    console.error("Error fetching users from Firestore:", error);
+    console.error("Error fetching users:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1318,27 +1153,11 @@ app.post("/api/users", async (req: express.Request, res: express.Response): Prom
   if (!user.email) return res.status(400).json({ error: "Email is required" });
   
   try {
-    if (firestore) {
-      const emailKey = user.email.trim().toLowerCase();
-      const userDocRef = firestore.collection("users").doc(emailKey);
-      await userDocRef.set(user, { merge: true });
-      
-      // Fetch updated list of all users to return
-      const snapshot = await firestore.collection("users").get();
-      const usersList = snapshot.docs.map((doc: any) => doc.data());
-      res.json(usersList);
-    } else {
-      const existing = db.users.find(u => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
-      if (existing) {
-        Object.assign(existing, user);
-      } else {
-        db.users.push(user);
-      }
-      saveDB();
-      res.json(db.users);
-    }
+    await saveUser(user);
+    const usersList = await getUsers();
+    res.json(usersList);
   } catch (error: any) {
-    console.error("Error saving user to Firestore:", error);
+    console.error("Error saving user:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1348,22 +1167,9 @@ app.delete("/api/users", async (req: express.Request, res: express.Response): Pr
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    if (firestore) {
-      const emailKey = email.trim().toLowerCase();
-      await firestore.collection("users").doc(emailKey).delete();
-      
-      // Fetch updated list
-      const snapshot = await firestore.collection("users").get();
-      const usersList = snapshot.docs.map((doc: any) => doc.data());
-      res.json(usersList);
-    } else {
-      const index = db.users.findIndex(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
-      if (index !== -1) {
-        db.users.splice(index, 1);
-        saveDB();
-      }
-      res.json(db.users);
-    }
+    await deleteUser(email);
+    const usersList = await getUsers();
+    res.json(usersList);
   } catch (error: any) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: error.message });
@@ -1373,14 +1179,9 @@ app.delete("/api/users", async (req: express.Request, res: express.Response): Pr
 // --- Activity Logs API ---
 app.get("/api/activity-logs", async (req: express.Request, res: express.Response) => {
   try {
-    if (firestore) {
-      const snapshot = await firestore.collection("activityLogs").get();
-      let logsList = snapshot.docs.map((doc: any) => doc.data());
-      logsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      res.json(logsList);
-    } else {
-      res.json(db.activityLogs || []);
-    }
+    const logsList = await getActivityLogs();
+    logsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(logsList);
   } catch (error: any) {
     console.error("Error fetching activity logs:", error);
     res.status(500).json({ error: error.message });
@@ -1388,22 +1189,15 @@ app.get("/api/activity-logs", async (req: express.Request, res: express.Response
 });
 
 app.post("/api/activity-logs", async (req: express.Request, res: express.Response): Promise<any> => {
-  const log = req.body; // { userEmail, userName, action: "Login" | "Logout", timestamp: ISOString }
+  const log = req.body;
   if (!log.userEmail || !log.action) return res.status(400).json({ error: "Missing required fields" });
   
   log.id = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   if (!log.timestamp) log.timestamp = new Date().toISOString();
 
   try {
-    if (firestore) {
-      await firestore.collection("activityLogs").doc(log.id).set(log);
-      res.status(201).json(log);
-    } else {
-      if (!db.activityLogs) db.activityLogs = [];
-      db.activityLogs.unshift(log);
-      saveDB();
-      res.status(201).json(log);
-    }
+    await saveActivityLog(log);
+    res.status(201).json(log);
   } catch (error: any) {
     console.error("Error saving activity log:", error);
     res.status(500).json({ error: error.message });
@@ -1414,23 +1208,9 @@ app.post("/api/activity-logs", async (req: express.Request, res: express.Respons
 app.get("/api/govt-job-notes", async (req: express.Request, res: express.Response) => {
   try {
     const { subject } = req.query;
-    if (firestore) {
-      let q: any = firestore.collection("govtJobNotes");
-      if (subject) {
-        q = q.where("subject", "==", subject);
-      }
-      q = q.orderBy("timestamp", "desc");
-      const snapshot = await q.get();
-      const notesList = snapshot.docs.map((doc: any) => doc.data());
-      res.json(notesList);
-    } else {
-      let notes = db.govtJobNotes || [];
-      if (subject) {
-        notes = notes.filter(n => n.subject === subject);
-      }
-      notes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      res.json(notes);
-    }
+    let notes = await getGovtJobNotes(subject as string);
+    notes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(notes);
   } catch (error: any) {
     console.error("Error fetching govt job notes:", error);
     res.status(500).json({ error: error.message });
@@ -1446,15 +1226,8 @@ app.post("/api/govt-job-notes", async (req: express.Request, res: express.Respon
   note.comments = [];
 
   try {
-    if (firestore) {
-      await firestore.collection("govtJobNotes").doc(note.id).set(note);
-      res.status(201).json(note);
-    } else {
-      if (!db.govtJobNotes) db.govtJobNotes = [];
-      db.govtJobNotes.push(note);
-      saveDB();
-      res.status(201).json(note);
-    }
+    await saveGovtJobNote(note);
+    res.status(201).json(note);
   } catch (error: any) {
     console.error("Error saving govt job note:", error);
     res.status(500).json({ error: error.message });
@@ -1472,28 +1245,11 @@ app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: e
   comment.timestamp = new Date().toISOString();
 
   try {
-    if (firestore) {
-      const noteRef = firestore.collection("govtJobNotes").doc(id);
-      const noteSnap = await noteRef.get();
-      if (noteSnap.exists) {
-        await noteRef.update({
-          comments: FieldValue.arrayUnion(comment)
-        });
-        res.status(201).json(comment);
-      } else {
-        res.status(404).json({ error: "Note not found" });
-      }
+    const success = await addGovtJobNoteComment(id, comment);
+    if (success) {
+      res.status(201).json(comment);
     } else {
-      if (!db.govtJobNotes) db.govtJobNotes = [];
-      const note = db.govtJobNotes.find(n => n.id === id);
-      if (note) {
-        if (!note.comments) note.comments = [];
-        note.comments.push(comment);
-        saveDB();
-        res.status(201).json(comment);
-      } else {
-        res.status(404).json({ error: "Note not found" });
-      }
+      res.status(404).json({ error: "Note not found" });
     }
   } catch (error: any) {
     console.error("Error adding comment to govt job note:", error);
@@ -1504,15 +1260,8 @@ app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: e
 app.delete("/api/govt-job-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
   const { id } = req.params;
   try {
-    if (firestore) {
-      await firestore.collection("govtJobNotes").doc(id).delete();
-      res.json({ success: true });
-    } else {
-      if (!db.govtJobNotes) db.govtJobNotes = [];
-      db.govtJobNotes = db.govtJobNotes.filter(n => n.id !== id);
-      saveDB();
-      res.json({ success: true });
-    }
+    await deleteGovtJobNote(id);
+    res.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting govt job note:", error);
     res.status(500).json({ error: error.message });
@@ -1563,21 +1312,7 @@ function getNextMonthName(existingNotes: any[]): string {
 app.get("/api/ai-pdf-notes", async (req: express.Request, res: express.Response): Promise<any> => {
   try {
     const { subject } = req.query;
-    let notesList = [];
-    if (firestore) {
-      let q: any = firestore.collection("aiPdfNotes");
-      if (subject) {
-        q = q.where("subject", "==", subject);
-      }
-      const snapshot = await q.get();
-      notesList = snapshot.docs.map((doc: any) => doc.data());
-    } else {
-      notesList = db.aiPdfNotes || [];
-      if (subject) {
-        notesList = notesList.filter((n: any) => n.subject === subject);
-      }
-    }
-    
+    let notesList = await getAiPdfNotes(subject as string);
     notesList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     res.json(notesList);
   } catch (error: any) {
@@ -1593,14 +1328,7 @@ app.post("/api/ai-pdf-notes/generate", async (req: express.Request, res: express
       return res.status(400).json({ error: "Subject is required." });
     }
 
-    let existingNotes = [];
-    if (firestore) {
-      const snapshot = await firestore.collection("aiPdfNotes").where("subject", "==", subject).get();
-      existingNotes = snapshot.docs.map((doc: any) => doc.data());
-    } else {
-      existingNotes = (db.aiPdfNotes || []).filter((n: any) => n.subject === subject);
-    }
-
+    const existingNotes = await getAiPdfNotes(subject);
     const nextMonth = getNextMonthName(existingNotes);
 
     const subjectNameMap: any = {
@@ -1678,14 +1406,7 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
       timestamp: new Date().toISOString()
     };
 
-    if (firestore) {
-      await firestore.collection("aiPdfNotes").doc(newPdfNote.id).set(newPdfNote);
-    } else {
-      if (!db.aiPdfNotes) db.aiPdfNotes = [];
-      db.aiPdfNotes.push(newPdfNote);
-      saveDB();
-    }
-
+    await saveAiPdfNote(newPdfNote);
     res.status(201).json(newPdfNote);
   } catch (error: any) {
     console.error("Error generating AI PDF note:", error);
@@ -1696,31 +1417,23 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
 app.delete("/api/ai-pdf-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
   const { id } = req.params;
   try {
-    if (firestore) {
-      await firestore.collection("aiPdfNotes").doc(id).delete();
-      res.json({ success: true });
-    } else {
-      if (!db.aiPdfNotes) db.aiPdfNotes = [];
-      db.aiPdfNotes = db.aiPdfNotes.filter(n => n.id !== id);
-      saveDB();
-      res.json({ success: true });
-    }
+    await deleteAiPdfNote(id);
+    res.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting AI PDF note:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Database Seeding Logic for AI PDF Notes
-async function seedAiPdfNotes() {
+// Database Seeding Logic for AI PDF Notes (Deprecated local version)
+async function deprecatedSeedAiPdfNotes() {
   try {
     let count = 0;
     if (firestore) {
       const snap = await firestore.collection("aiPdfNotes").get();
       count = snap.size;
     } else {
-      if (!db.aiPdfNotes) db.aiPdfNotes = [];
-      count = db.aiPdfNotes.length;
+      count = 0;
     }
 
     if (count > 0) {
@@ -1901,8 +1614,7 @@ async function seedAiPdfNotes() {
         await firestore.collection("aiPdfNotes").doc(note.id).set(note);
       }
     } else {
-      db.aiPdfNotes = seedData;
-      saveDB();
+      // no-op
     }
     console.log("AI PDF Notes successfully seeded in database!");
   } catch (error) {
@@ -1938,18 +1650,6 @@ app.post("/api/updates/install", (req: express.Request, res: express.Response) =
 
 // Start express server and integrate Vite
 async function startServer() {
-  // Verify Firestore connection if initialized. Fall back to local db.json if permissions are denied or failed.
-  if (firestore) {
-    try {
-      console.log("Testing Firestore connection...");
-      await firestore.collection("users").limit(1).get();
-      console.log("Firestore connection check: SUCCESS! Server will run in Cloud DB mode.");
-    } catch (err: any) {
-      console.warn("Firestore connection check failed. Falling back to local db.json database. Error:", err.message);
-      firestore = null; // Disable firestore, fall back to db.json
-    }
-  }
-
   if (process.env.NODE_ENV !== "production") {
     app.use((req, res, next) => {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -1986,9 +1686,189 @@ async function startServer() {
     });
   }
 
+  // Initialize Database (Neon or Local fallback)
+  try {
+    await initDatabase();
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+  }
+
   // Seed AI PDF Notes
   try {
-    await seedAiPdfNotes();
+    const count = await getAiPdfNotesCount();
+    if (count === 0) {
+      const seedData = [
+        {
+          id: "pdfn-seed-math",
+          subject: "math",
+          title: "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
+          introduction: "এই গাইডটিতে শতকরা ও অনুপাতের জটিল অংকগুলো মাত্র ৫-১০ সেকেন্ডে সমাধান করার শর্টকাট টেকনিক ও গুরুত্বপূর্ণ প্রশ্ন আলোচনা করা হয়েছে।",
+          keyTopics: ["Percentage Rules", "Ratio & Proportion", "BCS Prep Hacks"],
+          theoryContent: "### ১. শতকরা নির্নয়ের ম্যাজিক ট্রিক (Percentage Shortcuts):\nশতকরা অংকগুলো সহজে করার জন্য ভগ্নাংশে রূপান্তর করা শিখতে হবে।\n* ২০% = ১/৫\n* ২৫% = ১/৪\n* ৫০% = ১/২\n\n** can_be_applied:** চালের মূল্য ২০% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচের কোনো পরিবর্তন হবে না?\n* **শর্টকাট সূত্র:** (R / (100 + R)) * 100\n* সমাধান: (২০ / ১২০) * ১০০ = ১৬.৬৭%\n\n### ২. অনুপাত ও অংশীদারিত্ব (Ratio & Proportion Hacks):\nযদি A:B = 2:3 এবং B:C = 4:5 হয়, তবে A:B:C = ?\n* **শর্টকাট 'দ' পদ্ধতি:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * উত্তর: 8:12:15",
+          mcqs: [
+            {
+              question: "চালের মূল্য ২৫% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচ অপরিবর্তিত থাকবে?",
+              options: ["২০%", "২৫%", "১৬.৬৭%", "১৫%"],
+              correctAnswer: "২০%",
+              explanation: "সূত্র: (R / (100+R)) * 100 => (25/125)*100 = 20%."
+            },
+            {
+              question: "যদি A:B = 3:4 এবং B:C = 5:6 হয়, তবে A:B:C কত?",
+              options: ["15:20:24", "15:24:20", "3:5:6", "9:12:16"],
+              correctAnswer: "15:20:24",
+              explanation: "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. সুতরাং অনুপাতটি ১৫:২০:২৪।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-reasoning",
+          subject: "reasoning",
+          title: "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
+          introduction: "এই গাইডটিতে রিজনিং বা মানসিক দক্ষতার সবচেয়ে গুরুত্বপূর্ণ টপিক কোডিং-ডিকোডিং এবং দিক নির্ণয় সংক্রান্ত শর্টকাট ট্রিক্স দেওয়া হলো।",
+          keyTopics: ["Alphabet Series Codes", "Direction & Distances", "Visual Analogy"],
+          theoryContent: "### ১. কোডিং-ডিকোডিং সহজ করার নিয়ম:\nইংরেজি বর্ণমালার অবস্থান সহজে মনে রাখার জন্য **EJOTY** সূত্র ব্যবহার করুন:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n** can_be_applied:** যদি CAT কে ২৫ লেখা হয়, তবে DOG কে কত লেখা হবে?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### ২. দিক নির্ণয় (Direction Sense):\nসব সময় নিজের ডানদিককে পূর্ব (East),বামদিককে পশ্চিম (West), সামনের দিককে উত্তর (North), এবং পিছনের দিককে দক্ষিণ (South) হিসেবে ধরে নিন। পিথাগোরাসের উপপাদ্য ( can be applied: অতিভুজ² = লম্ব² + ভূমি²) ব্যবহার করে দূরত্ব বের করুন।",
+          mcqs: [
+            {
+              question: "এক ব্যক্তি উত্তর দিকে ৪ কিমি হাঁটার পর ডানদিকে ঘুরে ৩ কিমি হাঁটলো। সে শুরুর স্থান থেকে এখন কত দূরে আছে?",
+              options: ["৫ কিমি", "৭ কিমি", "১ কিমি", "১২ কিমি"],
+              correctAnswer: "৫ কিমি",
+              explanation: "পিথাগোরাসের উপপাদ্য অনুসারে, দূরত্ব = √(৪² + ৩²) = √(১৬ + ৯) = √২৫ = ৫ কিমি।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-english",
+          subject: "english",
+          title: "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
+          introduction: "চাকরির পরীক্ষায় ইংরেজিতে সবচেয়ে বেশি আসা Subject-Verb Agreement এর জটিল নিয়মগুলো বাংলায় সহজ ব্যাখ্যাসহ শিখুন।",
+          keyTopics: ["Collective Noun Rules", "Either/Or, Neither/Nor Cases", "Prepositional Phrases"],
+          theoryContent: "### Rule 1: Collective Nouns\nCollective Noun সাধারণত singular verb গ্রহণ করে। কিন্তু তারা যদি বিভক্ত মতবাদ প্রকাশ করে, তবে plural verb হয়।\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or বা Neither... nor দ্বারা দুটি Subject যুক্ত থাকলে, verb সর্বদা দ্বিতীয়/নিকটবর্তী Subject অনুয়ায়ী পরিবর্তিত হয়।\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, তাই are হয়েছে)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, তাই is হয়েছে)",
+          mcqs: [
+            {
+              question: "Identify the correct sentence:",
+              options: [
+                "Many a boy has done his homework.",
+                "Many a boy have done their homework.",
+                "Many a boys have done his homework.",
+                "Many boys has done their homework."
+              ],
+              correctAnswer: "Many a boy has done his homework.",
+              explanation: "'Many a' এর পর singular noun এবং singular verb বসে। তাই 'Many a boy has' সঠিক।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-science",
+          subject: "science",
+          title: "July 2026 - General Science: Physics Laws & Human Physiology Basics",
+          introduction: "পদার্থবিজ্ঞানের প্রধান সূত্রাবলী এবং জীববিজ্ঞানের মানবদেহ সম্পর্কিত অতি গুরুত্বপূর্ণ প্রশ্ন ও উত্তর।",
+          keyTopics: ["Newton's Laws of Motion", "Human Blood & Circulation", "Optical Instruments"],
+          theoryContent: "### ১. নিউটনের গতিসূত্র (Newton's Laws of Motion):\n* **প্রথম সূত্র:** বাহ্যিক বল প্রয়োগ না করলে স্থির বস্তু চিরকাল স্থির এবং গতিশীল বস্তু চিরকাল সুষম গতিতে চলতে থাকবে (জড়তার ধারণা)।\n* **দ্বিতীয় সূত্র:** gymnast-এর ভরবেগের পরিবর্তনের হার তার উপর প্রযুক্ত বলের সমানুপাতিক (F = ma)।\n* ** can_be_applied:** প্রত্যেক ক্রিয়ারই একটি সমান ও বিপরীত প্রতিক্রিয়া আছে।\n\n### ২. মানব রক্ত সংবহন (Human Blood Group):\n* **सर्वजनীন दता (Universal Donor):** O Negative (O-)\n* **सर्वजनীন ग्रहीতা (Universal Recipient):** AB Positive (AB+)",
+          mcqs: [
+            {
+              question: "কোন রক্ত গ্রুপকে সর্বজনীন দাতা বলা হয়?",
+              options: ["O-", "O+", "AB+", "A-"],
+              correctAnswer: "O-",
+              explanation: "O Negative রক্তের গ্রুপে কোনো অ্যান্টিজেন থাকে না, তাই এটি যেকোনো রোগীকে দেওয়া যায়।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-history",
+          subject: "history",
+          title: "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
+          introduction: "প্রাচীন বাংলার শাসন ব্যবস্থা এবং সিপাহী বিদ্রোহ থেকে শুরু করে ১৯৪৭ সাল পর্যন্ত স্বাধীনতা সংগ্রামের সালভিত্তিক সারসংক্ষেপ।",
+          keyTopics: ["Mauryan & Gupta Rule", "Mughal Bengal", "Indian Independence Movement"],
+          theoryContent: "### ১. প্রাচীন বাংলার ইতিহাস:\n* প্রথম স্বাধীন নরপতি বা রাজা ছিলেন **শশাঙ্ক** (যার রাজধানী ছিল কর্ণসুবর্ণ)।\n* পাল বংশের প্রতিষ্ঠাতা ছিলেন **গোপাল**, যিনি বাংলায় প্রথম গণতান্ত্রিক পদ্ধতিতে নির্বাচিত রাজা ছিলেন।\n\n### ২. ভারতের স্বাধীনতা সংগ্রাম (১৮৫৭ - ১৯৪৭):\n* **১৮৫৭:** সিপাহী বিদ্রোহ (মঙ্গল পান্ডে প্রথম শহীদ হন)।\n* **১৯০৫:** বঙ্গভঙ্গ (লর্ড কার্জন দ্বারা)।\n* **১৯১১:** বঙ্গভঙ্গ রদ (লর্ড হার্ডিঞ্জ দ্বারা)।\n* **১৯৪২:** ভারত ছাড়ো আন্দোলন।\n* **১৯৪৭:** ভারত ও পাকিস্তানের স্বাধীনতা লাভ।",
+          mcqs: [
+            {
+              question: "বাংলার প্রথম স্বাধীন ও সার্বভৌম রাজা কে ছিলেন?",
+              options: ["শশাঙ্ক", "গোপাল", "ধর্মপাল", "লক্ষণ সেন"],
+              correctAnswer: "শশাঙ্ক",
+              explanation: "রাজা শশাঙ্ক সপ্তম শতাব্দীর শুরুতে প্রাচীন বাংলার গৌড় রাজ্যের প্রথম স্বাধীন ও সার্বভৌম শাসক ছিলেন।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-geography",
+          subject: "geography",
+          title: "July 2026 - Geography: Physical Geography of Bengal & River Systems",
+          introduction: "বাংলাদেশ ও ভারতের ভৌগোলিক অবস্থান, ভূপ্রকৃতি, নদনদী এবং জলবায়ু পরিবর্তন সংক্রান্ত গুরুত্বপূর্ণ তথ্যাবলী।",
+          keyTopics: ["Geographical Boundaries", "River Systems of Bengal", "Natural Disasters"],
+          theoryContent: "### ১. বাংলার ভৌগোলিক অবস্থান ও সীমানা:\n* বাংলার উপর দিয়ে **কর্কটক্রান্তি রেখা (Tropic of Cancer)** অতিবাহিত হয়েছে।\n* পৃথিবীর দীর্ঘতম সমুদ্র সৈকত **কক্সবাজার** এবং বৃহত্তম ম্যানগ্রোভ বন **সুন্দরবন** বাংলায় অবস্থিত।\n\n### ২. নদনদী ও উপনদী:\n* পদ্মা নদী ভারতে **গঙ্গা** নামে পরিচিত। এটি চাঁপাইনবাবগঞ্জ দিয়ে বাংলাদেশে প্রবেশ করেছে।\n* ব্রহ্মপুত্র নদ কুড়িগ্রাম জেলার মধ্য দিয়ে বাংলাদেশে প্রবেশ করে পরবর্তীতে যমুনা নামে প্রবাহিত হয়েছে।",
+          mcqs: [
+            {
+              question: "কর্কটক্রান্তি রেখা বাংলার কোন অংশের উপর দিয়ে গিয়েছে?",
+              options: ["ঠিক মাঝখান দিয়ে", "উত্তরাঞ্চল দিয়ে", "দক্ষিণাঞ্চল দিয়ে", "সীমান্তবর্তী এলাকা দিয়ে"],
+              correctAnswer: "ঠিক মাঝখান দিয়ে",
+              explanation: "২৩.৫ ডিগ্রি উত্তর অক্ষাংশ বা কর্কটক্রান্তি রেখা বাংলার (বাংলাদেশ ও পশ্চিমবঙ্গ) প্রায় মাঝখান দিয়ে প্রবাহিত হয়েছে।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-polity",
+          subject: "polity",
+          title: "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
+          introduction: "সংবিধানের প্রধান বৈশিষ্ট্যসমূহ, মৌলিক অধিকার, এবং সরকারি নীতি নির্ধারণের মূল উৎসসমূহ সহজ ভাষায় আলোচনা।",
+          keyTopics: ["Preamble & Structure", "Fundamental Rights", "Directive Principles"],
+          theoryContent: "### ১. সংবিধানের কাঠামো:\n* সংবিধান হলো রাষ্ট্রের সর্বোচ্চ আইন।\n* মূল সংবিধানে নাগরিকদের মৌলিক অধিকারগুলো সুনির্দিষ্টভাবে বর্ণনা করা থাকে।\n\n### ২. মৌলিক অধিকারসমূহ (Fundamental Rights):\n* আইন বা আদালতের মাধ্যমে মৌলিক অধিকার প্রয়োগ করা যায়।\n* রাষ্ট্রের জরুরি অবস্থায় নাগরিক অধিকার সাময়িকভাবে স্থগিত করা হতে পারে।",
+          mcqs: [
+            {
+              question: "কোনো দেশের সংবিধানের প্রধান কাজ কী?",
+              options: [
+                "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+                " his/her basic tax",
+                " can_be_applied",
+                "বিচারকদের বেতন নির্ধারণ করা"
+              ],
+              correctAnswer: "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+              explanation: "সংবিধান রাষ্ট্রের মৌলিক আইন যা সরকারের কাঠামো ও নাগরিকদের অধিকারের গ্যারান্টি দেয়।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: "pdfn-seed-economics",
+          subject: "economics",
+          title: "July 2026 - Economics: National Income & Five-Year Planning Analysis",
+          introduction: "জিডিপি, জিএনপি এবং পঞ্চবার্ষিক পরিকল্পনা ও বাজেট সংক্রান্ত অর্থনৈতিক জটিল শব্দসমূহের সহজ বিশ্লেষণ।",
+          keyTopics: ["National Income (GDP, GNP)", "Inflation & Banking", "Five-Year Plans"],
+          theoryContent: "### ১. জাতীয় আয় পরিমাপের উপাদান:\n* **GDP (Gross Domestic Product):** একটি দেশের ভৌগোলিক সীমানার ভিতরে উৎপাদিত মোট পণ্য ও সেবার মূল্য।\n* **GNP (Gross National Product):** দেশের নাগরিকদের উৎপাদিত মোট পণ্য ও সেবা (দেশ এবং বিদেশে)।\n\n### ২. মুদ্রাস্ফীতি (Inflation):\n* বাজারে মুদ্রার সরবরাহ বেড়ে গেলে পণ্যের দাম বাড়ে এবং টাকার মান কমে যায়, একে মুদ্রাস্ফীতি বলে।",
+          mcqs: [
+            {
+              question: "GDP এবং GNP এর মধ্যে প্রধান পার্থক্য কী?",
+              options: [
+                "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
+                " can_be_applied",
+                "আমদানি ও রপ্তানির অনুপাত",
+                "কোনো পার্থক্য নেই"
+              ],
+              correctAnswer: "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
+              explanation: "GDP গণনা করা হয় ভৌগোলিক সীমানার ভেতরের উৎপাদনের ওপর ভিত্তি করে, আর GNP দেশের সকল নাগরিকের মোট আয়ের ওপর ভিত্তি করে।"
+            }
+          ],
+          month: "July 2026",
+          timestamp: new Date().toISOString()
+        }
+      ];
+      await seedAiPdfNotes(seedData);
+      console.log("Successfully seeded AI PDF notes in Database!");
+    } else {
+      console.log("AI PDF notes already exist in Database.");
+    }
   } catch (err) {
     console.error("Failed to seed AI PDF notes:", err);
   }
