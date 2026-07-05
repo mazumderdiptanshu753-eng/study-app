@@ -29,7 +29,8 @@ let localDB: any = {
   forumPosts: [],
   liveClasses: [],
   govtJobNotes: [],
-  aiPdfNotes: []
+  aiPdfNotes: [],
+  studyNotes: []
 };
 
 // Load local DB
@@ -156,13 +157,245 @@ export async function initDatabase(): Promise<boolean> {
         "userEmail" VARCHAR(255),
         subject VARCHAR(100)
       );
+
+      CREATE TABLE IF NOT EXISTS study_notes (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT,
+        subject VARCHAR(100),
+        "userEmail" VARCHAR(255),
+        "summaryPoints" JSONB DEFAULT '[]'::jsonb,
+        tags JSONB DEFAULT '[]'::jsonb,
+        flashcards JSONB DEFAULT '[]'::jsonb,
+        timestamp VARCHAR(100),
+        "attachmentUrl" TEXT,
+        "attachmentName" VARCHAR(255),
+        "attachmentType" VARCHAR(50) DEFAULT 'none'
+      );
     `);
     console.log("Neon database tables ensured successfully!");
+    
+    // Auto-migrate local JSON database data to Neon PostgreSQL
+    await migrateLocalDataToPostgres();
+    
     return true;
   } catch (err: any) {
     console.error("Failed to initialize PostgreSQL. Falling back to local db.json. Error:", err.message);
     pool = null; // disable pool
     return false;
+  }
+}
+
+export async function migrateLocalDataToPostgres(): Promise<void> {
+  if (!pool) return;
+  try {
+    console.log("Starting automatic migration from local db.json to Neon PostgreSQL...");
+
+    // 1. Migrate Users
+    const pgUsersCountRes = await pool.query("SELECT COUNT(*) FROM users");
+    const pgUsersCount = parseInt(pgUsersCountRes.rows[0].count, 10);
+    if (pgUsersCount === 0 && localDB.users && localDB.users.length > 0) {
+      console.log(`Migrating ${localDB.users.length} users to Neon...`);
+      for (const user of localDB.users) {
+        if (!user.email) continue;
+        await pool.query(`
+          INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (email) DO NOTHING
+        `, [
+          user.email.trim().toLowerCase(),
+          user.fullName || '',
+          user.grade || '',
+          user.preferredSubject || '',
+          user.registeredAt || new Date().toISOString(),
+          user.avatarUrl || '',
+          user.role || 'Student'
+        ]);
+      }
+    }
+
+    // 2. Migrate Chat Messages
+    const pgChatCountRes = await pool.query("SELECT COUNT(*) FROM chat_messages");
+    const pgChatCount = parseInt(pgChatCountRes.rows[0].count, 10);
+    if (pgChatCount === 0 && localDB.chatMessages && localDB.chatMessages.length > 0) {
+      console.log(`Migrating ${localDB.chatMessages.length} chat messages to Neon...`);
+      for (const msg of localDB.chatMessages) {
+        if (!msg.id) continue;
+        await pool.query(`
+          INSERT INTO chat_messages (id, "senderName", "senderEmail", "senderRole", message, timestamp, "studentEmail", "studentName")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          msg.id,
+          msg.senderName || '',
+          msg.senderEmail || '',
+          msg.senderRole || '',
+          msg.message || '',
+          msg.timestamp || new Date().toISOString(),
+          msg.studentEmail || '',
+          msg.studentName || ''
+        ]);
+      }
+    }
+
+    // 3. Migrate Forum Posts
+    const pgForumCountRes = await pool.query("SELECT COUNT(*) FROM forum_posts");
+    const pgForumCount = parseInt(pgForumCountRes.rows[0].count, 10);
+    if (pgForumCount === 0 && localDB.forumPosts && localDB.forumPosts.length > 0) {
+      console.log(`Migrating ${localDB.forumPosts.length} forum posts to Neon...`);
+      for (const post of localDB.forumPosts) {
+        if (!post.id) continue;
+        await pool.query(`
+          INSERT INTO forum_posts (id, "authorEmail", "authorName", title, content, timestamp, likes, replies)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          post.id,
+          post.authorEmail || '',
+          post.authorName || '',
+          post.title || '',
+          post.content || '',
+          post.timestamp || new Date().toISOString(),
+          post.likes || 0,
+          JSON.stringify(post.replies || [])
+        ]);
+      }
+    }
+
+    // 4. Migrate Live Classes
+    const pgLiveClassesCountRes = await pool.query("SELECT COUNT(*) FROM live_classes");
+    const pgLiveClassesCount = parseInt(pgLiveClassesCountRes.rows[0].count, 10);
+    if (pgLiveClassesCount === 0 && localDB.liveClasses && localDB.liveClasses.length > 0) {
+      console.log(`Migrating ${localDB.liveClasses.length} live classes to Neon...`);
+      for (const cls of localDB.liveClasses) {
+        if (!cls.id) continue;
+        await pool.query(`
+          INSERT INTO live_classes (id, title, subject, instructor, "scheduledTime", link, status, "createdAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          cls.id,
+          cls.title || '',
+          cls.subject || '',
+          cls.instructor || '',
+          cls.scheduledTime || '',
+          cls.link || '',
+          cls.status || 'Scheduled',
+          cls.createdAt || new Date().toISOString()
+        ]);
+      }
+    }
+
+    // 5. Migrate Activity Logs
+    const pgLogsCountRes = await pool.query("SELECT COUNT(*) FROM activity_logs");
+    const pgLogsCount = parseInt(pgLogsCountRes.rows[0].count, 10);
+    if (pgLogsCount === 0 && localDB.activityLogs && localDB.activityLogs.length > 0) {
+      console.log(`Migrating ${localDB.activityLogs.length} activity logs to Neon...`);
+      for (const log of localDB.activityLogs) {
+        if (!log.id) continue;
+        await pool.query(`
+          INSERT INTO activity_logs (id, "userEmail", "userName", action, timestamp, details)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          log.id,
+          log.userEmail || '',
+          log.userName || '',
+          log.action || '',
+          log.timestamp || new Date().toISOString(),
+          log.details || ''
+        ]);
+      }
+    }
+
+    // 6. Migrate Govt Job Notes
+    const pgNotesCountRes = await pool.query("SELECT COUNT(*) FROM govt_job_notes");
+    const pgNotesCount = parseInt(pgNotesCountRes.rows[0].count, 10);
+    if (pgNotesCount === 0 && localDB.govtJobNotes && localDB.govtJobNotes.length > 0) {
+      console.log(`Migrating ${localDB.govtJobNotes.length} govt job notes to Neon...`);
+      for (const note of localDB.govtJobNotes) {
+        if (!note.id) continue;
+        await pool.query(`
+          INSERT INTO govt_job_notes (id, title, content, subject, timestamp, comments, "authorEmail", "authorName")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          note.id,
+          note.title || '',
+          note.content || '',
+          note.subject || '',
+          note.timestamp || new Date().toISOString(),
+          JSON.stringify(note.comments || []),
+          note.authorEmail || '',
+          note.authorName || ''
+        ]);
+      }
+    }
+
+    // 7. Migrate AI PDF Notes
+    const pgPdfCountRes = await pool.query("SELECT COUNT(*) FROM ai_pdf_notes");
+    const pgPdfCount = parseInt(pgPdfCountRes.rows[0].count, 10);
+    if (pgPdfCount === 0 && localDB.aiPdfNotes && localDB.aiPdfNotes.length > 0) {
+      console.log(`Migrating ${localDB.aiPdfNotes.length} AI PDF notes to Neon...`);
+      for (const note of localDB.aiPdfNotes) {
+        if (!note.id) continue;
+        const summaryPayload = JSON.stringify({
+          introduction: note.introduction || "",
+          keyTopics: note.keyTopics || [],
+          theoryContent: note.theoryContent || note.summary || "",
+          month: note.month || ""
+        });
+        await pool.query(`
+          INSERT INTO ai_pdf_notes (id, "fileName", title, summary, mcqs, flashcards, timestamp, "userEmail", subject)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          note.id,
+          note.fileName || "",
+          note.title || "",
+          summaryPayload,
+          JSON.stringify(note.mcqs || []),
+          JSON.stringify(note.flashcards || []),
+          note.timestamp || new Date().toISOString(),
+          note.userEmail || "",
+          note.subject || ""
+        ]);
+      }
+    }
+
+    // 8. Migrate Study Notes
+    const pgStudyNotesCountRes = await pool.query("SELECT COUNT(*) FROM study_notes");
+    const pgStudyNotesCount = parseInt(pgStudyNotesCountRes.rows[0].count, 10);
+    if (pgStudyNotesCount === 0 && localDB.studyNotes && localDB.studyNotes.length > 0) {
+      console.log(`Migrating ${localDB.studyNotes.length} study notes to Neon...`);
+      for (const note of localDB.studyNotes) {
+        if (!note.id) continue;
+        await pool.query(`
+          INSERT INTO study_notes (
+            id, title, content, subject, "userEmail", "summaryPoints", tags, flashcards, timestamp, "attachmentUrl", "attachmentName", "attachmentType"
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          note.id,
+          note.title || '',
+          note.content || '',
+          note.subject || '',
+          (note.userEmail || '').trim().toLowerCase(),
+          JSON.stringify(note.summaryPoints || []),
+          JSON.stringify(note.tags || []),
+          JSON.stringify(note.flashcards || []),
+          note.timestamp || new Date().toISOString(),
+          note.attachmentUrl || null,
+          note.attachmentName || null,
+          note.attachmentType || 'none'
+        ]);
+      }
+    }
+
+    console.log("Local data migration to Neon PostgreSQL completed successfully!");
+  } catch (err: any) {
+    console.error("Error migrating local data to Neon PostgreSQL:", err.message);
   }
 }
 
@@ -697,4 +930,100 @@ export async function seedAiPdfNotes(seedData: any[]): Promise<any[]> {
   localDB.aiPdfNotes = seedData;
   saveLocalDB();
   return seedData;
+}
+
+// --- Personal Study Notes Queries ---
+export async function getStudyNotes(userEmail: string): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'SELECT * FROM study_notes WHERE "userEmail" = $1 ORDER BY timestamp DESC',
+        [userEmail.trim().toLowerCase()]
+      );
+      return res.rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        content: row.content,
+        subject: row.subject,
+        summaryPoints: row.summaryPoints || [],
+        tags: row.tags || [],
+        flashcards: row.flashcards || [],
+        timestamp: row.timestamp,
+        attachmentUrl: row.attachmentUrl,
+        attachmentName: row.attachmentName,
+        attachmentType: row.attachmentType,
+        userEmail: row.userEmail
+      }));
+    } catch (e) {
+      console.error("Error getting study notes from PG, falling back:", e);
+    }
+  }
+  let notes = localDB.studyNotes || [];
+  return notes.filter((n: any) => (n.userEmail || '').trim().toLowerCase() === userEmail.trim().toLowerCase());
+}
+
+export async function saveStudyNote(note: any): Promise<any> {
+  const email = (note.userEmail || '').trim().toLowerCase();
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO study_notes (
+          id, title, content, subject, "userEmail", "summaryPoints", tags, flashcards, timestamp, "attachmentUrl", "attachmentName", "attachmentType"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          content = EXCLUDED.content,
+          subject = EXCLUDED.subject,
+          "summaryPoints" = EXCLUDED."summaryPoints",
+          tags = EXCLUDED.tags,
+          flashcards = EXCLUDED.flashcards,
+          timestamp = EXCLUDED.timestamp,
+          "attachmentUrl" = EXCLUDED."attachmentUrl",
+          "attachmentName" = EXCLUDED."attachmentName",
+          "attachmentType" = EXCLUDED."attachmentType",
+          "userEmail" = EXCLUDED."userEmail"
+      `, [
+        note.id,
+        note.title || '',
+        note.content || '',
+        note.subject || '',
+        email,
+        JSON.stringify(note.summaryPoints || []),
+        JSON.stringify(note.tags || []),
+        JSON.stringify(note.flashcards || []),
+        note.timestamp || new Date().toISOString(),
+        note.attachmentUrl || null,
+        note.attachmentName || null,
+        note.attachmentType || 'none'
+      ]);
+      return note;
+    } catch (e) {
+      console.error("Error saving study note to PG, falling back:", e);
+    }
+  }
+  if (!localDB.studyNotes) localDB.studyNotes = [];
+  const idx = localDB.studyNotes.findIndex((n: any) => n.id === note.id);
+  if (idx > -1) {
+    localDB.studyNotes[idx] = note;
+  } else {
+    localDB.studyNotes.push(note);
+  }
+  saveLocalDB();
+  return note;
+}
+
+export async function deleteStudyNote(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM study_notes WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting study note from PG, falling back:", e);
+    }
+  }
+  const len = (localDB.studyNotes || []).length;
+  localDB.studyNotes = (localDB.studyNotes || []).filter((n: any) => n.id !== id);
+  saveLocalDB();
+  return (localDB.studyNotes || []).length < len;
 }

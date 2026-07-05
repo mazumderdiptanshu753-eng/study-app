@@ -123,10 +123,28 @@ export default function App() {
         // Also update local profile if role has changed on backend
         if (profile) {
           const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
-          if (matched && (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl)) {
-            const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
-            setProfile(updatedProfile);
-            localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
+          if (matched) {
+            if (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl) {
+              const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
+              setProfile(updatedProfile);
+              localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
+            }
+          } else {
+            console.log("Recovering/Syncing existing user profile to PostgreSQL database...");
+            try {
+              const regRes = await fetch("/api/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(profile)
+              });
+              if (regRes.ok) {
+                const updatedUsersList = await regRes.json();
+                setUsers(updatedUsersList);
+                localStorage.setItem("registered_users", JSON.stringify(updatedUsersList));
+              }
+            } catch (err) {
+              console.error("Failed to recover user profile in database:", err);
+            }
           }
         }
       }
@@ -184,18 +202,78 @@ export default function App() {
   // Loading indicator for AI tasks
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
-  // Sync personal study notes from local storage (Firebase / Google Authentication disabled)
+  // Sync personal study notes from database or local storage as fallback
   useEffect(() => {
-    const local = localStorage.getItem("study_notes");
-    if (local) {
-      try {
-        setNotes(JSON.parse(local));
-      } catch (e) {
-        setNotes([]);
-      }
-    } else {
+    if (!profile?.email) {
       setNotes([]);
+      return;
     }
+
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch(`/api/study-notes?email=${encodeURIComponent(profile.email)}`);
+        if (response.ok) {
+          const cloudNotes = await response.json();
+          
+          const localNotesStr = localStorage.getItem("study_notes");
+          let localNotes: StudyNote[] = [];
+          if (localNotesStr) {
+            try {
+              localNotes = JSON.parse(localNotesStr);
+            } catch (err) {
+              localNotes = [];
+            }
+          }
+
+          const missingInCloud = localNotes.filter(
+            (localNote: any) => localNote && localNote.id && !cloudNotes.some((cloudNote: any) => cloudNote.id === localNote.id)
+          );
+
+          if (missingInCloud.length > 0) {
+            console.log(`Recovering ${missingInCloud.length} local study notes to PostgreSQL...`);
+            for (const note of missingInCloud) {
+              try {
+                await fetch("/api/study-notes", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    ...note,
+                    userEmail: profile.email
+                  })
+                });
+              } catch (err) {
+                console.error("Failed to recover note:", note.id, err);
+              }
+            }
+            
+            const mergedNotes = [...cloudNotes, ...missingInCloud].sort((a: any, b: any) => 
+              new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+            );
+            setNotes(mergedNotes);
+            localStorage.setItem("study_notes", JSON.stringify(mergedNotes));
+          } else {
+            setNotes(cloudNotes);
+            localStorage.setItem("study_notes", JSON.stringify(cloudNotes));
+          }
+        } else {
+          throw new Error("Failed to fetch cloud notes");
+        }
+      } catch (e) {
+        console.warn("Using offline fallback for study notes:", e);
+        const local = localStorage.getItem("study_notes");
+        if (local) {
+          try {
+            setNotes(JSON.parse(local));
+          } catch (err) {
+            setNotes([]);
+          }
+        } else {
+          setNotes([]);
+        }
+      }
+    };
+
+    fetchNotes();
   }, [profile?.email]);
 
   // Sync to local storage for local offline persistence fallback
@@ -210,7 +288,7 @@ export default function App() {
     }
   }, [currentTab, profile]);
 
-  // Save or update manually written note or AI updated fields (Locally)
+  // Save or update manually written note or AI updated fields (PG Database + Local Storage)
   const handleSaveNote = async (noteData: Omit<StudyNote, "id" | "timestamp"> & { id?: string; timestamp?: string }) => {
     const isNew = !noteData.id;
     const noteId = noteData.id || `note-${Date.now()}`;
@@ -222,19 +300,46 @@ export default function App() {
       timestamp: timestamp,
     };
 
+    // Update state & local storage (Optimistic update)
     if (isNew) {
       setNotes(prev => [finalNote, ...prev]);
     } else {
       setNotes(prev => prev.map(n => n.id === noteId ? finalNote : n));
     }
     setSelectedNote(finalNote);
+
+    // Sync to PostgreSQL database
+    if (profile?.email) {
+      try {
+        await fetch("/api/study-notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...finalNote,
+            userEmail: profile.email
+          })
+        });
+      } catch (e) {
+        console.error("Failed to sync study note to database:", e);
+      }
+    }
   };
 
-  // Delete note from local storage
+  // Delete note from database and local storage
   const handleDeleteNote = async (id: string) => {
+    // Update local state and storage
     setNotes(prev => prev.filter(n => n.id !== id));
     if (selectedNote?.id === id) {
       setSelectedNote(null);
+    }
+
+    // Sync deletion to PostgreSQL database
+    try {
+      await fetch(`/api/study-notes/${id}`, {
+        method: "DELETE"
+      });
+    } catch (e) {
+      console.error("Failed to sync note deletion to database:", e);
     }
   };
 

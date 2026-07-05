@@ -31,7 +31,10 @@ import {
   saveAiPdfNote,
   deleteAiPdfNote,
   getAiPdfNotesCount,
-  seedAiPdfNotes
+  seedAiPdfNotes,
+  getStudyNotes,
+  saveStudyNote,
+  deleteStudyNote
 } from "./server/db.js";
 
 // Ensure data directory exists
@@ -1200,6 +1203,135 @@ app.post("/api/activity-logs", async (req: express.Request, res: express.Respons
     res.status(201).json(log);
   } catch (error: any) {
     console.error("Error saving activity log:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Personal Study Notes API ---
+app.get("/api/study-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Email query param is required" });
+  try {
+    const notes = await getStudyNotes(email as string);
+    res.json(notes);
+  } catch (error: any) {
+    console.error("Error fetching study notes:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/study-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+  const note = req.body;
+  if (!note.id || !note.title || !note.userEmail) {
+    return res.status(400).json({ error: "Missing required fields (id, title, userEmail)" });
+  }
+  try {
+    const saved = await saveStudyNote(note);
+    res.json(saved);
+  } catch (error: any) {
+    console.error("Error saving study note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/study-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    const success = await deleteStudyNote(id);
+    res.json({ success });
+  } catch (error: any) {
+    console.error("Error deleting study note:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Firestore Batch Recovery API ---
+app.post("/api/recover-firestore", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { users, studyNotes, chatMessages, forumPosts, liveClasses, activityLogs, govtJobNotes, aiPdfNotes } = req.body;
+  
+  console.log("Processing bulk firestore recovery payload...");
+  const results: any = {
+    users: 0,
+    studyNotes: 0,
+    chatMessages: 0,
+    forumPosts: 0,
+    liveClasses: 0,
+    activityLogs: 0,
+    govtJobNotes: 0,
+    aiPdfNotes: 0
+  };
+
+  try {
+    if (Array.isArray(users)) {
+      for (const item of users) {
+        if (item.email) {
+          await saveUser(item);
+          results.users++;
+        }
+      }
+    }
+    if (Array.isArray(studyNotes)) {
+      for (const item of studyNotes) {
+        if (item.id && item.title && item.userEmail) {
+          await saveStudyNote(item);
+          results.studyNotes++;
+        }
+      }
+    }
+    if (Array.isArray(chatMessages)) {
+      for (const item of chatMessages) {
+        if (item.id && item.message) {
+          await saveChatMessage(item);
+          results.chatMessages++;
+        }
+      }
+    }
+    if (Array.isArray(forumPosts)) {
+      for (const item of forumPosts) {
+        if (item.id && item.title && item.authorEmail) {
+          await saveForumPost(item);
+          results.forumPosts++;
+        }
+      }
+    }
+    if (Array.isArray(liveClasses)) {
+      for (const item of liveClasses) {
+        if (item.id && item.title) {
+          await saveLiveClass(item);
+          results.liveClasses++;
+        }
+      }
+    }
+    if (Array.isArray(activityLogs)) {
+      for (const item of activityLogs) {
+        if (item.id || (item.userEmail && item.action)) {
+          const logItem = { ...item, id: item.id || `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}` };
+          await saveActivityLog(logItem);
+          results.activityLogs++;
+        }
+      }
+    }
+    if (Array.isArray(govtJobNotes)) {
+      for (const item of govtJobNotes) {
+        if (item.id && item.title) {
+          await saveGovtJobNote(item);
+          results.govtJobNotes++;
+        }
+      }
+    }
+    if (Array.isArray(aiPdfNotes)) {
+      for (const item of aiPdfNotes) {
+        if (item.id && item.title) {
+          await saveAiPdfNote(item);
+          results.aiPdfNotes++;
+        }
+      }
+    }
+
+    console.log("Firestore recovery completed. Results:", results);
+    res.json({ success: true, results });
+  } catch (error: any) {
+    console.error("Error performing firestore recovery:", error);
     res.status(500).json({ error: error.message });
   }
 });
