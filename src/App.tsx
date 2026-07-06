@@ -32,6 +32,7 @@ import CommunityForum from "./components/CommunityForum";
 import LiveClasses from "./components/LiveClasses";
 import GovtJobNotes from "./components/GovtJobNotes";
 import AIStudyAssistant from "./components/AIStudyAssistant";
+import NotificationBell from "./components/NotificationBell";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -104,7 +105,9 @@ export default function App() {
   const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
 
   // App Update states
-  const CURRENT_CLIENT_VERSION = "1.0.1";
+  const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
+    return localStorage.getItem("client_app_version") || "7.5.1";
+  });
   const [serverVersionInfo, setServerVersionInfo] = useState<{
     latestVersion: string;
     changelogEn: string;
@@ -134,9 +137,11 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setServerVersionInfo(data);
-        if (data.latestVersion && isNewerVersion(data.latestVersion, CURRENT_CLIENT_VERSION)) {
-          // Only show update modal if we're not already in the middle of updating
-          setShowUpdateModal(true);
+        if (data.latestVersion && isNewerVersion(data.latestVersion, currentClientVersion)) {
+          // Automatic update: immediately trigger update process if not already updating
+          if (!isUpdatingApp) {
+            startUpdateProcess(data.latestVersion);
+          }
         }
       }
     } catch (e) {
@@ -144,7 +149,7 @@ export default function App() {
     }
   };
 
-  const startUpdateProcess = () => {
+  const startUpdateProcess = (targetVersion?: string) => {
     setShowUpdateModal(false);
     setIsUpdatingApp(true);
     setUpdateProgress(0);
@@ -158,6 +163,28 @@ export default function App() {
         setUpdateProgress(100);
         setUpdateStatusStep(lang === "bn" ? "স্টাডি হাব রিস্টার্ট হচ্ছে!" : "Restarting Study Hub!");
         clearInterval(interval);
+        
+        // Persist the updated version code in localStorage
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "7.5.1";
+        localStorage.setItem("client_app_version", versionToSave);
+        setCurrentClientVersion(versionToSave);
+        
+        // Notify the user about their device's successful automatic update
+        if (profile?.email) {
+          fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: lang === "bn" ? "অ্যাপ সফলভাবে আপডেট হয়েছে! 🎉" : "App Updated Successfully! 🎉",
+              message: lang === "bn" 
+                ? `আপনার ডিভাইসটি সফলভাবে v${versionToSave} সংস্করণে আপডেট করা হয়েছে।`
+                : `Your device was successfully updated to version v${versionToSave}.`,
+              type: "info",
+              userEmail: profile.email
+            })
+          }).catch(err => console.error("Failed to post update completed notification:", err));
+        }
+        
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -746,6 +773,11 @@ export default function App() {
 
                 </div>
 
+                {/* Interactive Notification Center */}
+                {profile && (
+                  <NotificationBell profile={profile} lang={lang} theme={theme} />
+                )}
+
                 {/* Delicate Divider */}
                 <span className={`h-5 w-[1px] ${theme.isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'}`} />
 
@@ -884,7 +916,7 @@ export default function App() {
                   onDeleteUser={handleDeleteUser}
                   currentUserEmail={profile?.email || ""}
                   theme={theme}
-                  currentAppVersion={CURRENT_CLIENT_VERSION}
+                  currentAppVersion={currentClientVersion}
                 />
               )}
               {currentTab === "liveClasses" && (
@@ -1113,7 +1145,7 @@ export default function App() {
             <div className="space-y-3.5 pt-1">
               <div className="flex items-center justify-between text-xs font-bold py-2 border-y border-slate-500/10">
                 <span className={theme.textMuted}>{lang === "bn" ? "বর্তমান সংস্করণ:" : "Installed:"}</span>
-                <span className="font-mono text-slate-400 font-semibold">v{CURRENT_CLIENT_VERSION}</span>
+                <span className="font-mono text-slate-400 font-semibold">v{currentClientVersion}</span>
                 <span className="text-teal-500">➔</span>
                 <span className={theme.textMuted}>{lang === "bn" ? "নতুন সংস্করণ:" : "Latest:"}</span>
                 <span className="font-mono text-teal-400 font-black">v{serverVersionInfo?.latestVersion}</span>

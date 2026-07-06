@@ -108,4 +108,14 @@ export interface VideoLecture {
   comments: VideoComment[];
 }
 
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: "info" | "note" | "video";
+  timestamp: string;
+  isRead: boolean;
+  userEmail?: string;
+}
+
 

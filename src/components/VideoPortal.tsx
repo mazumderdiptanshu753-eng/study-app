@@ -84,18 +84,27 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
   const userEmail = profile?.email || "guest@studyhub.com";
   const userName = profile?.fullName || "Guest User";
 
-  const [videos, setVideos] = useState<VideoLecture[]>(() => {
-    const local = localStorage.getItem("video_lectures");
-    if (local) {
-      try {
-        const parsed = JSON.parse(local) as VideoLecture[];
-        return parsed.filter(v => !v.id.startsWith("pre-vid-"));
-      } catch (e) {
-        return PRELOADED_VIDEOS;
+  const [videos, setVideos] = useState<VideoLecture[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchVideos = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/videos");
+      if (res.ok) {
+        const data = await res.json();
+        setVideos(data);
       }
+    } catch (e) {
+      console.error("Failed to fetch videos:", e);
+    } finally {
+      setIsLoading(false);
     }
-    return PRELOADED_VIDEOS;
-  });
+  };
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
   // Keep parent in sync with video counts
   useEffect(() => {
@@ -117,8 +126,6 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
   // Comment input state
   const [newCommentText, setNewCommentText] = useState("");
 
-
-
   // Keep selected video synchronized with real-time updates from videos array (e.g., comments)
   useEffect(() => {
     if (selectedVideo) {
@@ -131,13 +138,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     }
   }, [videos]);
 
-  // Save to local storage on changes
-  const saveVideos = (updated: VideoLecture[]) => {
-    setVideos(updated);
-    localStorage.setItem("video_lectures", JSON.stringify(updated));
-  };
-
-  // Add new video (Admin Only - Local)
+  // Add new video (Admin Only - Backend)
   const handleAddVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -173,31 +174,50 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       comments: []
     };
 
-    const updatedVideos = [newLecture, ...videos];
-    saveVideos(updatedVideos);
-    setSelectedVideo(newLecture);
-    
-    // Reset Form
-    setNewTitle("");
-    setNewDescription("");
-    setNewUrl("");
-    setIsAddingVideo(false);
+    try {
+      const res = await fetch("/api/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newLecture)
+      });
+      if (res.ok) {
+        await fetchVideos();
+        setSelectedVideo(newLecture);
+        // Reset Form
+        setNewTitle("");
+        setNewDescription("");
+        setNewUrl("");
+        setIsAddingVideo(false);
+      } else {
+        setErrorMessage(lang === "bn" ? "ভিডিও সংরক্ষণ করতে ব্যর্থ হয়েছে।" : "Failed to save the video.");
+      }
+    } catch (err) {
+      setErrorMessage(lang === "bn" ? "সার্ভার কানেকশন ত্রুটি।" : "Server connection error.");
+    }
   };
 
-  // Delete Video (Admin Only - Local)
+  // Delete Video (Admin Only - Backend)
   const handleDeleteVideo = async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const msg = lang === "bn" ? "আপনি কি এই ভিডিও লেকচারটি মুছে ফেলতে চান?" : "Are you sure you want to delete this video lecture?";
     if (!window.confirm(msg)) return;
 
-    const updatedVideos = videos.filter(v => v.id !== videoId);
-    saveVideos(updatedVideos);
-    if (selectedVideo?.id === videoId) {
-      setSelectedVideo(updatedVideos[0] || null);
+    try {
+      const res = await fetch(`/api/videos/${videoId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        await fetchVideos();
+        if (selectedVideo?.id === videoId) {
+          setSelectedVideo(null);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting video:", err);
     }
   };
 
-  // Add Comment (All Logged-in Students & Admins - Local)
+  // Add Comment (All Logged-in Students & Admins - Backend)
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVideo || !newCommentText.trim()) return;
@@ -212,22 +232,38 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
       timestamp: new Date().toISOString()
     };
 
-    const updatedComments = [...selectedVideo.comments, newComment];
-    const updatedVideos = videos.map(v => v.id === selectedVideo.id ? { ...v, comments: updatedComments } : v);
-    saveVideos(updatedVideos);
-    setNewCommentText("");
+    try {
+      const res = await fetch(`/api/videos/${selectedVideo.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newComment)
+      });
+      if (res.ok) {
+        await fetchVideos();
+        setNewCommentText("");
+      }
+    } catch (err) {
+      console.error("Error adding comment:", err);
+    }
   };
 
-  // Delete Comment (Admin can delete all, Student can delete their own - Local)
+  // Delete Comment (Admin can delete all, Student can delete their own - Backend)
   const handleDeleteComment = async (commentId: string) => {
     if (!selectedVideo) return;
     
     const msg = lang === "bn" ? "আপনি কি এই মন্তব্যটি মুছে ফেলতে চান?" : "Are you sure you want to delete this comment?";
     if (!window.confirm(msg)) return;
 
-    const updatedComments = selectedVideo.comments.filter(c => c.id !== commentId);
-    const updatedVideos = videos.map(v => v.id === selectedVideo.id ? { ...v, comments: updatedComments } : v);
-    saveVideos(updatedVideos);
+    try {
+      const res = await fetch(`/api/videos/${selectedVideo.id}/comments/${commentId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        await fetchVideos();
+      }
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+    }
   };
 
   const containerVariants = {

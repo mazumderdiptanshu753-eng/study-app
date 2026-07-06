@@ -25,60 +25,18 @@ interface ActivityLog {
 
 export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "version">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs" | "updates">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
-  // App Version Management states
-  const [latestVersionInput, setLatestVersionInput] = useState("");
-  const [changelogEnInput, setChangelogEnInput] = useState("");
-  const [changelogBnInput, setChangelogBnInput] = useState("");
-  const [loadingVersion, setLoadingVersion] = useState(false);
-  const [publishingVersion, setPublishingVersion] = useState(false);
-  const [versionStatusMessage, setVersionStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
-  const [serverVersionInfo, setServerVersionInfo] = useState<{ latestVersion: string; changelogEn: string; changelogBn: string } | null>(null);
+  // App Release Update states
+  const [newVersion, setNewVersion] = useState("");
+  const [changelogEn, setChangelogEn] = useState("");
+  const [changelogBn, setChangelogBn] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const isBengali = lang === "bn";
-
-  const isNewerVersion = (latest: string, current: string) => {
-    if (!latest || !current) return false;
-    const lParts = latest.replace(/[^\d.]/g, "").split(".").map(Number);
-    const cParts = current.replace(/[^\d.]/g, "").split(".").map(Number);
-    for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
-      const l = lParts[i] || 0;
-      const c = cParts[i] || 0;
-      if (l > c) return true;
-      if (l < c) return false;
-    }
-    return false;
-  };
-
-  const isVersionNewer = isNewerVersion(latestVersionInput, serverVersionInfo?.latestVersion || "1.0.1");
-
-  const fetchServerVersion = async () => {
-    setLoadingVersion(true);
-    setVersionStatusMessage(null);
-    try {
-      const res = await fetch("/api/app-version");
-      if (res.ok) {
-        const data = await res.json();
-        setServerVersionInfo(data);
-        setLatestVersionInput(data.latestVersion || "");
-        setChangelogEnInput(data.changelogEn || "");
-        setChangelogBnInput(data.changelogBn || "");
-      }
-    } catch (e) {
-      console.error("Failed to fetch server version:", e);
-    } finally {
-      setLoadingVersion(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "version") {
-      fetchServerVersion();
-    }
-  }, [activeTab]);
 
   const fetchLogs = async (isPolling = false) => {
     if (!isPolling) setLoadingLogs(true);
@@ -92,6 +50,61 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
       console.error("Failed to fetch logs:", e);
     } finally {
       if (!isPolling) setLoadingLogs(false);
+    }
+  };
+
+  const handlePublishUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdateMessage(null);
+
+    if (!newVersion.trim()) {
+      setUpdateMessage({
+        type: "error",
+        text: isBengali ? "সংস্করণ নম্বর আবশ্যক।" : "Version number is required."
+      });
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const res = await fetch("/api/app-version", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          latestVersion: newVersion.trim(),
+          changelogEn: changelogEn.trim(),
+          changelogBn: changelogBn.trim(),
+          adminEmail: currentUserEmail
+        })
+      });
+
+      if (res.ok) {
+        setUpdateMessage({
+          type: "success",
+          text: isBengali 
+            ? `সংস্করণ v${newVersion} সফলভাবে প্রকাশ করা হয়েছে! সব শিক্ষার্থীর ডিভাইস স্বয়ংক্রিয়ভাবে আপডেট হবে।`
+            : `Version v${newVersion} released successfully! All users will be automatically updated.`
+        });
+        setNewVersion("");
+        setChangelogEn("");
+        setChangelogBn("");
+      } else {
+        const err = await res.json();
+        setUpdateMessage({
+          type: "error",
+          text: err.error || (isBengali ? "আপডেট প্রকাশ করতে ব্যর্থ হয়েছে।" : "Failed to release update.")
+        });
+      }
+    } catch (err) {
+      setUpdateMessage({
+        type: "error",
+        text: isBengali ? "সার্ভার সংযোগ ত্রুটি।" : "Server connection error."
+      });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -168,88 +181,88 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6 max-w-7xl mx-auto pb-12"
+      className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-12 px-1 sm:px-0"
     >
       
       {/* Header section with styling and safe area */}
-      <motion.div variants={itemVariants} className="bg-gradient-to-r from-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-teal-700/30 relative overflow-hidden">
+      <motion.div variants={itemVariants} className="bg-gradient-to-r from-teal-800 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-lg border border-teal-700/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-500/20 rounded-lg text-xs font-bold text-teal-300 tracking-wider uppercase">
-            <Shield className="h-3.5 w-3.5 animate-pulse" />
+        <div className="relative z-10 space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-teal-500/20 rounded-lg text-[10px] sm:text-xs font-bold text-teal-300 tracking-wider uppercase">
+            <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-pulse" />
             {isBengali ? "প্রশাসক প্যানেল" : "System Administration"}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{t.title}</h1>
-          <p className="text-xs sm:text-sm text-teal-100 font-medium max-w-2xl leading-relaxed">{t.subtitle}</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">{t.title}</h1>
+          <p className="text-[11px] sm:text-xs md:text-sm text-teal-100 font-medium max-w-2xl leading-relaxed">{t.subtitle}</p>
         </div>
       </motion.div>
 
       {/* Stats Summary Bento Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         
         {/* Total Users Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex items-center gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-12 w-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 shrink-0">
-            <Users className="h-6 w-6" />
+        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 shrink-0">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.totalUsers}</span>
-            <span className={`text-2xl font-black ${theme.textHeading}`}>{totalRegistered}</span>
+            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.totalUsers}</span>
+            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{totalRegistered}</span>
           </div>
         </div>
 
         {/* Total Admins Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex items-center gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-            <ShieldCheck className="h-6 w-6" />
+        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.adminCount}</span>
-            <span className={`text-2xl font-black ${theme.textHeading}`}>{adminsCount}</span>
+            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.adminCount}</span>
+            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{adminsCount}</span>
           </div>
         </div>
 
         {/* Total Students Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex items-center gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-            <GraduationCap className="h-6 w-6" />
+        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+            <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <div>
-            <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.studentCount}</span>
-            <span className={`text-2xl font-black ${theme.textHeading}`}>{studentsCount}</span>
+            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.studentCount}</span>
+            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{studentsCount}</span>
           </div>
         </div>
 
       </motion.div>
 
       {/* Tabs */}
-      <motion.div variants={itemVariants} className="flex space-x-2 border-b border-slate-700/20 mb-6 px-1">
+      <motion.div variants={itemVariants} className="flex space-x-1 sm:space-x-2 border-b border-slate-700/20 mb-6 overflow-x-auto whitespace-nowrap scrollbar-none pb-px">
         <button
           onClick={() => setActiveTab("users")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
             activeTab === "users" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
           }`}
         >
-          <Users className="h-4 w-4" />
-          {isBengali ? "ব্যবহারকারী ব্যবস্থাপনা" : "User Management"}
+          <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          {isBengali ? "ব্যবহারকারী" : "User Management"}
         </button>
         <button
           onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
             activeTab === "logs" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
           }`}
         >
-          <Activity className="h-4 w-4" />
+          <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
         </button>
         <button
-          onClick={() => setActiveTab("version")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-            activeTab === "version" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
+          onClick={() => setActiveTab("updates")}
+          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
+            activeTab === "updates" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
           }`}
         >
-          <ArrowUpCircle className="h-4 w-4" />
-          {isBengali ? "আপডেট রিলিজ" : "Release Update"}
+          <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          {isBengali ? "অ্যাপ আপডেট" : "App Updates"}
         </button>
       </motion.div>
 
@@ -277,62 +290,148 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
             <p className="text-sm">{t.noUsersFound}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className={`border-b ${theme.borderCard} bg-slate-500/5 ${theme.textMuted} font-bold text-[10px] tracking-wider uppercase`}>
-                  <th className="py-4 px-6">{t.nameHeader}</th>
-                  <th className="py-4 px-6 hidden sm:table-cell">{t.registeredHeader}</th>
-                  <th className="py-4 px-6 text-center">{t.roleHeader}</th>
-                  <th className="py-4 px-6 text-right">{t.actionsHeader}</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${theme.borderCard}`}>
-                {filteredUsers.map((user) => {
-                  const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
-                  const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
+          <>
+            {/* Desktop View Table */}
+            <div className="overflow-x-auto hidden sm:block">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className={`border-b ${theme.borderCard} bg-slate-500/5 ${theme.textMuted} font-bold text-[10px] tracking-wider uppercase`}>
+                    <th className="py-4 px-6">{t.nameHeader}</th>
+                    <th className="py-4 px-6 hidden sm:table-cell">{t.registeredHeader}</th>
+                    <th className="py-4 px-6 text-center">{t.roleHeader}</th>
+                    <th className="py-4 px-6 text-right">{t.actionsHeader}</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${theme.borderCard}`}>
+                  {filteredUsers.map((user) => {
+                    const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+                    const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
 
-                  return (
-                    <tr key={user?.email || Math.random().toString()} className="hover:bg-slate-500/5 transition-colors">
-                      
-                      {/* Name and Email */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <div className="min-w-0">
-                            <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
-                            <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px] sm:max-w-xs`}>{user.email}</span>
+                    return (
+                      <tr key={user?.email || Math.random().toString()} className="hover:bg-slate-500/5 transition-colors">
+                        
+                        {/* Name and Email */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0">
+                              <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
+                              <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px] sm:max-w-xs`}>{user.email}</span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
+                        {/* Registration Date */}
+                        <td className={`py-4 px-6 hidden sm:table-cell text-xs font-semibold ${theme.textMuted}`}>
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className={`h-3.5 w-3.5 ${theme.textMuted}`} />
+                            {formatDate(user.registeredAt)}
+                          </div>
+                        </td>
 
+                        {/* Current Role Badge */}
+                        <td className="py-4 px-6 text-center">
+                          {user.role === "Admin" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-black tracking-wide rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30">
+                              <ShieldCheck className="h-3 w-3" />
+                              {isBengali ? "প্রশাসক" : "Admin"}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-black tracking-wide rounded-lg bg-slate-500/10 text-slate-600 border border-slate-500/20 uppercase dark:text-slate-300 dark:bg-slate-800/40 dark:border-slate-700/50">
+                              {isBengali ? "শিক্ষার্থী" : "Student"}
+                            </span>
+                          )}
+                        </td>
 
-                      {/* Registration Date */}
-                      <td className={`py-4 px-6 hidden sm:table-cell text-xs font-semibold ${theme.textMuted}`}>
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className={`h-3.5 w-3.5 ${theme.textMuted}`} />
-                          {formatDate(user.registeredAt)}
-                        </div>
-                      </td>
+                        {/* Administrative actions */}
+                        <td className="py-4 px-6 text-right">
+                          {isPrimaryAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
+                              {t.primaryAdminBadge}
+                            </span>
+                          ) : isSelf ? (
+                            <span className={`text-2xs font-semibold ${theme.textMuted} italic`}>
+                              {isBengali ? "আপনি নিজে" : "Logged-in Self"}
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => onToggleAdminRole(user.email)}
+                                className={`inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer android-ripple ${
+                                  user.role === "Admin"
+                                    ? "bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-900/30"
+                                    : "bg-teal-500/10 border-teal-500/20 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400 dark:bg-teal-950/30 dark:border-teal-900/30"
+                                }`}
+                              >
+                                {user.role === "Admin" ? (
+                                  <>
+                                    <UserMinus className="h-3.5 w-3.5" />
+                                    {t.revokeAdmin}
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-3.5 w-3.5" />
+                                    {t.makeAdmin}
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(isBengali ? "আপনি কি নিশ্চিত যে আপনি এই ব্যবহারকারীকে মুছে ফেলতে চান?" : "Are you sure you want to delete this user?")) {
+                                    onDeleteUser(user.email);
+                                  }
+                                }}
+                                className="inline-flex items-center justify-center p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer"
+                                title={t.deleteUser}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
 
-                      {/* Current Role Badge */}
-                      <td className="py-4 px-6 text-center">
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View Card List */}
+            <div className="block sm:hidden divide-y divide-slate-500/10">
+              {filteredUsers.map((user) => {
+                const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+                const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
+                return (
+                  <div key={user?.email || Math.random().toString()} className="p-4 space-y-3">
+                    {/* User basic info */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
+                        <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px]`}>{user.email}</span>
+                      </div>
+                      <div className="shrink-0">
                         {user.role === "Admin" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-black tracking-wide rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black tracking-wide rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase">
                             <ShieldCheck className="h-3 w-3" />
-                            {isBengali ? "প্রশাসক" : "Admin"}
+                            {isBengali ? "অ্যাডমিন" : "Admin"}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-black tracking-wide rounded-lg bg-slate-500/10 text-slate-600 border border-slate-500/20 uppercase dark:text-slate-300 dark:bg-slate-800/40 dark:border-slate-700/50">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black tracking-wide rounded-md bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase">
                             {isBengali ? "শিক্ষার্থী" : "Student"}
                           </span>
                         )}
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Administrative actions */}
-                      <td className="py-4 px-6 text-right">
+                    {/* Action section for mobile */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-500/5">
+                      <span className={`text-[10px] ${theme.textMuted} font-semibold flex items-center gap-1`}>
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(user.registeredAt)}
+                      </span>
+                      <div className="shrink-0">
                         {isPrimaryAdmin ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
                             {t.primaryAdminBadge}
                           </span>
                         ) : isSelf ? (
@@ -340,24 +439,24 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                             {isBengali ? "আপনি নিজে" : "Logged-in Self"}
                           </span>
                         ) : (
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => onToggleAdminRole(user.email)}
-                              className={`inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer android-ripple ${
+                              className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg border text-[10px] font-bold transition-all cursor-pointer ${
                                 user.role === "Admin"
-                                  ? "bg-rose-500/10 border-rose-500/20 text-rose-500 hover:bg-rose-500/20 dark:text-rose-400 dark:bg-rose-950/30 dark:border-rose-900/30"
-                                  : "bg-teal-500/10 border-teal-500/20 text-teal-600 hover:bg-teal-500/20 dark:text-teal-400 dark:bg-teal-950/30 dark:border-teal-900/30"
+                                  ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                                  : "bg-teal-500/10 border-teal-500/20 text-teal-600"
                               }`}
                             >
                               {user.role === "Admin" ? (
                                 <>
-                                  <UserMinus className="h-3.5 w-3.5" />
-                                  {t.revokeAdmin}
+                                  <UserMinus className="h-3 w-3" />
+                                  {isBengali ? "সরান" : "Revoke"}
                                 </>
                               ) : (
                                 <>
-                                  <UserCheck className="h-3.5 w-3.5" />
-                                  {t.makeAdmin}
+                                  <UserCheck className="h-3 w-3" />
+                                  {isBengali ? "অ্যাডমিন" : "Admin"}
                                 </>
                               )}
                             </button>
@@ -370,18 +469,17 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                               className="inline-flex items-center justify-center p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer"
                               title={t.deleteUser}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         )}
-                      </td>
-
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </motion.div>
       )}
@@ -403,239 +501,221 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className={`border-b ${theme.borderCard} bg-slate-500/5 ${theme.textMuted} font-bold text-[10px] tracking-wider uppercase`}>
-                    <th className="py-4 px-6">{isBengali ? "ব্যবহারকারী" : "User Info"}</th>
-                    <th className="py-4 px-6">{isBengali ? "অ্যাকশন" : "Action"}</th>
-                    <th className="py-4 px-6 text-right">{isBengali ? "তারিখ ও সময়" : "Date & Time"}</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y ${theme.borderCard}`}>
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-500/5 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${theme.bgPage} ${theme.textMain} border ${theme.borderCard}`}>
-                            {log.userName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className={`font-bold text-sm ${theme.textHeading}`}>{log.userName}</div>
-                            <div className={`text-xs ${theme.textMuted}`}>{log.userEmail}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${
-                          log.action === "Login"
-                             ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
-                             : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400"
-                        }`}>
-                          {log.action === "Login" ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className={`py-4 px-6 text-right text-xs font-semibold ${theme.textMuted}`}>
-                        <div className="flex flex-col items-end gap-1">
-                          <span>{formatDate(log.timestamp)}</span>
-                          <span className="text-[10px] opacity-70">
-                            {new Date(log.timestamp).toLocaleTimeString(isBengali ? "bn-BD" : "en-US")}
-                          </span>
-                        </div>
-                      </td>
+            <>
+              {/* Desktop View Table */}
+              <div className="overflow-x-auto hidden sm:block">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b ${theme.borderCard} bg-slate-500/5 ${theme.textMuted} font-bold text-[10px] tracking-wider uppercase`}>
+                      <th className="py-4 px-6">{isBengali ? "ব্যবহারকারী" : "User Info"}</th>
+                      <th className="py-4 px-6">{isBengali ? "অ্যাকশন" : "Action"}</th>
+                      <th className="py-4 px-6 text-right">{isBengali ? "তারিখ ও সময়" : "Date & Time"}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className={`divide-y ${theme.borderCard}`}>
+                    {logs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-500/5 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${theme.bgPage} ${theme.textMain} border ${theme.borderCard}`}>
+                              {log.userName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className={`font-bold text-sm ${theme.textHeading}`}>{log.userName}</div>
+                              <div className={`text-xs ${theme.textMuted}`}>{log.userEmail}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${
+                            log.action === "Login"
+                               ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
+                               : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400"
+                          }`}>
+                            {log.action === "Login" ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className={`py-4 px-6 text-right text-xs font-semibold ${theme.textMuted}`}>
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{formatDate(log.timestamp)}</span>
+                            <span className="text-[10px] opacity-70">
+                              {new Date(log.timestamp).toLocaleTimeString(isBengali ? "bn-BD" : "en-US")}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View Card List */}
+              <div className="block sm:hidden divide-y divide-slate-500/10">
+                {logs.map((log) => (
+                  <div key={log.id} className="p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-2xs shrink-0 ${theme.bgPage} ${theme.textMain} border ${theme.borderCard}`}>
+                          {log.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className={`font-bold text-xs ${theme.textHeading} truncate`}>{log.userName}</div>
+                          <div className={`text-[10px] ${theme.textMuted} truncate max-w-[150px]`}>{log.userEmail}</div>
+                        </div>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold rounded-md border shrink-0 ${
+                        log.action === "Login"
+                           ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
+                           : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400"
+                      }`}>
+                        {log.action === "Login" ? <LogIn className="w-2.5 h-2.5" /> : <LogOut className="w-2.5 h-2.5" />}
+                        {log.action}
+                      </span>
+                    </div>
+                    <div className={`text-[10px] font-semibold ${theme.textMuted} flex justify-between items-center pt-1.5 border-t border-slate-500/5`}>
+                      <span>{formatDate(log.timestamp)}</span>
+                      <span>{new Date(log.timestamp).toLocaleTimeString(isBengali ? "bn-BD" : "en-US")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </motion.div>
       )}
 
-      {activeTab === "version" && (
+      {activeTab === "updates" && (
         <motion.div variants={itemVariants} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Version Information Details Card */}
-            <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} p-6 space-y-4 shadow-sm`}>
-              <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
-                {isBengali ? "বর্তমান সংস্করণ বিবরণ" : "Current Version Status"}
+          {/* Version Status Overview Card */}
+          <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs`}>
+            <div className="space-y-1">
+              <h3 className={`text-sm font-black ${theme.textHeading}`}>
+                {isBengali ? "বর্তমান সক্রিয় সংস্করণ" : "Current Active Version"}
               </h3>
-              
-              <div className="space-y-3.5 pt-2">
-                <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
-                  <span className={`text-xs font-semibold ${theme.textMuted}`}>
-                    {isBengali ? "বর্তমান ক্লায়েন্ট সংস্করণ:" : "Installed Client Version:"}
-                  </span>
-                  <span className={`px-2.5 py-1 text-xs font-black rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400`}>
-                    v{currentAppVersion}
-                  </span>
-                </div>
+              <p className={`text-xs ${theme.textMuted}`}>
+                {isBengali 
+                  ? "স্টাডি হাব বর্তমানে এই সংস্করণে চালিত হচ্ছে।" 
+                  : "Study Hub is currently running this production version."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-lg font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
+                v{currentAppVersion}
+              </span>
+            </div>
+          </div>
 
-                <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
-                  <span className={`text-xs font-semibold ${theme.textMuted}`}>
-                    {isBengali ? "সার্ভার কনফিগারড সংস্করণ:" : "Server Declared Version:"}
-                  </span>
-                  {loadingVersion ? (
-                    <RefreshCcw className="h-4 w-4 animate-spin text-teal-500" />
-                  ) : (
-                    <span className={`px-2.5 py-1 text-xs font-black rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400`}>
-                      v{serverVersionInfo?.latestVersion || "1.0.1"}
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <span className={`text-xs font-bold ${theme.textMuted} block`}>
-                    {isBengali ? "অ্যাক্টিভ চেঞ্জলগ (English):" : "Active Changelog (English):"}
-                  </span>
-                  <div className={`p-3 rounded-xl border ${theme.borderCard} ${theme.bgPage} text-xs ${theme.textMain} max-h-24 overflow-y-auto leading-relaxed`}>
-                    {serverVersionInfo?.changelogEn || "No changes specified."}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <span className={`text-xs font-bold ${theme.textMuted} block`}>
-                    {isBengali ? "অ্যাক্টিভ চেঞ্জলগ (বাংলা):" : "Active Changelog (Bengali):"}
-                  </span>
-                  <div className={`p-3 rounded-xl border ${theme.borderCard} ${theme.bgPage} text-xs ${theme.textMain} max-h-24 overflow-y-auto leading-relaxed`}>
-                    {serverVersionInfo?.changelogBn || "কোনো পরিবর্তন উল্লেখ করা হয়নি।"}
-                  </div>
-                </div>
-              </div>
+          {/* Release Update Form Card */}
+          <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 sm:p-6 shadow-3xs space-y-6`}>
+            <div className="space-y-1">
+              <h3 className={`text-sm font-black ${theme.textHeading}`}>
+                {isBengali ? "নতুন অ্যাপ সংস্করণ রিলিজ করুন 🚀" : "Release New App Version 🚀"}
+              </h3>
+              <p className={`text-xs ${theme.textMuted}`}>
+                {isBengali 
+                  ? "নতুন আপডেট ফাইল এবং ফিচারের তথ্য দিয়ে সিস্টেম আপগ্রেড রিলিজ করুন।" 
+                  : "Deploy a system-wide upgrade with update notes and feature highlights."}
+              </p>
             </div>
 
-            {/* Release Version Update Form */}
-            <form 
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!latestVersionInput.trim()) {
-                  setVersionStatusMessage({
-                    text: isBengali ? "সংস্করণ নম্বর আবশ্যক।" : "Version code is required.",
-                    isError: true
-                  });
-                  return;
-                }
-                setPublishingVersion(true);
-                setVersionStatusMessage(null);
-                try {
-                  const res = await fetch("/api/app-version", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      latestVersion: latestVersionInput.trim(),
-                      changelogEn: changelogEnInput,
-                      changelogBn: changelogBnInput,
-                      adminEmail: currentUserEmail
-                    })
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setServerVersionInfo(data);
-                    setVersionStatusMessage({
-                      text: isBengali 
-                        ? "নতুন সংস্করণ সফলভাবে প্রকাশ করা হয়েছে! ব্যবহারকারীরা এখন আপডেট নোটিফিকেশন পাবেন।" 
-                        : "New version released successfully! Active users will be notified to update immediately.",
-                      isError: false
-                    });
-                  } else {
-                    throw new Error("Failed to post update");
-                  }
-                } catch (err) {
-                  setVersionStatusMessage({
-                    text: isBengali ? "সংস্করণ প্রকাশে ত্রুটি ঘটেছে।" : "Failed to release the version update.",
-                    isError: true
-                  });
-                } finally {
-                  setPublishingVersion(false);
-                }
-              }}
-              className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} p-6 space-y-4 shadow-sm`}
-            >
-              <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
-                {isBengali ? "নতুন সংস্করণ রিলিজ করুন" : "Release New Update"}
-              </h3>
+            {updateMessage && (
+              <div className={`p-4 rounded-xl border text-xs font-bold leading-relaxed ${
+                updateMessage.type === "success" 
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
+                  : "bg-red-500/10 border-red-500/20 text-red-500"
+              }`}>
+                {updateMessage.text}
+              </div>
+            )}
 
-              {versionStatusMessage && (
-                <div className={`p-3 rounded-xl text-xs font-semibold ${
-                  versionStatusMessage.isError 
-                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" 
-                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                }`}>
-                  {versionStatusMessage.text}
+            <form onSubmit={handlePublishUpdate} className="space-y-5">
+              <div className="grid grid-cols-1 gap-5">
+                {/* Version Number Input */}
+                <div className="space-y-2">
+                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
+                    {isBengali ? "নতুন সংস্করণ কোড (Version Code) *" : "New Version Code *"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., 1.0.2"
+                    value={newVersion}
+                    onChange={(e) => setNewVersion(e.target.value)}
+                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400`}
+                  />
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    {isBengali 
+                      ? "অবশ্যই বর্তমান সংস্করণের চেয়ে বড় হতে হবে (যেমন: v7.5.1 থেকে v7.5.2)।" 
+                      : "Must be incremental to current active version (e.g., v7.5.1 ➔ v7.5.2)."}
+                  </p>
                 </div>
-              )}
 
-              <div className="space-y-1.5">
-                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
-                  {isBengali ? "নতুন সংস্করণ নম্বর (যেমন: v1.0.2)" : "New Version Number (e.g. 1.0.2)"}
-                </label>
-                <input
-                  type="text"
-                  placeholder="1.0.2"
-                  value={latestVersionInput}
-                  onChange={(e) => setLatestVersionInput(e.target.value)}
-                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain}`}
-                />
+                {/* Bengali Changelog */}
+                <div className="space-y-2">
+                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
+                    {isBengali ? "পরিবর্তনসমূহ (Bengali Changelog)" : "Changes (Bengali Changelog)"}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={isBengali ? "যেমন: ১. লাইভ চ্যাটে নতুন রিঅ্যাকশন যোগ করা হয়েছে। ২. বাগ ফিক্স।" : "e.g., 1. Live Chat improvements..."}
+                    value={changelogBn}
+                    onChange={(e) => setChangelogBn(e.target.value)}
+                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400 resize-none`}
+                  />
+                </div>
+
+                {/* English Changelog */}
+                <div className="space-y-2">
+                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
+                    {isBengali ? "পরিবর্তনসমূহ (English Changelog)" : "Changes (English Changelog)"}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g., 1. Added Live chat reaction. 2. Performance optimization."
+                    value={changelogEn}
+                    onChange={(e) => setChangelogEn(e.target.value)}
+                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400 resize-none`}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
-                  {isBengali ? "চেঞ্জলগ / নতুন কি আছে? (English)" : "Changelog / What's New? (English)"}
-                </label>
-                <textarea
-                  placeholder="Added mathematics review tools and dynamic PDF flashcards."
-                  value={changelogEnInput}
-                  onChange={(e) => setChangelogEnInput(e.target.value)}
-                  rows={2}
-                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} resize-none`}
-                />
+              {/* Warning/Disclaimer Banner */}
+              <div className="p-4 rounded-xl border border-amber-500/15 bg-amber-500/5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400 font-semibold space-y-1">
+                <span className="uppercase font-black tracking-wider text-2xs block text-amber-500">
+                  {isBengali ? "⚠️ গুরুত্বপূর্ণ সতর্কতা" : "⚠️ CRITICAL SYSTEM NOTICE"}
+                </span>
+                <p>
+                  {isBengali 
+                    ? "আপনি 'রিলিজ আপডেট' বোতামে ক্লিক করার সাথে সাথে স্টাডি হাবের সব ব্যবহারকারী এবং প্রশাসকদের ডিভাইসে স্বয়ংক্রিয়ভাবে একটি ইন্টারেক্টিভ ডাউনলোড ও ইন্সটলেশন প্রসেস চালু হয়ে যাবে। সম্পন্ন হলে সবার ডিভাইস সাথে সাথে রিস্টার্ট হবে।" 
+                    : "Once released, all connected students and administrators will instantly experience an automatic full-screen downloading and updating screen. The application will reboot automatically to apply the new version."}
+                </p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
-                  {isBengali ? "চেঞ্জলগ / নতুন কি আছে? (বাংলা)" : "Changelog / What's New? (Bengali)"}
-                </label>
-                <textarea
-                  placeholder="গণিত রিভিশন টুল এবং ডাইনামিক পিডিএফ ফ্ল্যাশকার্ড যুক্ত করা হয়েছে।"
-                  value={changelogBnInput}
-                  onChange={(e) => setChangelogBnInput(e.target.value)}
-                  rows={2}
-                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} resize-none`}
-                />
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={isPublishing}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/40 text-white font-extrabold text-xs shadow-md active:scale-98 transition-all cursor-pointer"
+                >
+                  {isPublishing ? (
+                    <>
+                      <RefreshCcw className="h-4 w-4 animate-spin" />
+                      {isBengali ? "আপডেট রিলিজ হচ্ছে..." : "Releasing Update..."}
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpCircle className="h-4 w-4" />
+                      {isBengali ? "আপডেট রিলিজ করুন" : "Release Update Now"}
+                    </>
+                  )}
+                </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={publishingVersion || !isVersionNewer}
-                className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  isVersionNewer 
-                    ? "bg-teal-500 text-white shadow-md hover:bg-teal-600 active:scale-98"
-                    : "bg-slate-500/10 text-slate-500 border border-slate-500/10 cursor-not-allowed"
-                }`}
-              >
-                {publishingVersion ? (
-                  <>
-                    <RefreshCcw className="h-4 w-4 animate-spin" />
-                    {isBengali ? "রিলিজ করা হচ্ছে..." : "Releasing Update..."}
-                  </>
-                ) : !isVersionNewer ? (
-                  <>
-                    <Shield className="h-4 w-4" />
-                    {isBengali ? "রিলিজড সংস্করণ সক্রিয় আছে" : "Active Version Up to Date"}
-                  </>
-                ) : (
-                  <>
-                    <ArrowUpCircle className="h-4 w-4" />
-                    {isBengali ? "রিলিজ আপডেট" : "Release Update"}
-                  </>
-                )}
-              </button>
             </form>
           </div>
         </motion.div>
       )}
-
 
     </motion.div>
   );

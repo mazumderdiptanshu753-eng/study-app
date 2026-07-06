@@ -31,9 +31,11 @@ let localDB: any = {
   govtJobNotes: [],
   aiPdfNotes: [],
   studyNotes: [],
+  videoLectures: [],
+  notifications: [],
   systemSettings: {
     app_version: {
-      latestVersion: "1.0.1",
+      latestVersion: "7.5.1",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     }
@@ -183,6 +185,27 @@ export async function initDatabase(): Promise<boolean> {
       CREATE TABLE IF NOT EXISTS system_settings (
         key VARCHAR(100) PRIMARY KEY,
         value JSONB
+      );
+
+      CREATE TABLE IF NOT EXISTS video_lectures (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        "videoUrl" TEXT NOT NULL,
+        "uploadedBy" VARCHAR(255),
+        timestamp VARCHAR(100),
+        subject VARCHAR(255),
+        comments JSONB DEFAULT '[]'::jsonb
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type VARCHAR(50) DEFAULT 'info',
+        timestamp VARCHAR(100) NOT NULL,
+        "isRead" BOOLEAN DEFAULT FALSE,
+        "userEmail" VARCHAR(255)
       );
     `);
     console.log("Neon database tables ensured successfully!");
@@ -1070,7 +1093,7 @@ export async function getAppVersion(): Promise<any> {
   }
   if (!localDB.systemSettings.app_version) {
     localDB.systemSettings.app_version = {
-      latestVersion: "1.0.1",
+      latestVersion: "7.5.1",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     };
@@ -1098,3 +1121,210 @@ export async function saveAppVersion(versionInfo: any): Promise<any> {
   saveLocalDB();
   return versionInfo;
 }
+
+// --- Video Lectures Database Queries ---
+export async function getVideoLectures(): Promise<any[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM video_lectures ORDER BY timestamp DESC');
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching video lectures from PG:", e);
+    }
+  }
+  return localDB.videoLectures || [];
+}
+
+export async function saveVideoLecture(video: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO video_lectures (id, title, description, "videoUrl", "uploadedBy", timestamp, subject, comments)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          description = EXCLUDED.description,
+          "videoUrl" = EXCLUDED."videoUrl",
+          "uploadedBy" = EXCLUDED."uploadedBy",
+          timestamp = EXCLUDED.timestamp,
+          subject = EXCLUDED.subject,
+          comments = EXCLUDED.comments
+      `, [
+        video.id,
+        video.title || '',
+        video.description || '',
+        video.videoUrl || '',
+        video.uploadedBy || '',
+        video.timestamp || new Date().toISOString(),
+        video.subject || '',
+        JSON.stringify(video.comments || [])
+      ]);
+      return video;
+    } catch (e) {
+      console.error("Error saving video lecture to PG:", e);
+    }
+  }
+  if (!localDB.videoLectures) localDB.videoLectures = [];
+  const idx = localDB.videoLectures.findIndex((v: any) => v.id === video.id);
+  if (idx > -1) {
+    localDB.videoLectures[idx] = video;
+  } else {
+    localDB.videoLectures.push(video);
+  }
+  saveLocalDB();
+  return video;
+}
+
+export async function deleteVideoLecture(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM video_lectures WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting video lecture from PG:", e);
+    }
+  }
+  const len = (localDB.videoLectures || []).length;
+  localDB.videoLectures = (localDB.videoLectures || []).filter((v: any) => v.id !== id);
+  saveLocalDB();
+  return (localDB.videoLectures || []).length < len;
+}
+
+// --- Notifications Database Queries ---
+export async function getNotifications(userEmail?: string): Promise<any[]> {
+  if (pool) {
+    try {
+      let query = 'SELECT * FROM notifications';
+      let params: any[] = [];
+      if (userEmail) {
+        query += ' WHERE "userEmail" IS NULL OR "userEmail" = $1';
+        params.push(userEmail.trim().toLowerCase());
+      } else {
+        query += ' WHERE "userEmail" IS NULL';
+      }
+      query += ' ORDER BY timestamp DESC';
+      const res = await pool.query(query, params);
+      return res.rows;
+    } catch (e) {
+      console.error("Error fetching notifications from PG:", e);
+    }
+  }
+  const all = localDB.notifications || [];
+  if (userEmail) {
+    const norm = userEmail.trim().toLowerCase();
+    return all.filter((n: any) => !n.userEmail || n.userEmail.trim().toLowerCase() === norm)
+      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  return all.filter((n: any) => !n.userEmail)
+    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+export async function createNotification(notification: any): Promise<any> {
+  if (!notification.id) {
+    notification.id = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  if (!notification.timestamp) {
+    notification.timestamp = new Date().toISOString();
+  }
+  if (notification.isRead === undefined) {
+    notification.isRead = false;
+  }
+
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO notifications (id, title, message, type, timestamp, "isRead", "userEmail")
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          message = EXCLUDED.message,
+          type = EXCLUDED.type,
+          timestamp = EXCLUDED.timestamp,
+          "isRead" = EXCLUDED."isRead",
+          "userEmail" = EXCLUDED."userEmail"
+      `, [
+        notification.id,
+        notification.title || '',
+        notification.message || '',
+        notification.type || 'info',
+        notification.timestamp,
+        notification.isRead,
+        notification.userEmail ? notification.userEmail.trim().toLowerCase() : null
+      ]);
+      return notification;
+    } catch (e) {
+      console.error("Error creating notification in PG:", e);
+    }
+  }
+  if (!localDB.notifications) localDB.notifications = [];
+  const idx = localDB.notifications.findIndex((n: any) => n.id === notification.id);
+  if (idx > -1) {
+    localDB.notifications[idx] = notification;
+  } else {
+    localDB.notifications.push(notification);
+  }
+  saveLocalDB();
+  return notification;
+}
+
+export async function markNotificationAsRead(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('UPDATE notifications SET "isRead" = TRUE WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error marking notification as read in PG:", e);
+    }
+  }
+  if (!localDB.notifications) localDB.notifications = [];
+  const notif = localDB.notifications.find((n: any) => n.id === id);
+  if (notif) {
+    notif.isRead = true;
+    saveLocalDB();
+    return true;
+  }
+  return false;
+}
+
+export async function markAllNotificationsAsRead(userEmail?: string): Promise<boolean> {
+  if (pool) {
+    try {
+      let query = 'UPDATE notifications SET "isRead" = TRUE';
+      let params: any[] = [];
+      if (userEmail) {
+        query += ' WHERE "userEmail" IS NULL OR "userEmail" = $1';
+        params.push(userEmail.trim().toLowerCase());
+      } else {
+        query += ' WHERE "userEmail" IS NULL';
+      }
+      await pool.query(query, params);
+      return true;
+    } catch (e) {
+      console.error("Error marking all notifications as read in PG:", e);
+    }
+  }
+  if (!localDB.notifications) localDB.notifications = [];
+  localDB.notifications.forEach((n: any) => {
+    if (!userEmail || !n.userEmail || n.userEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()) {
+      n.isRead = true;
+    }
+  });
+  saveLocalDB();
+  return true;
+}
+
+export async function deleteNotification(id: string): Promise<boolean> {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM notifications WHERE id = $1', [id]);
+      return true;
+    } catch (e) {
+      console.error("Error deleting notification from PG:", e);
+    }
+  }
+  const len = (localDB.notifications || []).length;
+  localDB.notifications = (localDB.notifications || []).filter((n: any) => n.id !== id);
+  saveLocalDB();
+  return (localDB.notifications || []).length < len;
+}
+

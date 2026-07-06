@@ -37,7 +37,15 @@ import {
   deleteStudyNote,
   getAppVersion,
   saveAppVersion,
-  getUserByEmail
+  getUserByEmail,
+  getVideoLectures,
+  saveVideoLecture,
+  deleteVideoLecture,
+  getNotifications,
+  createNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification
 } from "./server/db.js";
 
 // Ensure data directory exists
@@ -536,6 +544,18 @@ app.post("/api/app-version", async (req: express.Request, res: express.Response)
       changelogBn: changelogBn || ""
     };
     const saved = await saveAppVersion(versionInfo);
+    
+    // Create global notification for new app version release
+    try {
+      await createNotification({
+        title: "নতুন অ্যাপ আপডেট উপলব্ধ! 🚀",
+        message: `স্টাডি হাবের নতুন সংস্করণ v${latestVersion} প্রকাশ করা হয়েছে। পরিবর্তনসমূহ: ${changelogBn || changelogEn || "বাগ ফিক্স এবং উন্নত কার্যক্ষমতা।"}`,
+        type: "info"
+      });
+    } catch (notifErr) {
+      console.error("Failed to create update release notification:", notifErr);
+    }
+    
     res.json(saved);
   } catch (error: any) {
     console.error("Error saving app version:", error);
@@ -1275,6 +1295,15 @@ app.post("/api/study-notes", async (req: express.Request, res: express.Response)
   }
   try {
     const saved = await saveStudyNote(note);
+    
+    // Create personal notification
+    await createNotification({
+      title: "নতুন স্টাডি নোট তৈরি হয়েছে",
+      message: `আপনি "${note.title}" নামে একটি নতুন ব্যক্তিগত স্টাডি নোট তৈরি করেছেন।`,
+      type: "note",
+      userEmail: note.userEmail
+    });
+
     res.json(saved);
   } catch (error: any) {
     console.error("Error saving study note:", error);
@@ -1407,6 +1436,14 @@ app.post("/api/govt-job-notes", async (req: express.Request, res: express.Respon
 
   try {
     await saveGovtJobNote(note);
+
+    // Create global notification
+    await createNotification({
+      title: "নতুন সরকারি চাকরির প্রস্তুতি নোট প্রকাশিত হয়েছে",
+      message: `একটি নতুন সরকারি চাকরির প্রস্তুতির নোট প্রকাশিত হয়েছে: "${note.title}"`,
+      type: "note"
+    });
+
     res.status(201).json(note);
   } catch (error: any) {
     console.error("Error saving govt job note:", error);
@@ -1587,6 +1624,14 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
     };
 
     await saveAiPdfNote(newPdfNote);
+
+    // Create global notification
+    await createNotification({
+      title: "নতুন এআই পিডিএফ স্টাডি গাইড তৈরি হয়েছে",
+      message: `এআই সহকারী দ্বারা একটি নতুন মাসিক গাইড তৈরি করা হয়েছে: "${newPdfNote.title}"`,
+      type: "note"
+    });
+
     res.status(201).json(newPdfNote);
   } catch (error: any) {
     console.error("Error generating AI PDF note:", error);
@@ -1826,6 +1871,147 @@ app.get("/api/updates/check", (req: express.Request, res: express.Response) => {
 app.post("/api/updates/install", (req: express.Request, res: express.Response) => {
   // Client handles storing the updated version
   res.json({ success: true });
+});
+
+// --- Video Lectures API ---
+app.get("/api/videos", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const videosList = await getVideoLectures();
+    res.json(videosList);
+  } catch (error: any) {
+    console.error("Error fetching video lectures:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/videos", async (req: express.Request, res: express.Response): Promise<any> => {
+  const video = req.body;
+  if (!video.id || !video.title || !video.videoUrl) {
+    return res.status(400).json({ error: "Missing required fields (id, title, videoUrl)" });
+  }
+  try {
+    const saved = await saveVideoLecture(video);
+    
+    // Create global notification
+    await createNotification({
+      title: "নতুন ভিডিও লেকচার যুক্ত করা হয়েছে",
+      message: `প্রশাসক দ্বারা একটি নতুন ভিডিও লেকচার আপলোড করা হয়েছে: "${video.title}"`,
+      type: "video"
+    });
+    
+    res.status(201).json(saved);
+  } catch (error: any) {
+    console.error("Error saving video lecture:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/videos/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    const success = await deleteVideoLecture(id);
+    res.json({ success });
+  } catch (error: any) {
+    console.error("Error deleting video lecture:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/videos/:id/comments", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  const comment = req.body;
+  if (!comment.senderEmail || !comment.comment) {
+    return res.status(400).json({ error: "Missing comment fields" });
+  }
+  try {
+    const videosList = await getVideoLectures();
+    const video = videosList.find((v: any) => v.id === id);
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+    if (!video.comments) video.comments = [];
+    video.comments.push(comment);
+    await saveVideoLecture(video);
+    res.status(201).json(comment);
+  } catch (error: any) {
+    console.error("Error adding comment to video:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/videos/:id/comments/:commentId", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id, commentId } = req.params;
+  try {
+    const videosList = await getVideoLectures();
+    const video = videosList.find((v: any) => v.id === id);
+    if (!video) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+    if (video.comments) {
+      video.comments = video.comments.filter((c: any) => c.id !== commentId);
+    }
+    await saveVideoLecture(video);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Error deleting comment from video:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Notifications API ---
+app.get("/api/notifications", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { userEmail } = req.query;
+  try {
+    const notificationsList = await getNotifications(userEmail as string);
+    res.json(notificationsList);
+  } catch (error: any) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/notifications", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const notification = req.body;
+    const saved = await createNotification(notification);
+    res.status(201).json(saved);
+  } catch (error: any) {
+    console.error("Error creating custom notification:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/notifications/:id/read", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    const success = await markNotificationAsRead(id);
+    res.json({ success });
+  } catch (error: any) {
+    console.error("Error marking notification as read:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/notifications/read-all", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { userEmail } = req.body;
+  try {
+    const success = await markAllNotificationsAsRead(userEmail);
+    res.json({ success });
+  } catch (error: any) {
+    console.error("Error marking all notifications as read:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/notifications/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+  const { id } = req.params;
+  try {
+    const success = await deleteNotification(id);
+    res.json({ success });
+  } catch (error: any) {
+    console.error("Error deleting notification:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Start express server and integrate Vite
