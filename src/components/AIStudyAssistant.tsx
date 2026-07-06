@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Upload, ImageIcon } from 'lucide-react';
 import { ThemeConfig } from '../lib/themes';
 import { Language } from '../lib/translations';
+import { storage } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  imageUrl?: string;
 }
 
 interface AIStudyAssistantProps {
@@ -19,7 +22,9 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isBengali = lang === "bn";
 
@@ -41,6 +46,32 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `chat-images/${Date.now()}-${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const newUserMsg: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: isBengali ? "আমি একটি ছবি আপলোড করেছি" : "I have uploaded an image",
+        imageUrl: url
+      };
+      
+      setMessages(prev => [...prev, newUserMsg]);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -127,6 +158,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
                   ? 'bg-indigo-600 text-white rounded-br-none' 
                   : `${theme.isDark ? 'bg-slate-800 text-slate-200 border-slate-700' : 'bg-white border-slate-200'} border rounded-bl-none`
               }`}>
+                {msg.imageUrl && <img src={msg.imageUrl} alt="Uploaded" className="max-w-full rounded-lg mb-2" />}
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               </div>
 
@@ -161,6 +193,21 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
 
       <div className={`p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
         <form onSubmit={handleSendMessage} className="flex gap-2 relative">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${theme.textMuted}`}
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          </button>
           <input
             type="text"
             value={inputText}

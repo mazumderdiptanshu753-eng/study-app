@@ -43,6 +43,7 @@
     width: 100%;
     overflow-x: hidden;
     /* Touch optimization */
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
     /* Use native default sans-serif font */
@@ -75,24 +76,13 @@
     overflow-y: auto;
   }
 
-  /* Subtle, modern minimalist scrollbar instead of completely hidden or raw gray */
+  /* Hide scrollbars globally */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.15);
-    border-radius: 99px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.35);
+    display: none;
   }
   * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }
 

@@ -1,0 +1,99 @@
+{
+  "users": [
+    {
+      "email": "mazumderdiptanshu753@gmail.com",
+      "fullName": "CREATER ADMIN DIPTANSHU MAZUMDER",
+      "grade": "High School",
+      "preferredSubject": "Mathematics",
+      "registeredAt": "2026-07-06T16:36:35.415Z",
+      "avatarUrl": "👑",
+      "role": "Admin"
+    },
+    {
+      "email": "anwitchaki@gmail.com",
+      "fullName": "Anwit Chaki",
+      "grade": "Undergraduate",
+      "preferredSubject": "Mathematics",
+      "registeredAt": "2026-07-06T09:31:52.107Z",
+      "avatarUrl": "🎓",
+      "role": "Student"
+    },
+    {
+      "email": "an]]]",
+      "fullName": "Anwit Chaki",
+      "grade": "High School",
+      "preferredSubject": "Mathematics",
+      "registeredAt": "2026-07-06T09:30:26.889Z",
+      "avatarUrl": "🎓",
+      "role": "Student"
+    }
+  ],
+  "chatMessages": [
+    {
+      "id": "welcome-demo",
+      "senderName": "Admin (Diptanshu)",
+      "senderEmail": "mazumderdiptanshu753@gmail.com",
+      "senderRole": "Admin",
+      "message": "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
+      "timestamp": "2026-07-05T12:44:16.292Z",
+      "studentEmail": "demo@studyhub.com",
+      "studentName": "Demo Student"
+    }
+  ],
+  "activityLogs": [
+    {
+      "id": "log-1783355797083-qlunphofj",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "Dip",
+      "action": "Login",
+      "timestamp": "2026-07-06T16:36:35.416Z",
+      "details": ""
+    },
+    {
+      "id": "log-1783351436720-uv05py5hw",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "dip",
+      "action": "Logout",
+      "timestamp": "2026-07-06T15:23:55.110Z",
+      "details": ""
+    },
+    {
+      "id": "log-1783330312173-h0574gyjv",
+      "userEmail": "anwitchaki@gmail.com",
+      "userName": "Anwit Chaki",
+      "action": "Login",
+      "timestamp": "2026-07-06T09:31:52.107Z",
+      "details": ""
+    },
+    {
+      "id": "log-1783330249141-fwvca6a26",
+      "userEmail": "AN]]]",
+      "userName": "Anwit Chaki",
+      "action": "Logout",
+      "timestamp": "2026-07-06T09:30:49.073Z",
+      "details": ""
+    },
+    {
+      "id": "log-1783330226977-n4wrk70pz",
+      "userEmail": "AN]]]",
+      "userName": "Anwit Chaki",
+      "action": "Login",
+      "timestamp": "2026-07-06T09:30:26.890Z",
+      "details": ""
+    }
+  ],
+  "forumPosts": [],
+  "liveClasses": [],
+  "govtJobNotes": [],
+  "aiPdfNotes": [],
+  "studyNotes": [],
+  "videoLectures": [],
+  "notifications": [],
+  "systemSettings": {
+    "app_version": {
+      "latestVersion": "7.5.1",
+      "changelogEn": "Initial Release of Study Hub Portal with dynamic interactive animations.",
+      "changelogBn": "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
+    }
+  }
+}

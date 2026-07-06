@@ -16,7 +16,8 @@ import {
   Shield,
   RefreshCcw,
   Download,
-  Radio
+  Radio,
+  User
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -33,6 +34,7 @@ import LiveClasses from "./components/LiveClasses";
 import GovtJobNotes from "./components/GovtJobNotes";
 import AIStudyAssistant from "./components/AIStudyAssistant";
 import NotificationBell from "./components/NotificationBell";
+import ProfileSettings from "./components/ProfileSettings";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -99,7 +101,7 @@ export default function App() {
   });
 
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes">("dashboard");
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile">("dashboard");
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
@@ -295,12 +297,32 @@ export default function App() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes") => {
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile") => {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
       setIsPageLoading(false);
     }, 300);
+  };
+
+  const handleUpdateProfile = async (updated: StudentProfile) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+        
+        setProfile(updated);
+        localStorage.setItem("student_profile", JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error("Failed to update profile on backend:", e);
+    }
   };
   
   // App States initialized with preloaded educational notes or sync from Firestore
@@ -796,37 +818,37 @@ export default function App() {
 
                 {/* User Profile Summary / Controls */}
                 {profile ? (
-                  <div className="flex items-center gap-2" title={profile.email}>
-                    
-                    {/* User Info labels */}
-                    <div className="hidden md:flex flex-col text-left leading-none max-w-[110px] select-none">
-                      <span className={`font-black text-[11px] sm:text-xs ${theme.isDark ? 'text-slate-100' : 'text-slate-800'} truncate block`}>
-                        {profile.name}
-                      </span>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {profile.role === "Admin" ? (
-                          <span className="inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
-                            👑 {lang === "bn" ? "এডমিন" : "Admin"}
-                          </span>
-                        ) : (
-                          <span className={`inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded ${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} uppercase shrink-0`}>
-                            🎓 {lang === "bn" ? "শিক্ষার্থী" : "Student"}
-                          </span>
-                        )}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setCurrentTab("profile")}
+                      className="flex items-center gap-2" title={profile.email}
+                    >
+                      {/* User Info labels */}
+                      <div className="hidden md:flex flex-col text-left leading-none max-w-[110px] select-none">
+                        <span className={`font-black text-[11px] sm:text-xs ${theme.isDark ? 'text-slate-100' : 'text-slate-800'} truncate block`}>
+                          {profile.name}
+                        </span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {profile.role === "Admin" ? (
+                            <span className="inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
+                              👑 {lang === "bn" ? "এডমিন" : "Admin"}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded ${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} uppercase shrink-0`}>
+                              🎓 {lang === "bn" ? "শিক্ষার্থী" : "Student"}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Deluxe Logout Button */}
-                    <motion.button
+                    </button>
+                    <button
                       onClick={handleLogout}
                       id="header-btn-logout-new"
-                      whileHover={{ scale: 1.05, rotate: -2 }}
-                      whileTap={{ scale: 0.95 }}
                       className="flex items-center justify-center h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 rounded-lg sm:rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs hover:scale-105 active:scale-95 group/logout"
                       title={lang === "bn" ? "লগ আউট" : "Sign Out"}
                     >
                       <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-200 group-hover/logout:translate-x-0.5" />
-                    </motion.button>
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5">
@@ -964,10 +986,31 @@ export default function App() {
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
+              {currentTab === "profile" && profile && (
+                <ProfileSettings
+                  profile={profile}
+                  onUpdate={handleUpdateProfile}
+                  onClose={() => setCurrentTab("dashboard")}
+                  theme={theme}
+                  lang={lang}
+                />
+              )}
               </>
               )}
             </motion.div>
           </AnimatePresence>
+        )}
+
+        {/* Floating Profile Button - Unique Access */}
+        {profile && (
+          <motion.button
+            onClick={() => setCurrentTab("profile")}
+            whileHover={{ scale: 1.1, rotate: 10 }}
+            whileTap={{ scale: 0.9 }}
+            className={`fixed bottom-24 right-6 z-40 p-4 rounded-full shadow-2xl border ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+          >
+            <User className={`h-6 w-6 ${theme.textHeading}`} />
+          </motion.button>
         )}
 
         {/* Humble Footer */}
@@ -1014,23 +1057,6 @@ export default function App() {
  
           <button
             onClick={() => {
-              setCurrentTab("aiAssistant");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
-              currentTab === "aiAssistant"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <Sparkles className="h-5 w-5 mb-1" style={{ color: currentTab === "aiAssistant" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
-              {lang === "bn" ? "এআই সহকারী" : "AI Helper"}
-            </span>
-          </button>
-          
-          <button
-            onClick={() => {
               setCurrentTab("chat");
               setSelectedNote(null);
             }}
@@ -1063,6 +1089,7 @@ export default function App() {
             </span>
           </button>
 
+          
           {profile.role === "Admin" && (
             <button
               onClick={() => {

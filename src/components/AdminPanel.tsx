@@ -184,92 +184,68 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
       className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-12 px-1 sm:px-0"
     >
       
-      {/* Header section with styling and safe area */}
-      <motion.div variants={itemVariants} className="bg-gradient-to-r from-teal-800 to-slate-900 rounded-2xl p-4 sm:p-6 text-white shadow-lg border border-teal-700/30 relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-teal-500/20 rounded-lg text-[10px] sm:text-xs font-bold text-teal-300 tracking-wider uppercase">
-            <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-pulse" />
-            {isBengali ? "প্রশাসক প্যানেল" : "System Administration"}
-          </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">{t.title}</h1>
-          <p className="text-[11px] sm:text-xs md:text-sm text-teal-100 font-medium max-w-2xl leading-relaxed">{t.subtitle}</p>
-        </div>
+      {/* Header section with cleaner aesthetic */}
+      <motion.div variants={itemVariants} className={`flex flex-col gap-1 p-4 ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm`}>
+        <h1 className={`text-xl font-black ${theme.textHeading} tracking-tight`}>{t.title}</h1>
+        <p className={`text-xs ${theme.textMuted} font-medium max-w-2xl leading-relaxed`}>{t.subtitle}</p>
       </motion.div>
 
       {/* Stats Summary Bento Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         
-        {/* Total Users Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 shrink-0">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+        {[
+          { icon: Users, label: t.totalUsers, count: totalRegistered, color: "text-blue-600" },
+          { icon: ShieldCheck, label: t.adminCount, count: adminsCount, color: "text-amber-600" },
+          { icon: GraduationCap, label: t.studentCount, count: studentsCount, color: "text-emerald-600" },
+        ].map((stat, i) => (
+          <div key={i} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3 flex items-center gap-3 shadow-sm`}>
+            <div className={`h-10 w-10 rounded-xl ${theme.bgPage} flex items-center justify-center ${stat.color}`}>
+              <stat.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <span className={`text-[9px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{stat.label}</span>
+              <span className={`text-xl font-black ${theme.textHeading}`}>{stat.count}</span>
+            </div>
           </div>
-          <div>
-            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.totalUsers}</span>
-            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{totalRegistered}</span>
-          </div>
-        </div>
-
-        {/* Total Admins Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <div>
-            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.adminCount}</span>
-            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{adminsCount}</span>
-          </div>
-        </div>
-
-        {/* Total Students Stat Card */}
-        <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-3xs hover:shadow-2xs transition-shadow`}>
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-            <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <div>
-            <span className={`text-[9px] sm:text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{t.studentCount}</span>
-            <span className={`text-lg sm:text-2xl font-black ${theme.textHeading}`}>{studentsCount}</span>
-          </div>
-        </div>
+        ))}
 
       </motion.div>
 
       {/* Tabs */}
-      <motion.div variants={itemVariants} className="flex space-x-1 sm:space-x-2 border-b border-slate-700/20 mb-6 overflow-x-auto whitespace-nowrap scrollbar-none pb-px">
+      <motion.div variants={itemVariants} className={`flex p-1 ${theme.bgPage} rounded-xl mb-6 w-full sm:w-fit`}>
         <button
           onClick={() => setActiveTab("users")}
-          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
-            activeTab === "users" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
+          className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+            activeTab === "users" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
-          <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          {isBengali ? "ব্যবহারকারী" : "User Management"}
+          <Users className="h-4 w-4" />
+          {isBengali ? "ব্যবহারকারী" : "Users"}
         </button>
         <button
           onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
-            activeTab === "logs" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
+          className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+            activeTab === "logs" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
-          <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
+          <Activity className="h-4 w-4" />
+          {isBengali ? "অ্যাক্টিভিটি লগ" : "Logs"}
         </button>
       </motion.div>
 
       {activeTab === "users" && (
-        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden`}>
           
           {/* Search header bar */}
-          <div className={`p-4 sm:p-5 border-b ${theme.borderCard} bg-slate-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
-            <div className="relative flex-1 max-w-md">
+          <div className={`p-5 border-b ${theme.borderCard} flex items-center justify-between gap-4`}>
+            <div className="relative flex-1 max-w-sm">
               <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 ${theme.textMuted}`} />
               <input
                 type="text"
                 placeholder={t.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full ${theme.bgPage} pl-10 pr-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400`}
+                className={`w-full ${theme.bgPage} pl-10 pr-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${theme.textMain} placeholder:text-slate-400`}
               />
             </div>
           </div>

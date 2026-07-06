@@ -459,16 +459,27 @@ export async function getUsers(): Promise<any[]> {
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM users');
+      if (res.rows && res.rows.length > 0) {
+        localDB.users = res.rows;
+        saveLocalDB();
+      }
       return res.rows;
     } catch (e) {
-      console.error("Error fetching users from PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error fetching users from PG, falling back to local cache:", e);
     }
   }
   return localDB.users || [];
 }
 
 export async function saveUser(user: any): Promise<any[]> {
+  const existing = localDB.users.find((u: any) => (u.email || '').trim().toLowerCase() === (user.email || '').trim().toLowerCase());
+  if (existing) {
+    Object.assign(existing, user);
+  } else {
+    localDB.users.push(user);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -491,36 +502,25 @@ export async function saveUser(user: any): Promise<any[]> {
         user.avatarUrl || '',
         user.role || 'Student'
       ]);
-      return getUsers();
     } catch (e) {
-      console.error("Error saving user to PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error saving user to PG, but local backup saved:", e);
     }
   }
-  
-  const existing = localDB.users.find((u: any) => u.email.trim().toLowerCase() === user.email.trim().toLowerCase());
-  if (existing) {
-    Object.assign(existing, user);
-  } else {
-    localDB.users.push(user);
-  }
-  saveLocalDB();
   return localDB.users;
 }
 
 export async function deleteUser(email: string): Promise<boolean> {
-  if (pool) {
-    try {
-      await pool.query('DELETE FROM users WHERE email = $1', [email.trim().toLowerCase()]);
-      return true;
-    } catch (e) {
-      console.error("Error deleting user from PG, falling back:", e);
-      if (isPostgresActive) throw e;
-    }
-  }
   const len = localDB.users.length;
   localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== email.trim().toLowerCase());
   saveLocalDB();
+
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+    } catch (e) {
+      console.error("Error deleting user from PG, but local backup updated:", e);
+    }
+  }
   return localDB.users.length < len;
 }
 
@@ -531,10 +531,8 @@ export async function getUserByEmail(email: string): Promise<any | null> {
     try {
       const res = await pool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
       if (res.rows.length > 0) return res.rows[0];
-      return null;
     } catch (e) {
       console.error("Error fetching user by email from PG:", e);
-      if (isPostgresActive) throw e;
     }
   }
   return (localDB.users || []).find((u: any) => (u.email || '').trim().toLowerCase() === normalizedEmail) || null;
@@ -545,15 +543,23 @@ export async function getChatMessages(): Promise<any[]> {
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM chat_messages');
+      if (res.rows && res.rows.length > 0) {
+        localDB.chatMessages = res.rows;
+        saveLocalDB();
+      }
       return res.rows;
     } catch (e) {
-      console.error("Error fetching chat messages from PG, falling back:", e);
+      console.error("Error fetching chat messages from PG, falling back to local cache:", e);
     }
   }
   return localDB.chatMessages || [];
 }
 
 export async function saveChatMessage(msg: any): Promise<any> {
+  if (!localDB.chatMessages) localDB.chatMessages = [];
+  localDB.chatMessages.push(msg);
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -570,14 +576,10 @@ export async function saveChatMessage(msg: any): Promise<any> {
         msg.studentEmail,
         msg.studentName
       ]);
-      return msg;
     } catch (e) {
-      console.error("Error saving chat message to PG, falling back:", e);
+      console.error("Error saving chat message to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.chatMessages) localDB.chatMessages = [];
-  localDB.chatMessages.push(msg);
-  saveLocalDB();
   return msg;
 }
 
@@ -586,18 +588,32 @@ export async function getForumPosts(): Promise<any[]> {
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM forum_posts');
-      return res.rows.map(row => ({
+      const posts = res.rows.map(row => ({
         ...row,
         replies: typeof row.replies === 'string' ? JSON.parse(row.replies) : (row.replies || [])
       }));
+      if (posts && posts.length > 0) {
+        localDB.forumPosts = posts;
+        saveLocalDB();
+      }
+      return posts;
     } catch (e) {
-      console.error("Error fetching forum posts from PG, falling back:", e);
+      console.error("Error fetching forum posts from PG, falling back to local cache:", e);
     }
   }
   return localDB.forumPosts || [];
 }
 
 export async function saveForumPost(post: any): Promise<any> {
+  if (!localDB.forumPosts) localDB.forumPosts = [];
+  const idx = localDB.forumPosts.findIndex((p: any) => p.id === post.id);
+  if (idx > -1) {
+    localDB.forumPosts[idx] = post;
+  } else {
+    localDB.forumPosts.push(post);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -618,18 +634,22 @@ export async function saveForumPost(post: any): Promise<any> {
         post.likes || 0,
         JSON.stringify(post.replies || [])
       ]);
-      return post;
     } catch (e) {
-      console.error("Error saving forum post to PG, falling back:", e);
+      console.error("Error saving forum post to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.forumPosts) localDB.forumPosts = [];
-  localDB.forumPosts.push(post);
-  saveLocalDB();
   return post;
 }
 
 export async function addForumReply(postId: string, reply: any): Promise<any> {
+  if (!localDB.forumPosts) localDB.forumPosts = [];
+  const post = localDB.forumPosts.find((p: any) => p.id === postId);
+  if (post) {
+    if (!post.replies) post.replies = [];
+    post.replies.push(reply);
+    saveLocalDB();
+  }
+
   if (pool) {
     try {
       const res = await pool.query('SELECT replies FROM forum_posts WHERE id = $1', [postId]);
@@ -637,21 +657,12 @@ export async function addForumReply(postId: string, reply: any): Promise<any> {
         const replies = Array.isArray(res.rows[0].replies) ? res.rows[0].replies : JSON.parse(res.rows[0].replies || '[]');
         replies.push(reply);
         await pool.query('UPDATE forum_posts SET replies = $1 WHERE id = $2', [JSON.stringify(replies), postId]);
-        return reply;
       }
     } catch (e) {
-      console.error("Error adding forum reply to PG, falling back:", e);
+      console.error("Error adding forum reply to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.forumPosts) localDB.forumPosts = [];
-  const post = localDB.forumPosts.find((p: any) => p.id === postId);
-  if (post) {
-    if (!post.replies) post.replies = [];
-    post.replies.push(reply);
-    saveLocalDB();
-    return reply;
-  }
-  return null;
+  return reply;
 }
 
 // --- Live Classes Database Queries ---
@@ -659,15 +670,28 @@ export async function getLiveClasses(): Promise<any[]> {
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM live_classes');
+      if (res.rows && res.rows.length > 0) {
+        localDB.liveClasses = res.rows;
+        saveLocalDB();
+      }
       return res.rows;
     } catch (e) {
-      console.error("Error fetching live classes from PG, falling back:", e);
+      console.error("Error fetching live classes from PG, falling back to local cache:", e);
     }
   }
   return localDB.liveClasses || [];
 }
 
 export async function saveLiveClass(cls: any): Promise<any> {
+  if (!localDB.liveClasses) localDB.liveClasses = [];
+  const idx = localDB.liveClasses.findIndex((c: any) => c.id === cls.id);
+  if (idx > -1) {
+    localDB.liveClasses[idx] = cls;
+  } else {
+    localDB.liveClasses.push(cls);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -690,18 +714,23 @@ export async function saveLiveClass(cls: any): Promise<any> {
         cls.status || 'Scheduled',
         cls.createdAt
       ]);
-      return cls;
     } catch (e) {
-      console.error("Error saving live class to PG, falling back:", e);
+      console.error("Error saving live class to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.liveClasses) localDB.liveClasses = [];
-  localDB.liveClasses.push(cls);
-  saveLocalDB();
   return cls;
 }
 
 export async function updateLiveClassStatus(id: string, status: string): Promise<any> {
+  let updatedCls = null;
+  if (!localDB.liveClasses) localDB.liveClasses = [];
+  const cls = localDB.liveClasses.find((c: any) => c.id === id);
+  if (cls) {
+    cls.status = status;
+    saveLocalDB();
+    updatedCls = cls;
+  }
+
   if (pool) {
     try {
       const res = await pool.query(`
@@ -711,35 +740,28 @@ export async function updateLiveClassStatus(id: string, status: string): Promise
         RETURNING *
       `, [status, id]);
       if (res.rows.length > 0) {
-        return res.rows[0];
+        updatedCls = res.rows[0];
       }
     } catch (e) {
-      console.error("Error updating live class status in PG, falling back:", e);
+      console.error("Error updating live class status in PG, but local backup updated:", e);
     }
   }
-  if (!localDB.liveClasses) localDB.liveClasses = [];
-  const cls = localDB.liveClasses.find((c: any) => c.id === id);
-  if (cls) {
-    cls.status = status;
-    saveLocalDB();
-    return cls;
-  }
-  return null;
+  return updatedCls;
 }
 
 export async function deleteLiveClass(id: string): Promise<boolean> {
+  const len = (localDB.liveClasses || []).length;
+  localDB.liveClasses = (localDB.liveClasses || []).filter((c: any) => c.id !== id);
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query('DELETE FROM live_classes WHERE id = $1', [id]);
-      return true;
     } catch (e) {
-      console.error("Error deleting live class from PG, falling back:", e);
+      console.error("Error deleting live class from PG, but local backup updated:", e);
     }
   }
-  const len = localDB.liveClasses.length;
-  localDB.liveClasses = (localDB.liveClasses || []).filter((c: any) => c.id !== id);
-  saveLocalDB();
-  return localDB.liveClasses.length < len;
+  return (localDB.liveClasses || []).length < len;
 }
 
 // --- Activity Logs Database Queries ---
@@ -747,16 +769,23 @@ export async function getActivityLogs(): Promise<any[]> {
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM activity_logs');
+      if (res.rows && res.rows.length > 0) {
+        localDB.activityLogs = res.rows;
+        saveLocalDB();
+      }
       return res.rows;
     } catch (e) {
-      console.error("Error fetching activity logs from PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error fetching activity logs from PG, falling back to local cache:", e);
     }
   }
   return localDB.activityLogs || [];
 }
 
 export async function saveActivityLog(log: any): Promise<any> {
+  if (!localDB.activityLogs) localDB.activityLogs = [];
+  localDB.activityLogs.unshift(log);
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -770,15 +799,10 @@ export async function saveActivityLog(log: any): Promise<any> {
         log.timestamp,
         log.details || ''
       ]);
-      return log;
     } catch (e) {
-      console.error("Error saving activity log to PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error saving activity log to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.activityLogs) localDB.activityLogs = [];
-  localDB.activityLogs.unshift(log);
-  saveLocalDB();
   return log;
 }
 
@@ -793,12 +817,21 @@ export async function getGovtJobNotes(subject?: string): Promise<any[]> {
         params.push(subject);
       }
       const res = await pool.query(queryStr, params);
-      return res.rows.map(row => ({
+      const mapped = res.rows.map(row => ({
         ...row,
         comments: typeof row.comments === 'string' ? JSON.parse(row.comments) : (row.comments || [])
       }));
+      if (mapped && mapped.length > 0) {
+        const allRes = await pool.query('SELECT * FROM govt_job_notes');
+        localDB.govtJobNotes = allRes.rows.map(row => ({
+          ...row,
+          comments: typeof row.comments === 'string' ? JSON.parse(row.comments) : (row.comments || [])
+        }));
+        saveLocalDB();
+      }
+      return mapped;
     } catch (e) {
-      console.error("Error fetching govt job notes from PG, falling back:", e);
+      console.error("Error fetching govt job notes from PG, falling back to local cache:", e);
     }
   }
   let notes = localDB.govtJobNotes || [];
@@ -809,6 +842,15 @@ export async function getGovtJobNotes(subject?: string): Promise<any[]> {
 }
 
 export async function saveGovtJobNote(note: any): Promise<any> {
+  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
+  const idx = localDB.govtJobNotes.findIndex((n: any) => n.id === note.id);
+  if (idx > -1) {
+    localDB.govtJobNotes[idx] = note;
+  } else {
+    localDB.govtJobNotes.push(note);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -829,18 +871,22 @@ export async function saveGovtJobNote(note: any): Promise<any> {
         note.authorEmail,
         note.authorName
       ]);
-      return note;
     } catch (e) {
-      console.error("Error saving govt job note to PG, falling back:", e);
+      console.error("Error saving govt job note to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
-  localDB.govtJobNotes.push(note);
-  saveLocalDB();
   return note;
 }
 
 export async function addGovtJobNoteComment(noteId: string, comment: any): Promise<any> {
+  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
+  const note = localDB.govtJobNotes.find((n: any) => n.id === noteId);
+  if (note) {
+    if (!note.comments) note.comments = [];
+    note.comments.push(comment);
+    saveLocalDB();
+  }
+
   if (pool) {
     try {
       const res = await pool.query('SELECT comments FROM govt_job_notes WHERE id = $1', [noteId]);
@@ -848,36 +894,27 @@ export async function addGovtJobNoteComment(noteId: string, comment: any): Promi
         const comments = Array.isArray(res.rows[0].comments) ? res.rows[0].comments : JSON.parse(res.rows[0].comments || '[]');
         comments.push(comment);
         await pool.query('UPDATE govt_job_notes SET comments = $1 WHERE id = $2', [JSON.stringify(comments), noteId]);
-        return comment;
       }
     } catch (e) {
-      console.error("Error adding comment to govt job note in PG, falling back:", e);
+      console.error("Error adding comment to govt job note in PG, but local backup saved:", e);
     }
   }
-  if (!localDB.govtJobNotes) localDB.govtJobNotes = [];
-  const note = localDB.govtJobNotes.find((n: any) => n.id === noteId);
-  if (note) {
-    if (!note.comments) note.comments = [];
-    note.comments.push(comment);
-    saveLocalDB();
-    return comment;
-  }
-  return null;
+  return comment;
 }
 
 export async function deleteGovtJobNote(id: string): Promise<boolean> {
+  const len = (localDB.govtJobNotes || []).length;
+  localDB.govtJobNotes = (localDB.govtJobNotes || []).filter((n: any) => n.id !== id);
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query('DELETE FROM govt_job_notes WHERE id = $1', [id]);
-      return true;
     } catch (e) {
-      console.error("Error deleting govt job note from PG, falling back:", e);
+      console.error("Error deleting govt job note from PG, but local backup updated:", e);
     }
   }
-  const len = localDB.govtJobNotes.length;
-  localDB.govtJobNotes = (localDB.govtJobNotes || []).filter((n: any) => n.id !== id);
-  saveLocalDB();
-  return localDB.govtJobNotes.length < len;
+  return (localDB.govtJobNotes || []).length < len;
 }
 
 // --- AI PDF Notes Database Queries ---
@@ -891,14 +928,14 @@ export async function getAiPdfNotes(subject?: string): Promise<any[]> {
         params.push(subject);
       }
       const res = await pool.query(queryStr, params);
-      return res.rows.map(row => {
+      const mapped = res.rows.map(row => {
         let noteData: any = {};
         try {
           if (row.summary && row.summary.trim().startsWith('{')) {
             noteData = JSON.parse(row.summary);
           }
         } catch (e) {
-          // Fallback if not a json string
+          // ignore
         }
         return {
           id: row.id,
@@ -913,8 +950,36 @@ export async function getAiPdfNotes(subject?: string): Promise<any[]> {
           flashcards: typeof row.flashcards === 'string' ? JSON.parse(row.flashcards) : (row.flashcards || [])
         };
       });
+
+      if (mapped && mapped.length > 0) {
+        const allRes = await pool.query('SELECT * FROM ai_pdf_notes');
+        localDB.aiPdfNotes = allRes.rows.map(row => {
+          let noteData: any = {};
+          try {
+            if (row.summary && row.summary.trim().startsWith('{')) {
+              noteData = JSON.parse(row.summary);
+            }
+          } catch (e) {
+            // ignore
+          }
+          return {
+            id: row.id,
+            subject: row.subject,
+            title: row.title,
+            timestamp: row.timestamp,
+            mcqs: typeof row.mcqs === 'string' ? JSON.parse(row.mcqs) : (row.mcqs || []),
+            introduction: noteData.introduction || "",
+            keyTopics: noteData.keyTopics || [],
+            theoryContent: noteData.theoryContent || row.summary || "",
+            month: noteData.month || "",
+            flashcards: typeof row.flashcards === 'string' ? JSON.parse(row.flashcards) : (row.flashcards || [])
+          };
+        });
+        saveLocalDB();
+      }
+      return mapped;
     } catch (e) {
-      console.error("Error fetching AI PDF notes from PG, falling back:", e);
+      console.error("Error fetching AI PDF notes from PG, falling back to local cache:", e);
     }
   }
   let notes = localDB.aiPdfNotes || [];
@@ -925,6 +990,15 @@ export async function getAiPdfNotes(subject?: string): Promise<any[]> {
 }
 
 export async function saveAiPdfNote(note: any): Promise<any> {
+  if (!localDB.aiPdfNotes) localDB.aiPdfNotes = [];
+  const idx = localDB.aiPdfNotes.findIndex((n: any) => n.id === note.id);
+  if (idx > -1) {
+    localDB.aiPdfNotes[idx] = note;
+  } else {
+    localDB.aiPdfNotes.push(note);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       const summaryPayload = JSON.stringify({
@@ -953,30 +1027,26 @@ export async function saveAiPdfNote(note: any): Promise<any> {
         note.userEmail || "",
         note.subject || ''
       ]);
-      return note;
     } catch (e) {
-      console.error("Error saving AI PDF note to PG, falling back:", e);
+      console.error("Error saving AI PDF note to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.aiPdfNotes) localDB.aiPdfNotes = [];
-  localDB.aiPdfNotes.push(note);
-  saveLocalDB();
   return note;
 }
 
 export async function deleteAiPdfNote(id: string): Promise<boolean> {
+  const len = (localDB.aiPdfNotes || []).length;
+  localDB.aiPdfNotes = (localDB.aiPdfNotes || []).filter(n => n.id !== id);
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query('DELETE FROM ai_pdf_notes WHERE id = $1', [id]);
-      return true;
     } catch (e) {
-      console.error("Error deleting AI PDF note from PG, falling back:", e);
+      console.error("Error deleting AI PDF note from PG, but local backup updated:", e);
     }
   }
-  const len = localDB.aiPdfNotes.length;
-  localDB.aiPdfNotes = (localDB.aiPdfNotes || []).filter(n => n.id !== id);
-  saveLocalDB();
-  return localDB.aiPdfNotes.length < len;
+  return (localDB.aiPdfNotes || []).length < len;
 }
 
 export async function getAiPdfNotesCount(): Promise<number> {
@@ -992,31 +1062,32 @@ export async function getAiPdfNotesCount(): Promise<number> {
 }
 
 export async function seedAiPdfNotes(seedData: any[]): Promise<any[]> {
+  localDB.aiPdfNotes = seedData;
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query('DELETE FROM ai_pdf_notes');
       for (const note of seedData) {
         await saveAiPdfNote(note);
       }
-      return seedData;
     } catch (e) {
-      console.error("Error seeding AI PDF notes in PG, falling back:", e);
+      console.error("Error seeding AI PDF notes in PG, but local backup saved:", e);
     }
   }
-  localDB.aiPdfNotes = seedData;
-  saveLocalDB();
   return seedData;
 }
 
 // --- Personal Study Notes Queries ---
 export async function getStudyNotes(userEmail: string): Promise<any[]> {
+  const normEmail = userEmail.trim().toLowerCase();
   if (pool) {
     try {
       const res = await pool.query(
         'SELECT * FROM study_notes WHERE "userEmail" = $1 ORDER BY timestamp DESC',
-        [userEmail.trim().toLowerCase()]
+        [normEmail]
       );
-      return res.rows.map(row => ({
+      const mapped = res.rows.map(row => ({
         id: row.id,
         title: row.title,
         content: row.content,
@@ -1030,17 +1101,32 @@ export async function getStudyNotes(userEmail: string): Promise<any[]> {
         attachmentType: row.attachmentType,
         userEmail: row.userEmail
       }));
+      if (mapped && mapped.length > 0) {
+        if (!localDB.studyNotes) localDB.studyNotes = [];
+        localDB.studyNotes = localDB.studyNotes.filter((n: any) => (n.userEmail || '').trim().toLowerCase() !== normEmail);
+        localDB.studyNotes.push(...mapped);
+        saveLocalDB();
+      }
+      return mapped;
     } catch (e) {
-      console.error("Error getting study notes from PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error getting study notes from PG, falling back to local cache:", e);
     }
   }
   let notes = localDB.studyNotes || [];
-  return notes.filter((n: any) => (n.userEmail || '').trim().toLowerCase() === userEmail.trim().toLowerCase());
+  return notes.filter((n: any) => (n.userEmail || '').trim().toLowerCase() === normEmail);
 }
 
 export async function saveStudyNote(note: any): Promise<any> {
   const email = (note.userEmail || '').trim().toLowerCase();
+  if (!localDB.studyNotes) localDB.studyNotes = [];
+  const idx = localDB.studyNotes.findIndex((n: any) => n.id === note.id);
+  if (idx > -1) {
+    localDB.studyNotes[idx] = note;
+  } else {
+    localDB.studyNotes.push(note);
+  }
+  saveLocalDB();
+
   if (pool) {
     try {
       await pool.query(`
@@ -1074,36 +1160,25 @@ export async function saveStudyNote(note: any): Promise<any> {
         note.attachmentName || null,
         note.attachmentType || 'none'
       ]);
-      return note;
     } catch (e) {
-      console.error("Error saving study note to PG, falling back:", e);
-      if (isPostgresActive) throw e;
+      console.error("Error saving study note to PG, but local backup saved:", e);
     }
   }
-  if (!localDB.studyNotes) localDB.studyNotes = [];
-  const idx = localDB.studyNotes.findIndex((n: any) => n.id === note.id);
-  if (idx > -1) {
-    localDB.studyNotes[idx] = note;
-  } else {
-    localDB.studyNotes.push(note);
-  }
-  saveLocalDB();
   return note;
 }
 
 export async function deleteStudyNote(id: string): Promise<boolean> {
-  if (pool) {
-    try {
-      await pool.query('DELETE FROM study_notes WHERE id = $1', [id]);
-      return true;
-    } catch (e) {
-      console.error("Error deleting study note from PG, falling back:", e);
-      if (isPostgresActive) throw e;
-    }
-  }
   const len = (localDB.studyNotes || []).length;
   localDB.studyNotes = (localDB.studyNotes || []).filter((n: any) => n.id !== id);
   saveLocalDB();
+
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM study_notes WHERE id = $1', [id]);
+    } catch (e) {
+      console.error("Error deleting study note from PG, but local backup updated:", e);
+    }
+  }
   return (localDB.studyNotes || []).length < len;
 }
 
@@ -1237,6 +1312,7 @@ export async function getNotifications(userEmail?: string): Promise<any[]> {
       return res.rows;
     } catch (e) {
       console.error("Error fetching notifications from PG:", e);
+      return [];
     }
   }
   const all = localDB.notifications || [];

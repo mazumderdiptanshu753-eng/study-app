@@ -237,8 +237,8 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               className={`${theme.textMuted} text-xs sm:text-base max-w-md sm:max-w-xl font-medium leading-relaxed px-2 sm:px-0`}
             >
               {lang === "bn" 
-                ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে এআই দ্বারা গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
-                : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards for a seamless learning experience."}
+                ? "আমরা অধ্যয়নের নোটগুলি সংগঠিত করি, তাৎক্ষণিকভাবে এআই-চালিত সারাংশ, পিডিএফ নোট এবং ভিডিও লেকচার তৈরি করি।"
+                : "We organize study notes, instantly generated AI-powered summaries, pdf notes and video lectures"}
             </motion.p>
           </div>
 

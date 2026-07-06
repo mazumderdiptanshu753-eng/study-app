@@ -53,7 +53,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 let firestore = null;
-async function withRetry(operation, maxRetries = 3) {
+async function withRetry(operation, maxRetries = 10) {
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -78,9 +78,10 @@ async function withRetry(operation, maxRetries = 3) {
         errorMessage.toLowerCase().includes("rate limit") ||
         errorMessage.toLowerCase().includes("overloaded");
       if (isTransient && i < maxRetries - 1) {
-        const delay = 1e3 * (i + 1) * 1.5;
+        // Exponential backoff with jitter
+        const delay = Math.pow(2, i) * 2000 + Math.random() * 2000;
         console.warn(
-          `Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${delay}ms...`,
+          `Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${Math.round(delay)}ms...`,
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
@@ -981,6 +982,7 @@ app.post("/api/chat/messages", async (req, res) => {
   if (!message || !studentEmail || !studentName) {
     return res.status(400).json({ error: "Missing required message details." });
   }
+  const normStudentEmail = studentEmail.trim().toLowerCase();
   const newMsg = {
     id: `msg-${Date.now()}`,
     senderName,
@@ -988,11 +990,23 @@ app.post("/api/chat/messages", async (req, res) => {
     senderRole,
     message,
     timestamp: new Date().toISOString(),
-    studentEmail: studentEmail.trim().toLowerCase(),
+    studentEmail: normStudentEmail,
     studentName,
   };
   try {
     await saveChatMessage(newMsg);
+    if (senderRole === "Admin") {
+      try {
+        await createNotification({
+          title: "সহায়তা চ্যাট থেকে নতুন বার্তা 💬",
+          message: `প্রশাসক দীপ্তাংশু আপনাকে একটি বার্তা পাঠিয়েছেন: "${message}"`,
+          type: "info",
+          userEmail: normStudentEmail,
+        });
+      } catch (notifErr) {
+        console.error("Failed to trigger admin chat reply notification:", notifErr);
+      }
+    }
     res.status(201).json(newMsg);
   } catch (error) {
     console.error("Error posting chat message:", error);
@@ -1007,6 +1021,7 @@ app.post("/api/chat/ai-reply", async (req, res) => {
         .status(400)
         .json({ error: "Missing message details for AI reply." });
     }
+    const normStudentEmail = studentEmail.trim().toLowerCase();
     const ai = getGeminiClient();
     const prompt = `You are Diptanshu, the Admin of STUDY HUB. You are responding to a student named ${studentName} who just sent you this message in the support chat:
 "${lastMessage}"
@@ -1026,13 +1041,24 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       senderRole: "Admin",
       message: aiMessageText,
       timestamp: new Date().toISOString(),
-      studentEmail: studentEmail.trim().toLowerCase(),
+      studentEmail: normStudentEmail,
       studentName,
     };
     await saveChatMessage(aiMsg);
+    try {
+      await createNotification({
+        title: "সহায়তা চ্যাট থেকে নতুন বার্তা 💬",
+        message: `প্রশাসক দীপ্তাংশু (AI) আপনাকে একটি বার্তা পাঠিয়েছেন: "${aiMessageText}"`,
+        type: "info",
+        userEmail: normStudentEmail,
+      });
+    } catch (notifErr) {
+      console.error("Failed to trigger AI support chat notification:", notifErr);
+    }
     res.json(aiMsg);
   } catch (error) {
     console.error("Error generating Admin AI reply:", error);
+    const normStudentEmail = req.body.studentEmail?.trim().toLowerCase() || "demo@studyhub.com";
     const fallbackMsg = {
       id: `fallback-${Date.now()}`,
       senderName: "Admin (Diptanshu)",
@@ -1041,10 +1067,20 @@ Since you are the administrator, write a helpful, friendly, and brief response (
       message:
         "Thanks for your message! I'll look into this and get back to you. Make sure to check out the Notes Workspace for your math studies!",
       timestamp: new Date().toISOString(),
-      studentEmail: req.body.studentEmail.trim().toLowerCase(),
-      studentName: req.body.studentName,
+      studentEmail: normStudentEmail,
+      studentName: req.body.studentName || "Student",
     };
     await saveChatMessage(fallbackMsg);
+    try {
+      await createNotification({
+        title: "সহায়তা চ্যাট থেকে নতুন বার্তা 💬",
+        message: `প্রশাসক দীপ্তাংশু আপনাকে একটি বার্তা পাঠিয়েছেন: "${fallbackMsg.message}"`,
+        type: "info",
+        userEmail: normStudentEmail,
+      });
+    } catch (notifErr) {
+      console.error("Failed to trigger fallback support chat notification:", notifErr);
+    }
     res.json(fallbackMsg);
   }
 });
@@ -1071,6 +1107,15 @@ app.post("/api/forum/posts", async (req, res) => {
   post.replies = [];
   try {
     await saveForumPost(post);
+    try {
+      await createNotification({
+        title: "ফোরামে নতুন পোস্ট করা হয়েছে 💬",
+        message: `"${post.authorName || 'একজন শিক্ষার্থী'}" একটি নতুন পোস্ট করেছেন: "${post.title}"। আলোচনায় অংশ নিন!`,
+        type: "info",
+      });
+    } catch (notifErr) {
+      console.error("Failed to trigger forum post notification:", notifErr);
+    }
     res.status(201).json(post);
   } catch (error) {
     console.error("Error saving forum post:", error);
@@ -1087,6 +1132,20 @@ app.post("/api/forum/posts/:postId/replies", async (req, res) => {
   try {
     const success = await addForumReply(postId, reply);
     if (success) {
+      try {
+        const posts = await getForumPosts();
+        const originalPost = posts.find((p: any) => p.id === postId);
+        if (originalPost && originalPost.authorEmail && originalPost.authorEmail.trim().toLowerCase() !== reply.authorEmail.trim().toLowerCase()) {
+          await createNotification({
+            title: "আপনার পোস্টে নতুন উত্তর এসেছে 💬",
+            message: `"${reply.authorName || 'একজন শিক্ষার্থী'}" আপনার "${originalPost.title}" পোস্টে একটি মন্তব্য করেছেন।`,
+            type: "info",
+            userEmail: originalPost.authorEmail,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to trigger forum reply notification:", notifErr);
+      }
       res.status(201).json(reply);
     } else {
       res.status(404).json({ error: "Post not found" });
@@ -1119,6 +1178,15 @@ app.post("/api/live-classes", async (req, res) => {
   cls.status = cls.status || "Scheduled";
   try {
     await saveLiveClass(cls);
+    try {
+      await createNotification({
+        title: "নতুন লাইভ ক্লাস শিডিউল করা হয়েছে 🎥",
+        message: `একটি নতুন লাইভ ক্লাস শুরু হতে যাচ্ছে: "${cls.title}"। প্রস্তুতি নিন!`,
+        type: "video"
+      });
+    } catch (notifErr) {
+      console.error("Failed to trigger live class created notification:", notifErr);
+    }
     res.status(201).json(cls);
   } catch (error) {
     console.error("Error saving live class:", error);
@@ -1131,6 +1199,23 @@ app.patch("/api/live-classes/:id", async (req, res) => {
   try {
     const updated = await updateLiveClassStatus(id, status);
     if (updated) {
+      try {
+        if (status === "Live") {
+          await createNotification({
+            title: "লাইভ ক্লাস এখন চলমান! 🔴",
+            message: `লাইভ ক্লাসটি শুরু হয়েছে: "${updated.title}"। এখনই যুক্ত হন!`,
+            type: "video"
+          });
+        } else if (status === "Cancelled") {
+          await createNotification({
+            title: "লাইভ ক্লাস বাতিল করা হয়েছে ⚠️",
+            message: `লাইভ ক্লাসটি বাতিল করা হয়েছে: "${updated.title}"`,
+            type: "info"
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to trigger live class status notification:", notifErr);
+      }
       res.json(updated);
     } else {
       res.status(404).json({ error: "Not found" });
@@ -1162,8 +1247,22 @@ app.get("/api/users", async (req, res) => {
 app.post("/api/users", async (req, res) => {
   const user = req.body;
   if (!user.email) return res.status(400).json({ error: "Email is required" });
+  const normEmail = user.email.trim().toLowerCase();
   try {
+    const existingUser = await getUserByEmail(normEmail);
     await saveUser(user);
+    if (!existingUser) {
+      try {
+        await createNotification({
+          title: "স্টাডি হাবে স্বাগতম! 🎉",
+          message: `প্রিয় ${user.name || 'শিক্ষার্থী'}, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!`,
+          type: "info",
+          userEmail: normEmail,
+        });
+      } catch (notifErr) {
+        console.error("Failed to trigger welcome notification:", notifErr);
+      }
+    }
     const usersList = await getUsers();
     res.json(usersList);
   } catch (error) {
@@ -1400,6 +1499,20 @@ app.post("/api/govt-job-notes/:id/comments", async (req, res) => {
   try {
     const success = await addGovtJobNoteComment(id, comment);
     if (success) {
+      try {
+        const notes = await getGovtJobNotes();
+        const originalNote = notes.find((n: any) => n.id === id);
+        if (originalNote && originalNote.authorEmail && originalNote.authorEmail.trim().toLowerCase() !== comment.authorEmail.trim().toLowerCase()) {
+          await createNotification({
+            title: "আপনার জবসাইট নোটে নতুন মন্তব্য 💬",
+            message: `"${comment.authorName}" আপনার "${originalNote.title}" নোটে মন্তব্য করেছেন।`,
+            type: "info",
+            userEmail: originalNote.authorEmail,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to trigger govt job note comment notification:", notifErr);
+      }
       res.status(201).json(comment);
     } else {
       res.status(404).json({ error: "Note not found" });
@@ -1944,6 +2057,15 @@ app.post("/api/videos/:id/comments", async (req, res) => {
     if (!video.comments) video.comments = [];
     video.comments.push(comment);
     await saveVideoLecture(video);
+    try {
+      await createNotification({
+        title: "ভিডিও লেকচারে নতুন মন্তব্য 💬",
+        message: `"${comment.senderName || 'একজন শিক্ষার্থী'}" "${video.title}" লেকচারে মন্তব্য করেছেন।`,
+        type: "video"
+      });
+    } catch (notifErr) {
+      console.error("Failed to trigger video lecture comment notification:", notifErr);
+    }
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error adding comment to video:", error);
@@ -1969,6 +2091,7 @@ app.delete("/api/videos/:id/comments/:commentId", async (req, res) => {
   }
 });
 app.get("/api/notifications", async (req, res) => {
+  console.log("Fetching notifications, query:", req.query);
   const { userEmail } = req.query;
   try {
     const notificationsList = await getNotifications(userEmail as string);

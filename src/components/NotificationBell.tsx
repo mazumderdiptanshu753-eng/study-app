@@ -25,19 +25,24 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const userEmail = profile?.email || "";
+  const userEmail = profile?.email?.trim().toLowerCase() || "";
 
   // Fetch notifications from backend
   const fetchNotifications = async () => {
     if (!userEmail) return;
     try {
-      const res = await fetch(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}`);
+      const res = await fetch(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}`, {
+        headers: { 'Accept': 'application/json' }
+      });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
+      } else {
+        const errorText = await res.text();
+        console.error("Failed to fetch notifications, status:", res.status, "body:", errorText);
       }
     } catch (e) {
-      console.error("Failed to fetch notifications:", e);
+      console.error("Failed to fetch notifications (exception):", e);
     }
   };
 

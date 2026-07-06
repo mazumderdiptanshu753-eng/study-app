@@ -22,7 +22,9 @@ import {
   Crown,
   Laptop,
   CheckSquare,
-  Star
+  Star,
+  Calendar,
+  Building
 } from "lucide-react";
 import { StudentProfile, GradeLevel, Subject } from "../types";
 import AppLogo from "./AppLogo";
@@ -40,8 +42,8 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   const t = TRANSLATIONS[lang];
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [grade, setGrade] = useState<GradeLevel>("High School");
-  const [preferredSubject, setPreferredSubject] = useState<Subject>("Mathematics");
+  const [age, setAge] = useState("");
+  const [institution, setInstitution] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"Student" | "Admin">("Student");
 
@@ -61,7 +63,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim()) return;
+    if (!fullName.trim() || !email.trim() || !age.trim() || !institution.trim()) return;
 
     setIsSubmitting(true);
     setTimeout(() => {
@@ -69,8 +71,10 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
       const profile: StudentProfile = {
         fullName: fullName.trim(),
         email: email.trim(),
-        grade,
-        preferredSubject,
+        age: age.trim(),
+        institution: institution.trim(),
+        grade: "High School",
+        preferredSubject: "Mathematics",
         registeredAt: new Date().toISOString(),
         avatarUrl: finalAvatar,
         role: isAdminEmail ? "Admin" : "Student"
@@ -162,79 +166,41 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                     </div>
                   </div>
 
-                  {/* Interactive Grid of Chips for Grade Level (Hidden for Admin) */}
-                  {!isAdminEmail && (
-                    <div className="space-y-1 animate-fade-in pt-0.5">
-                      <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
-                        {isBengali ? "আপনার বর্তমান শ্রেণী স্তর" : "Your Education Level"}
-                      </label>
-                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                        {[
-                          { 
-                            id: "Middle School", 
-                            nameBnShort: "৫ম - ৮ম", 
-                            nameEnShort: "Class 5 - 8", 
-                            descBnShort: "মাধ্যমিক স্তর", 
-                            descEnShort: "Middle School", 
-                            icon: BookOpen 
-                          },
-                          { 
-                            id: "High School", 
-                            nameBnShort: "৯ম - ১২শ", 
-                            nameEnShort: "Class 9 - 12", 
-                            descBnShort: "উচ্চ মাধ্যমিক", 
-                            descEnShort: "HSC Prep", 
-                            icon: GraduationCap 
-                          },
-                          { 
-                            id: "Undergraduate", 
-                            nameBnShort: "স্নাতক ও চাকরি", 
-                            nameEnShort: "College / Job", 
-                            descBnShort: "চাকরি প্রস্তুতি", 
-                            descEnShort: "Govt & BCS", 
-                            icon: Award 
-                          }
-                        ].map((g) => {
-                          const IconComp = g.icon;
-                          const isSelected = grade === g.id;
-                          return (
-                            <motion.button
-                              key={g.id}
-                              type="button"
-                              onClick={() => setGrade(g.id as GradeLevel)}
-                              whileHover={{ y: -2, scale: 1.03 }}
-                              whileTap={{ scale: 0.95 }}
-                              transition={{ type: "spring", stiffness: 450, damping: 15 }}
-                              className={`rounded-xl border p-1.5 sm:p-2 text-center flex flex-col items-center justify-center cursor-pointer relative overflow-hidden h-14 sm:h-20 select-none ${
-                                isSelected 
-                                  ? "border-teal-500 bg-teal-500/5 text-teal-600 dark:text-teal-400 shadow-[0_4px_12px_rgba(20,184,166,0.06)] font-black"
-                                  : `${theme.borderCard} ${theme.bgCard} ${theme.textMain} hover:border-slate-300 dark:hover:border-slate-700`
-                              }`}
-                            >
-                              <div className={`h-5 w-5 sm:h-6.5 sm:w-6.5 rounded-full flex items-center justify-center shrink-0 mb-0.5 sm:mb-1 ${
-                                isSelected ? "bg-teal-500 text-white" : "bg-slate-100 dark:bg-slate-850 text-slate-500 dark:text-slate-400"
-                              }`}>
-                                <IconComp className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                              </div>
-                              <div className="min-w-0 text-center w-full">
-                                <span className="text-[9px] sm:text-[10px] font-bold leading-tight block truncate">
-                                  {isBengali ? g.nameBnShort : g.nameEnShort}
-                                </span>
-                                <span className={`hidden sm:block text-[8px] leading-none block truncate ${isSelected ? "text-teal-600/80 dark:text-teal-400/80" : "text-slate-400 dark:text-slate-500"} mt-0.5`}>
-                                  {isBengali ? g.descBnShort : g.descEnShort}
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <div className="absolute right-1 top-1 text-teal-500">
-                                  <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-teal-500 text-white dark:text-slate-950" />
-                                </div>
-                              )}
-                            </motion.button>
-                          );
-                        })}
-                      </div>
+                  {/* Age input */}
+                  <div className="space-y-1">
+                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regAgeLabel}
+                    </label>
+                    <div className="relative">
+                      <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                      <input
+                        type="number"
+                        required
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        placeholder={t.regAgePlaceholder}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                      />
                     </div>
-                  )}
+                  </div>
+
+                  {/* Institution input */}
+                  <div className="space-y-1">
+                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regInstitutionLabel}
+                    </label>
+                    <div className="relative">
+                      <Building className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                      <input
+                        type="text"
+                        required
+                        value={institution}
+                        onChange={(e) => setInstitution(e.target.value)}
+                        placeholder={t.regInstitutionPlaceholder}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                  <div className="pt-1 sm:pt-2 space-y-1.5 sm:space-y-2">

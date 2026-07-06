@@ -31,6 +31,10 @@ export interface TranslationSchema {
   regFullNamePlaceholder: string;
   regEmailLabel: string;
   regEmailPlaceholder: string;
+  regAgeLabel: string;
+  regAgePlaceholder: string;
+  regInstitutionLabel: string;
+  regInstitutionPlaceholder: string;
   regGradeLabel: string;
   regGradeMiddle: string;
   regGradeHigh: string;
@@ -125,10 +129,14 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
     // Registration Page
     regTitle: "Create Account & Register",
     regSubtitle: "Please provide your details below to activate your personal workspace.",
-    regFullNameLabel: "Full Name",
+    regFullNameLabel: "Full Name *",
     regFullNamePlaceholder: "Enter your full name",
-    regEmailLabel: "Email Address",
+    regEmailLabel: "Email Address *",
     regEmailPlaceholder: "name@example.com",
+    regAgeLabel: "Age *",
+    regAgePlaceholder: "Enter your age",
+    regInstitutionLabel: "School/College Name *",
+    regInstitutionPlaceholder: "Enter your institution name",
     regGradeLabel: "Academic Grade Level",
     regGradeMiddle: "Middle School (Classes 6-8)",
     regGradeHigh: "High School (Classes 9-12)",
@@ -221,10 +229,14 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
     // Registration Page
     regTitle: "অ্যাকাউন্ট তৈরি করুন ও রেজিস্টার করুন",
     regSubtitle: "আপনার ব্যক্তিগত শিক্ষাক্ষেত্র সক্রিয় করতে নিচে আপনার বিবরণ প্রদান করুন।",
-    regFullNameLabel: "সম্পূর্ণ নাম",
+    regFullNameLabel: "সম্পূর্ণ নাম *",
     regFullNamePlaceholder: "আপনার পুরো নাম লিখুন",
-    regEmailLabel: "ইমেল ঠিকানা",
+    regEmailLabel: "ইমেল ঠিকানা *",
     regEmailPlaceholder: "name@example.com",
+    regAgeLabel: "বয়স *",
+    regAgePlaceholder: "আপনার বয়স লিখুন",
+    regInstitutionLabel: "স্কুল/কলেজের নাম *",
+    regInstitutionPlaceholder: "আপনার প্রতিষ্ঠানের নাম লিখুন",
     regGradeLabel: "শিক্ষাগত গ্রেড লেভেল",
     regGradeMiddle: "মিডল স্কুল (ষষ্ঠ - অষ্টম শ্রেণী)",
     regGradeHigh: "হাই স্কুল (নবম - দ্বাদশ শ্রেণী)",

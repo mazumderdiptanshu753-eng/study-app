@@ -147,8 +147,8 @@ export default function Dashboard({
               
               <p className={`text-[11px] sm:text-xs md:text-sm leading-relaxed ${theme.isDark ? theme.textHeroSub : "text-white/90"} font-medium max-w-lg drop-shadow-xs`}>
                 {lang === "bn"
-                   ? "এখানে গণিতের সূত্র ও অধ্যয়ন নোটসমূহ সাজান, তাৎক্ষণিকভাবে গুরুত্বপূর্ণ সারাংশ তৈরি করুন, এবং ফ্ল্যাশকার্ড পর্যালোচনা করুন।"
-                   : "Organize study notes, instantly generate AI-powered summaries, and build custom flashcards."}
+                   ? "আমরা অধ্যয়নের নোটগুলি সংগঠিত করি, তাৎক্ষণিকভাবে এআই-চালিত সারাংশ, পিডিএফ নোট এবং ভিডিও লেকচার তৈরি করি।"
+                   : "We organize study notes, instantly generated AI-powered summaries, pdf notes and video lectures"}
               </p>
             </div>
 
@@ -411,40 +411,11 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Daily Advice Card with Frosted/Warm design */}
-          <div className={`rounded-2xl border ${theme.borderCard} ${theme.primaryBg} p-6 shadow-xs`}>
-            <div className="flex gap-4 items-start">
-              <div className="text-2xl mt-1 animate-bounce" style={{ animationDuration: "4s" }}>💡</div>
-              <div className="space-y-1.5">
-                <h4 className={`font-black ${theme.textHeading} text-sm uppercase tracking-wide select-none`}>
-                  {t.dashDailyAdviceTitle}
-                </h4>
-                <p className={`text-xs ${theme.textMain} leading-relaxed font-medium`}>
-                  {t.dashDailyAdviceText}
-                </p>
-              </div>
-            </div>
-          </div>
-
         </motion.div>
 
         {/* Right Main Content Column (8/12) */}
         <motion.div variants={itemVariants} className="lg:col-span-8 space-y-6 lg:space-y-8">
           
-          {/* Solve with AI Panel */}
-          <div className="space-y-4">
-            <div className="px-1">
-              <h2 className={`text-lg font-extrabold ${theme.textHeading} tracking-tight uppercase flex items-center gap-2 select-none`}>
-                <Sparkles className={`h-5 w-5 ${theme.primaryText} animate-pulse`} />
-                {lang === "bn" ? "এআই গণিত সমাধান সহকারী" : "AI Math Derivation Engine"}
-              </h2>
-              <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>
-                {lang === "bn" ? "যেকোনো গাণিতিক সমস্যা টাইপ করুন বা ছবি/পিডিএফ আপলোড করে ধাপে ধাপে সমাধান বুঝে নিন" : "Describe a problem or upload photo/PDF to get instant detailed mathematical proofs"}
-              </p>
-            </div>
-            <SolveWithAI lang={lang} theme={theme} />
-          </div>
-
           {/* Study Notes Library Cards */}
           <div className="space-y-4 pt-2">
             <div className="flex items-end justify-between px-1">

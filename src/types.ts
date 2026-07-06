@@ -62,6 +62,8 @@ export interface StudySession {
 export interface StudentProfile {
   fullName: string;
   email: string;
+  age: string;
+  institution: string;
   grade: GradeLevel;
   preferredSubject: Subject;
   registeredAt: string;
