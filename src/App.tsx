@@ -561,115 +561,163 @@ export default function App() {
           transition={{ duration: 0.4 }}
           className={`min-h-[100dvh] flex flex-col ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
-          {/* Visual Navigation Header Banner */}
-      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 flex items-center justify-end pointer-events-none">
-        <div className={`flex items-center gap-2 p-1.5 rounded-2xl border ${theme.borderCard} shadow-lg pointer-events-auto backdrop-blur-xl ${theme.isDark ? 'bg-slate-900/80' : 'bg-white/80'}`}>
-
-          {/* Navigation link triggers */}
-          
-
-          {/* Theme & Language Selectors container */}
-          <div className="flex items-center gap-1 sm:gap-1.5 ml-auto mr-1 sm:mr-3">
-            
-            <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
-              {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
-                const tConfig = THEMES[tid];
-                const isActive = themeId === tid;
-                return (
-                  <button
-                    key={tid}
-                    onClick={() => {
-                      setThemeId(tid);
-                      localStorage.setItem("app_theme", tid);
-                    }}
-                    className={`w-6.5 h-6.5 flex items-center justify-center rounded text-2xs transition-all relative group cursor-pointer ${
-                      isActive 
-                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-3xs scale-105" 
-                        : "opacity-60 hover:opacity-100 text-slate-500 hover:bg-white/40 dark:hover:bg-slate-900/40"
-                    }`}
-                    title={lang === "bn" ? tConfig.nameBn : tConfig.nameEn}
-                  >
-                    <span>{tConfig.icon}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Language Switcher Selector Choice */}
-            <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-3xs">
-              <button
-                onClick={() => handleLanguageChange("en")}
-                id="lang-switcher-en"
-                className={`px-2 py-0.5 text-[10px] font-black rounded transition-all cursor-pointer ${
-                  lang === "en"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-3xs"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
+          {/* Visual Navigation Header Banner - Completely Redesigned into an Animated Luxury Centered Floating Glass Header */}
+          <div className="fixed top-2.5 sm:top-4 left-0 right-0 z-50 flex justify-center pointer-events-none px-4 sm:px-6">
+            <motion.div 
+              initial={{ y: -80, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.15 }}
+              whileHover={{ y: 1 }}
+              className={`flex items-center justify-between w-full max-w-7xl p-2 sm:p-2.5 rounded-2xl md:rounded-3xl border ${theme.isDark ? 'border-white/[0.08] bg-slate-950/75' : 'border-black/[0.06] bg-white/75'} shadow-[0_15px_35px_rgba(0,0,0,0.12)] pointer-events-auto backdrop-blur-2xl transition-all duration-300`}
+            >
+              
+              {/* Left Section: Interactive Brand Identity / Logo Badge */}
+              <motion.button 
+                onClick={() => setCurrentTab("dashboard")}
+                whileHover={{ scale: 1.03, y: -0.5 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 group cursor-pointer text-left select-none outline-none focus:ring-2 focus:ring-emerald-500/40 rounded-xl px-1.5 py-1"
+                title={lang === "bn" ? "ড্যাশবোর্ড-এ ফিরে যান" : "Go to Dashboard"}
               >
-                EN
-              </button>
-              <button
-                onClick={() => handleLanguageChange("bn")}
-                id="lang-switcher-bn"
-                className={`px-2 py-0.5 text-[10px] font-black rounded transition-all cursor-pointer ${
-                  lang === "bn"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-3xs"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                BN
-              </button>
-            </div>
+                <div className={`relative flex items-center justify-center h-8.5 w-8.5 sm:h-9.5 sm:w-9.5 rounded-xl bg-gradient-to-tr ${theme.heroGradient} text-white shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3`}>
+                  <GraduationCap className="h-4.5 w-4.5 sm:h-5 sm:w-5 drop-shadow-md" />
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400 border border-white" />
+                </div>
+                <div className="hidden xs:block leading-none">
+                  <div className="flex items-center gap-1">
+                    <span className={`font-black text-xs sm:text-sm tracking-tight ${theme.isDark ? 'text-white' : 'text-slate-900'} group-hover:text-emerald-500 transition-colors`}>
+                      STUDY HUB
+                    </span>
+                    <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] font-extrabold text-slate-400 tracking-wider uppercase block mt-0.5">
+                    {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI"}
+                  </span>
+                </div>
+              </motion.button>
+
+              {/* Right Section: Controls Wrapper */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                
+                {/* Theme & Language Switchers tray */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  
+                  {/* Theme Selector Tray */}
+                  <div className={`flex items-center gap-0.5 p-0.5 rounded-lg sm:rounded-xl border ${theme.isDark ? 'bg-white/[0.04] border-white/[0.06]' : 'bg-black/[0.03] border-black/[0.05]'} shadow-inner`}>
+                    {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
+                      const tConfig = THEMES[tid];
+                      const isActive = themeId === tid;
+                      return (
+                        <motion.button
+                          key={tid}
+                          onClick={() => {
+                            setThemeId(tid);
+                            localStorage.setItem("app_theme", tid);
+                          }}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-md sm:rounded-lg text-[10px] sm:text-xs transition-all relative group cursor-pointer ${
+                            isActive 
+                              ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)] scale-105 border border-black/[0.05] dark:border-white/[0.05]" 
+                              : "opacity-60 hover:opacity-100 text-slate-500 hover:bg-white/45 dark:hover:bg-slate-800/45"
+                          }`}
+                          title={lang === "bn" ? tConfig.nameBn : tConfig.nameEn}
+                        >
+                          <span className="transform duration-200 group-hover:scale-110">{tConfig.icon}</span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Language Switcher Toggle */}
+                  <div className={`flex items-center gap-0.5 p-0.5 rounded-lg sm:rounded-xl border ${theme.isDark ? 'bg-white/[0.04] border-white/[0.06]' : 'bg-black/[0.03] border-black/[0.05]'} shadow-inner`}>
+                    <motion.button
+                      onClick={() => handleLanguageChange("en")}
+                      id="lang-switcher-en-new"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black rounded-md sm:rounded-lg transition-all cursor-pointer ${
+                        lang === "en"
+                          ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/[0.03] dark:border-white/[0.03]"
+                          : "text-slate-450 hover:text-slate-700 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      EN
+                    </motion.button>
+                    <motion.button
+                      onClick={() => handleLanguageChange("bn")}
+                      id="lang-switcher-bn-new"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-black rounded-md sm:rounded-lg transition-all cursor-pointer ${
+                        lang === "bn"
+                          ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-black/[0.03] dark:border-white/[0.03]"
+                          : "text-slate-450 hover:text-slate-700 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      BN
+                    </motion.button>
+                  </div>
+
+                </div>
+
+                {/* Delicate Divider */}
+                <span className={`h-5 w-[1px] ${theme.isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'}`} />
+
+                {/* User Profile Summary / Controls */}
+                {profile ? (
+                  <div className="flex items-center gap-2" title={profile.email}>
+                    
+                    {/* User Info labels */}
+                    <div className="hidden md:flex flex-col text-left leading-none max-w-[110px] select-none">
+                      <span className={`font-black text-[11px] sm:text-xs ${theme.isDark ? 'text-slate-100' : 'text-slate-800'} truncate block`}>
+                        {profile.name}
+                      </span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {profile.role === "Admin" ? (
+                          <span className="inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
+                            👑 {lang === "bn" ? "এডমিন" : "Admin"}
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center px-1 py-0.5 text-[7px] font-black tracking-wide rounded ${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} uppercase shrink-0`}>
+                            🎓 {lang === "bn" ? "শিক্ষার্থী" : "Student"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Deluxe Logout Button */}
+                    <motion.button
+                      onClick={handleLogout}
+                      id="header-btn-logout-new"
+                      whileHover={{ scale: 1.05, rotate: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center justify-center h-7.5 w-7.5 sm:h-8.5 sm:w-8.5 rounded-lg sm:rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs hover:scale-105 active:scale-95 group/logout"
+                      title={lang === "bn" ? "লগ আউট" : "Sign Out"}
+                    >
+                      <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-200 group-hover/logout:translate-x-0.5" />
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-7 w-7 rounded-lg bg-slate-200/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500">
+                      G
+                    </div>
+                    <div className="hidden sm:block text-left leading-none">
+                      <span className="font-semibold text-[9px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
+                        {lang === "bn" ? "নিবন্ধিত নয়" : "Guest Mode"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
           </div>
 
-          {/* User Profile Summary */}
-          {profile ? (
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:block text-left leading-none max-w-[100px]">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-xs text-slate-700 dark:text-slate-200 block truncate">
-                    {profile.name}
-                  </span>
-                  {profile.role === "Admin" ? (
-                    <span className="inline-flex items-center px-1 py-0.5 text-[8px] font-black tracking-wide rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
-                      {lang === "bn" ? "প্রশাসক" : "Admin"}
-                    </span>
-                  ) : (
-                    <span className={`inline-flex items-center px-1 py-0.5 text-[8px] font-black tracking-wide rounded-sm ${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} uppercase shrink-0`}>
-                      {lang === "bn" ? "শিক্ষার্থী" : "Student"}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] opacity-60 block truncate">{profile.email}</span>
-              </div>
-              
-              <button
-                onClick={handleLogout}
-                id="header-btn-logout"
-                className="ml-1 md:ml-2 flex items-center justify-center h-8 w-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs"
-                title={lang === "bn" ? "লগ আউট" : "Sign Out"}
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-slate-200/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500">
-                G
-              </div>
-              <div className="text-left leading-none">
-                <span className="font-semibold text-xs text-slate-500 dark:text-slate-400 block">
-                  {lang === "bn" ? "নিবন্ধিত নয়" : "Not Registered"}
-                </span>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
-
       {/* Main Content Area Container */}
-      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-16 md:pt-8 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative touch-scroll`}>
+      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-20 md:pt-24 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative touch-scroll`}>
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />

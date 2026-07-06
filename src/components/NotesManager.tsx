@@ -241,9 +241,12 @@ export default function NotesManager({
                   hidden: { opacity: 0, x: -10 },
                   show: { opacity: 1, x: 0 }
                 }}
+                whileHover={{ scale: 1.01, y: -0.5 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
                 key={note.id}
                 onClick={() => handleSelectNote(note)}
-                className={`relative group w-full text-left p-3.5 rounded-xl border cursor-pointer transition-all ${
+                className={`relative group w-full text-left p-3.5 rounded-xl border cursor-pointer ${
                   selectedNote?.id === note.id
                     ? "bg-teal-50/70 border-teal-200"
                     : "bg-slate-50/50 border-slate-100 hover:bg-slate-100/60"
@@ -690,8 +693,14 @@ export default function NotesManager({
                   </div>
                 ) : selectedNote.flashcards && selectedNote.flashcards.length > 0 ? (
                   <div className="space-y-4">
-                    {/* Interactive Flip Card */}
-                    <div 
+                    {/* Interactive Flip Card with beautiful key-based rotation animation */}
+                    <motion.div 
+                      layout
+                      key={`${currentFlashcardIndex}-${isFlipped}`}
+                      initial={{ rotateY: isFlipped ? 80 : -80, opacity: 0.3, scale: 0.96 }}
+                      animate={{ rotateY: 0, opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.28, ease: "easeOut" }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setIsFlipped(!isFlipped)}
                       id="study-flashcard"
                       className={`relative min-h-[180px] w-full rounded-2xl border cursor-pointer p-6 flex flex-col justify-between transition-all duration-300 ${
@@ -725,7 +734,7 @@ export default function NotesManager({
                       }`}>
                         {lang === "bn" ? "কার্ডটি উল্টাতে ক্লিক করুন" : "Click to Flip Card"}
                       </span>
-                    </div>
+                    </motion.div>
 
                     {/* Navigation Controls */}
                     <div className="flex items-center justify-between">

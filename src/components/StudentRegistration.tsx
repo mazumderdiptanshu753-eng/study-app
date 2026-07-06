@@ -198,11 +198,14 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                           const IconComp = g.icon;
                           const isSelected = grade === g.id;
                           return (
-                            <button
+                            <motion.button
                               key={g.id}
                               type="button"
                               onClick={() => setGrade(g.id as GradeLevel)}
-                              className={`rounded-xl border p-1.5 sm:p-2 text-center flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative overflow-hidden h-14 sm:h-20 select-none ${
+                              whileHover={{ y: -2, scale: 1.03 }}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{ type: "spring", stiffness: 450, damping: 15 }}
+                              className={`rounded-xl border p-1.5 sm:p-2 text-center flex flex-col items-center justify-center cursor-pointer relative overflow-hidden h-14 sm:h-20 select-none ${
                                 isSelected 
                                   ? "border-teal-500 bg-teal-500/5 text-teal-600 dark:text-teal-400 shadow-[0_4px_12px_rgba(20,184,166,0.06)] font-black"
                                   : `${theme.borderCard} ${theme.bgCard} ${theme.textMain} hover:border-slate-300 dark:hover:border-slate-700`
@@ -226,7 +229,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                                   <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-teal-500 text-white dark:text-slate-950" />
                                 </div>
                               )}
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>

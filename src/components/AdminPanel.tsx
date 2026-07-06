@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, CloudLightning, RefreshCw, Check, AlertTriangle } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2 } from "lucide-react";
 import { StudentProfile } from "../types";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 
@@ -26,173 +24,9 @@ interface ActivityLog {
 
 export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "recovery">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-
-  const [recovering, setRecovering] = useState(false);
-  const [recoveryStatus, setRecoveryStatus] = useState<any>(null);
-  const [recoveryError, setRecoveryError] = useState<string | null>(null);
-
-  const handleRecoverFirestore = async () => {
-    if (recovering) return;
-    setRecovering(true);
-    setRecoveryError(null);
-    setRecoveryStatus(null);
-
-    try {
-      console.log("Starting Firestore collections retrieval...");
-      
-      const fetchCol = async (name: string) => {
-        try {
-          const snap = await getDocs(collection(db, name));
-          return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (err) {
-          console.warn(`Could not fetch collection ${name}:`, err);
-          return [];
-        }
-      };
-
-      const [
-        usersData,
-        studyNotesData,
-        chatMessagesData,
-        forumPostsData,
-        liveClassesData,
-        activityLogsData,
-        govtJobNotesData,
-        aiPdfNotesData
-      ] = await Promise.all([
-        fetchCol("users"),
-        fetchCol("notes"),
-        fetchCol("chatMessages"),
-        fetchCol("forumPosts"),
-        fetchCol("liveClasses"),
-        fetchCol("activityLogs"),
-        fetchCol("govtJobNotes"),
-        fetchCol("aiPdfNotes")
-      ]);
-
-      const formattedStudyNotes = studyNotesData.map((note: any) => ({
-        id: note.id,
-        title: note.title || note.subject || "Untitled Note",
-        content: note.content || note.text || "",
-        timestamp: note.timestamp || note.createdAt || new Date().toISOString(),
-        userEmail: note.userEmail || note.email || note.studentEmail || currentUserEmail
-      }));
-
-      const formattedChatMessages = chatMessagesData.map((msg: any) => ({
-        id: msg.id,
-        senderEmail: msg.senderEmail || msg.studentEmail || "",
-        senderName: msg.senderName || msg.studentName || "",
-        senderRole: msg.senderRole || msg.role || "Student",
-        message: msg.message || msg.text || "",
-        timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
-        avatarUrl: msg.avatarUrl || ""
-      }));
-
-      const formattedForumPosts = forumPostsData.map((post: any) => ({
-        id: post.id,
-        title: post.title || "",
-        content: post.content || "",
-        authorName: post.authorName || "",
-        authorEmail: post.authorEmail || "",
-        authorRole: post.authorRole || "",
-        category: post.category || "General",
-        timestamp: post.timestamp || new Date().toISOString(),
-        replies: Array.isArray(post.replies) ? post.replies : []
-      }));
-
-      const formattedLiveClasses = liveClassesData.map((cls: any) => ({
-        id: cls.id,
-        title: cls.title || "",
-        instructor: cls.instructor || "",
-        scheduledAt: cls.scheduledAt || cls.date || new Date().toISOString(),
-        duration: cls.duration || 60,
-        meetingUrl: cls.meetingUrl || "",
-        status: cls.status || "upcoming",
-        subject: cls.subject || "General",
-        grade: cls.grade || "All"
-      }));
-
-      const formattedActivityLogs = activityLogsData.map((log: any) => ({
-        id: log.id,
-        userEmail: log.userEmail || log.email || "",
-        userName: log.userName || log.name || "Unknown",
-        action: log.action || "Login",
-        timestamp: log.timestamp || new Date().toISOString()
-      }));
-
-      const formattedGovtJobNotes = govtJobNotesData.map((note: any) => ({
-        id: note.id,
-        title: note.title || "",
-        category: note.category || "General",
-        content: note.content || "",
-        attachments: Array.isArray(note.attachments) ? note.attachments : [],
-        timestamp: note.timestamp || new Date().toISOString(),
-        authorEmail: note.authorEmail || currentUserEmail,
-        authorName: note.authorName || "Admin",
-        comments: Array.isArray(note.comments) ? note.comments : []
-      }));
-
-      const formattedAiPdfNotes = aiPdfNotesData.map((note: any) => ({
-        id: note.id,
-        title: note.title || "",
-        fileName: note.fileName || "",
-        content: note.content || "",
-        extractedNotes: note.extractedNotes || "",
-        summary: note.summary || "",
-        tips: note.tips || [],
-        flashcards: note.flashcards || [],
-        quiz: note.quiz || [],
-        userEmail: note.userEmail || currentUserEmail,
-        timestamp: note.timestamp || new Date().toISOString()
-      }));
-
-      const formattedUsers = usersData.map((u: any) => ({
-        email: u.email,
-        fullName: u.fullName || u.name || "",
-        grade: u.grade || "12th",
-        preferredSubject: u.preferredSubject || u.subject || "General",
-        registeredAt: u.registeredAt || u.createdAt || new Date().toISOString(),
-        avatarUrl: u.avatarUrl || "",
-        role: u.role || "Student"
-      }));
-
-      const payload = {
-        users: formattedUsers,
-        studyNotes: formattedStudyNotes,
-        chatMessages: formattedChatMessages,
-        forumPosts: formattedForumPosts,
-        liveClasses: formattedLiveClasses,
-        activityLogs: formattedActivityLogs,
-        govtJobNotes: formattedGovtJobNotes,
-        aiPdfNotes: formattedAiPdfNotes
-      };
-
-      const res = await fetch("/api/recover-firestore", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.statusText}`);
-      }
-
-      const result = await res.json();
-      if (result.success) {
-        setRecoveryStatus(result.results);
-      } else {
-        throw new Error(result.error || "Recovery failed");
-      }
-    } catch (err: any) {
-      console.error("Recovery failed:", err);
-      setRecoveryError(err.message || String(err));
-    } finally {
-      setRecovering(false);
-    }
-  };
 
   const isBengali = lang === "bn";
 
@@ -357,15 +191,6 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
         >
           <Activity className="h-4 w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
-        </button>
-        <button
-          onClick={() => setActiveTab("recovery")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-            activeTab === "recovery" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
-          }`}
-        >
-          <CloudLightning className="h-4 w-4" />
-          {isBengali ? "ডেটা পুনরুদ্ধার" : "Data Recovery"}
         </button>
       </motion.div>
 
@@ -569,107 +394,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
         </motion.div>
       )}
 
-      {activeTab === "recovery" && (
-        <motion.div variants={itemVariants} className="space-y-6">
-          <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-6 shadow-3xs space-y-4`}>
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 shrink-0">
-                <CloudLightning className="h-6 w-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className={`text-lg font-bold ${theme.textHeading}`}>
-                  {isBengali ? "ফায়ারস্টোর ক্লাউড ডেটা পুনরুদ্ধার" : "Firestore Cloud Data Recovery"}
-                </h3>
-                <p className={`text-xs ${theme.textMuted} max-w-2xl leading-relaxed`}>
-                  {isBengali 
-                    ? "আগের ক্লাউড ফায়ারস্টোর ডাটাবেস থেকে নিবন্ধিত শিক্ষার্থী, স্টাডি নোট, ফোরাম পোস্ট এবং চ্যাট মেসেজ পুনরুদ্ধার করে সরাসরি নিয়ন পোস্টগ্রেএসকিউএল ডাটাবেসে নিয়ে আসুন।"
-                    : "Restore registered students, study notes, community forum posts, chat messages, and activity logs from the previous Firebase Firestore cloud database into the new Neon PostgreSQL database."}
-                </p>
-              </div>
-            </div>
 
-            <div className="pt-2 border-t border-slate-700/10 flex flex-col sm:flex-row items-center gap-4">
-              <button
-                onClick={handleRecoverFirestore}
-                disabled={recovering}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-md cursor-pointer disabled:opacity-50 transition-all"
-              >
-                {recovering ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    {isBengali ? "পুনরুদ্ধার করা হচ্ছে..." : "Recovering Data..."}
-                  </>
-                ) : (
-                  <>
-                    <CloudLightning className="h-4 w-4" />
-                    {isBengali ? "পুনরুদ্ধার শুরু করুন" : "Begin Recovery"}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Recovery Status Card */}
-          {recoveryStatus && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`${theme.bgCard} rounded-xl border border-teal-500/20 p-6 shadow-2xs space-y-4`}
-            >
-              <div className="flex items-center gap-2 text-teal-500 font-bold text-sm">
-                <Check className="h-5 w-5 bg-teal-500/10 rounded-full p-0.5" />
-                <span>
-                  {isBengali ? "ডেটা সফলভাবে পুনরুদ্ধার এবং নিয়ন পোস্টগ্রেএসকিউএল-এ সংরক্ষিত হয়েছে!" : "Historical data successfully recovered and synchronized with Neon PostgreSQL!"}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                <div className={`p-4 rounded-xl ${theme.bgPage} border ${theme.borderCard} text-center`}>
-                  <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                    {isBengali ? "শিক্ষার্থী" : "Students"}
-                  </span>
-                  <span className={`text-xl font-black ${theme.textHeading} text-teal-400`}>{recoveryStatus.users}</span>
-                </div>
-                <div className={`p-4 rounded-xl ${theme.bgPage} border ${theme.borderCard} text-center`}>
-                  <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                    {isBengali ? "স্টাডি নোট" : "Study Notes"}
-                  </span>
-                  <span className={`text-xl font-black ${theme.textHeading} text-teal-400`}>{recoveryStatus.studyNotes}</span>
-                </div>
-                <div className={`p-4 rounded-xl ${theme.bgPage} border ${theme.borderCard} text-center`}>
-                  <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                    {isBengali ? "ফোরাম পোস্ট" : "Forum Posts"}
-                  </span>
-                  <span className={`text-xl font-black ${theme.textHeading} text-teal-400`}>{recoveryStatus.forumPosts}</span>
-                </div>
-                <div className={`p-4 rounded-xl ${theme.bgPage} border ${theme.borderCard} text-center`}>
-                  <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                    {isBengali ? "চ্যাট মেসেজ" : "Chat Messages"}
-                  </span>
-                  <span className={`text-xl font-black ${theme.textHeading} text-teal-400`}>{recoveryStatus.chatMessages}</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Recovery Error Card */}
-          {recoveryError && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`${theme.bgCard} rounded-xl border border-rose-500/20 p-6 shadow-2xs flex items-start gap-4 text-rose-500`}
-            >
-              <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="font-bold text-sm block">
-                  {isBengali ? "পুনরুদ্ধার করতে ব্যর্থ হয়েছে" : "Data Recovery Failed"}
-                </span>
-                <p className={`text-xs ${theme.textMuted} font-medium`}>{recoveryError}</p>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
-      )}
     </motion.div>
   );
 }
