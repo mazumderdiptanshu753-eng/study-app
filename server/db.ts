@@ -69,6 +69,7 @@ function saveLocalDB() {
 // Pool initialization
 let pool: pg.Pool | null = null;
 const connectionString = process.env.DATABASE_URL;
+const isPostgresActive = !!connectionString;
 
 if (connectionString) {
   console.log("Found Neon/PostgreSQL connection string. Initializing database pool...");
@@ -84,11 +85,31 @@ if (connectionString) {
 
 export async function initDatabase(): Promise<boolean> {
   if (!pool) return false;
+  
+  let retries = 5;
+  let delay = 2000;
+  let client = null;
+  
+  while (retries > 0) {
+    try {
+      client = await pool.connect();
+      console.log("Successfully connected to Neon PostgreSQL database!");
+      break;
+    } catch (err: any) {
+      retries--;
+      console.warn(`PostgreSQL connection attempt failed. Retries remaining: ${retries}. Error: ${err.message}`);
+      if (retries === 0) {
+        console.error("Failed to initialize PostgreSQL after 5 attempts. Keeping pool registered but falling back to local DB for this startup run if necessary.");
+        return false;
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
   try {
-    // Test connection
-    const client = await pool.connect();
-    console.log("Successfully connected to Neon PostgreSQL database!");
-    client.release();
+    if (client) {
+      client.release();
+    }
 
     // Create tables
     await pool.query(`
@@ -215,8 +236,7 @@ export async function initDatabase(): Promise<boolean> {
     
     return true;
   } catch (err: any) {
-    console.error("Failed to initialize PostgreSQL. Falling back to local db.json. Error:", err.message);
-    pool = null; // disable pool
+    console.error("Failed to setup tables in PostgreSQL:", err.message);
     return false;
   }
 }
@@ -442,6 +462,7 @@ export async function getUsers(): Promise<any[]> {
       return res.rows;
     } catch (e) {
       console.error("Error fetching users from PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   return localDB.users || [];
@@ -473,6 +494,7 @@ export async function saveUser(user: any): Promise<any[]> {
       return getUsers();
     } catch (e) {
       console.error("Error saving user to PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   
@@ -493,6 +515,7 @@ export async function deleteUser(email: string): Promise<boolean> {
       return true;
     } catch (e) {
       console.error("Error deleting user from PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   const len = localDB.users.length;
@@ -508,8 +531,10 @@ export async function getUserByEmail(email: string): Promise<any | null> {
     try {
       const res = await pool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
       if (res.rows.length > 0) return res.rows[0];
+      return null;
     } catch (e) {
       console.error("Error fetching user by email from PG:", e);
+      if (isPostgresActive) throw e;
     }
   }
   return (localDB.users || []).find((u: any) => (u.email || '').trim().toLowerCase() === normalizedEmail) || null;
@@ -725,6 +750,7 @@ export async function getActivityLogs(): Promise<any[]> {
       return res.rows;
     } catch (e) {
       console.error("Error fetching activity logs from PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   return localDB.activityLogs || [];
@@ -747,6 +773,7 @@ export async function saveActivityLog(log: any): Promise<any> {
       return log;
     } catch (e) {
       console.error("Error saving activity log to PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   if (!localDB.activityLogs) localDB.activityLogs = [];
@@ -1005,6 +1032,7 @@ export async function getStudyNotes(userEmail: string): Promise<any[]> {
       }));
     } catch (e) {
       console.error("Error getting study notes from PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   let notes = localDB.studyNotes || [];
@@ -1049,6 +1077,7 @@ export async function saveStudyNote(note: any): Promise<any> {
       return note;
     } catch (e) {
       console.error("Error saving study note to PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   if (!localDB.studyNotes) localDB.studyNotes = [];
@@ -1069,6 +1098,7 @@ export async function deleteStudyNote(id: string): Promise<boolean> {
       return true;
     } catch (e) {
       console.error("Error deleting study note from PG, falling back:", e);
+      if (isPostgresActive) throw e;
     }
   }
   const len = (localDB.studyNotes || []).length;
