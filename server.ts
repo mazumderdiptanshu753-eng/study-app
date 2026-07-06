@@ -34,7 +34,10 @@ import {
   seedAiPdfNotes,
   getStudyNotes,
   saveStudyNote,
-  deleteStudyNote
+  deleteStudyNote,
+  getAppVersion,
+  saveAppVersion,
+  getUserByEmail
 } from "./server/db.js";
 
 // Ensure data directory exists
@@ -492,6 +495,51 @@ Please provide a highly detailed response. Follow this strict schema:
   } catch (error: any) {
     console.error("Error solving math with AI:", error);
     res.status(500).json({ error: error.message || "Failed to solve math problem using AI." });
+  }
+});
+
+// --- App Version & Update API ---
+app.get("/api/app-version", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const versionInfo = await getAppVersion();
+    res.json(versionInfo);
+  } catch (error: any) {
+    console.error("Error getting app version:", error);
+    res.status(500).json({ error: "Failed to get app version settings." });
+  }
+});
+
+app.post("/api/app-version", async (req: express.Request, res: express.Response): Promise<any> => {
+  try {
+    const { latestVersion, changelogEn, changelogBn, adminEmail } = req.body;
+    const headerAdminEmail = req.headers['x-admin-email'] as string;
+    const emailToVerify = (adminEmail || headerAdminEmail || "").trim();
+
+    if (!emailToVerify) {
+      return res.status(401).json({ error: "Unauthorized: Admin verification email is missing." });
+    }
+
+    const user = await getUserByEmail(emailToVerify);
+    const isRootAdmin = emailToVerify.toLowerCase() === "mazumderdiptanshu753@gmail.com";
+    const isAdmin = isRootAdmin || (user && user.role === "Admin");
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Forbidden: Only administrators can release updates." });
+    }
+
+    if (!latestVersion) {
+      return res.status(400).json({ error: "latestVersion is required." });
+    }
+    const versionInfo = {
+      latestVersion,
+      changelogEn: changelogEn || "",
+      changelogBn: changelogBn || ""
+    };
+    const saved = await saveAppVersion(versionInfo);
+    res.json(saved);
+  } catch (error: any) {
+    console.error("Error saving app version:", error);
+    res.status(500).json({ error: "Failed to release update." });
   }
 });
 
