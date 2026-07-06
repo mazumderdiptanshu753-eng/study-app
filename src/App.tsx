@@ -801,7 +801,7 @@ export default function App() {
           </div>
 
       {/* Main Content Area Container */}
-      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-20 md:pt-24 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative touch-scroll`}>
+      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-20 md:pt-24 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />

@@ -46,7 +46,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
 
   return (
     <div 
-      className={`flex-1 h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full relative ${theme.isDark ? "bg-[#0b0f19]" : "bg-slate-50"} ${theme.textMain} flex flex-col items-center justify-center overflow-hidden px-4 md:px-8 py-4 sm:py-12`}
+      className={`flex-1 min-h-[100dvh] w-full relative ${theme.isDark ? "bg-[#0b0f19]" : "bg-slate-50"} ${theme.textMain} flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 md:px-8 py-8 sm:py-12`}
       id="welcome-page-container"
     >
       {/* Background Decorative Elements with Real Framer Motion Orbit & Drift Animations */}
