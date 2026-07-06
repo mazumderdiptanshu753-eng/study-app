@@ -117,6 +117,18 @@ export default function App() {
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateStatusStep, setUpdateStatusStep] = useState<string>("");
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showUpdateSuccessToast, setShowUpdateSuccessToast] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("just_updated") === "true") {
+      localStorage.removeItem("just_updated");
+      setShowUpdateSuccessToast(true);
+      const timer = setTimeout(() => {
+        setShowUpdateSuccessToast(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const isNewerVersion = (latest: string, current: string) => {
     if (!latest || !current) return false;
@@ -167,6 +179,7 @@ export default function App() {
         // Persist the updated version code in localStorage
         const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "7.5.1";
         localStorage.setItem("client_app_version", versionToSave);
+        localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
         
         // Notify the user about their device's successful automatic update
@@ -175,10 +188,10 @@ export default function App() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: lang === "bn" ? "অ্যাপ সফলভাবে আপডেট হয়েছে! 🎉" : "App Updated Successfully! 🎉",
+              title: "YOURR APP IS SUCESSFULLY UPDATED",
               message: lang === "bn" 
-                ? `আপনার ডিভাইসটি সফলভাবে v${versionToSave} সংস্করণে আপডেট করা হয়েছে।`
-                : `Your device was successfully updated to version v${versionToSave}.`,
+                ? `আপনার ডিভাইসটি সফলভাবে v${versionToSave} সংস্করণে আপডেট করা হয়েছে। (YOURR APP IS SUCESSFULLY UPDATED)`
+                : `YOURR APP IS SUCESSFULLY UPDATED. Your device was successfully updated to version v${versionToSave}.`,
               type: "info",
               userEmail: profile.email
             })
@@ -1120,67 +1133,45 @@ export default function App() {
         </div>
       )}
 
-      {/* Update dialogue modal */}
-      {showUpdateModal && !isUpdatingApp && (
-        <div className="fixed inset-0 z-99 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={`w-full max-w-md rounded-2xl border ${theme.borderCard} p-6 shadow-2xl space-y-6 ${theme.bgCard}`}
+      {/* Dynamic Update Success Toast */}
+      <AnimatePresence>
+        {showUpdateSuccessToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[999] w-full max-w-sm px-4"
           >
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0">
-                <Download className="h-6 w-6 animate-bounce" />
+            <div className="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl border border-teal-500/30 text-white rounded-2xl p-4 shadow-2xl flex items-start gap-3.5 relative overflow-hidden">
+              {/* Highlight background glow */}
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-teal-500/10 rounded-full blur-2xl"></div>
+              
+              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400 border border-teal-500/20 shrink-0">
+                <Sparkles className="h-5 w-5 animate-pulse" />
               </div>
-              <div className="space-y-1">
-                <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-black tracking-wider uppercase rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                  {lang === "bn" ? "নতুন সংস্করণ উপলব্ধ" : "New Version Available"}
-                </span>
-                <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
-                  {lang === "bn" ? "স্টাডি হাব আপডেট করুন!" : "Upgrade STUDY HUB!"}
-                </h3>
+              <div className="space-y-1 pr-4 min-w-0 flex-1">
+                <h4 className="text-xs font-black tracking-widest text-teal-400 uppercase">
+                  System Updated
+                </h4>
+                <p className="text-sm font-black text-slate-100 leading-tight">
+                  YOURR APP IS SUCESSFULLY UPDATED
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {lang === "bn" 
+                    ? "স্টাডি হাব পোর্টাল সফলভাবে সর্বশেষ সংস্করণে স্বয়ংক্রিয়ভাবে আপডেট করা হয়েছে।" 
+                    : "Study Hub Portal has been successfully updated to the latest version automatically."}
+                </p>
               </div>
-            </div>
-
-            <div className="space-y-3.5 pt-1">
-              <div className="flex items-center justify-between text-xs font-bold py-2 border-y border-slate-500/10">
-                <span className={theme.textMuted}>{lang === "bn" ? "বর্তমান সংস্করণ:" : "Installed:"}</span>
-                <span className="font-mono text-slate-400 font-semibold">v{currentClientVersion}</span>
-                <span className="text-teal-500">➔</span>
-                <span className={theme.textMuted}>{lang === "bn" ? "নতুন সংস্করণ:" : "Latest:"}</span>
-                <span className="font-mono text-teal-400 font-black">v{serverVersionInfo?.latestVersion}</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.textMuted} block`}>
-                  {lang === "bn" ? "নতুন সংস্করণে যা আছে:" : "What's New in this Release:"}
-                </span>
-                <div className={`p-3.5 rounded-xl border ${theme.borderCard} bg-slate-500/5 text-xs ${theme.textMain} leading-relaxed max-h-36 overflow-y-auto space-y-1`}>
-                  <p className="font-semibold">
-                    {lang === "bn" ? serverVersionInfo?.changelogBn : serverVersionInfo?.changelogEn}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold border ${theme.borderCard} ${theme.textMuted} hover:bg-slate-500/10 active:scale-98 transition-all cursor-pointer`}
+              <button 
+                onClick={() => setShowUpdateSuccessToast(false)}
+                className="text-slate-500 hover:text-slate-300 transition-colors text-xs font-bold self-start mt-0.5"
               >
-                {lang === "bn" ? "পরে করুন" : "Later"}
-              </button>
-              <button
-                onClick={startUpdateProcess}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-teal-500 hover:bg-teal-600 text-white shadow-md active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                {lang === "bn" ? "এখনই আপডেট" : "Update Now"}
+                ✕
               </button>
             </div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
     </motion.div>
     )}

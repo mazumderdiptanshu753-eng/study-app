@@ -25,7 +25,7 @@ interface ActivityLog {
 
 export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "updates">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
@@ -254,15 +254,6 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
         >
           <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
-        </button>
-        <button
-          onClick={() => setActiveTab("updates")}
-          className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors shrink-0 ${
-            activeTab === "updates" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
-          }`}
-        >
-          <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          {isBengali ? "অ্যাপ আপডেট" : "App Updates"}
         </button>
       </motion.div>
 
@@ -582,138 +573,6 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
               </div>
             </>
           )}
-        </motion.div>
-      )}
-
-      {activeTab === "updates" && (
-        <motion.div variants={itemVariants} className="space-y-6">
-          {/* Version Status Overview Card */}
-          <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs`}>
-            <div className="space-y-1">
-              <h3 className={`text-sm font-black ${theme.textHeading}`}>
-                {isBengali ? "বর্তমান সক্রিয় সংস্করণ" : "Current Active Version"}
-              </h3>
-              <p className={`text-xs ${theme.textMuted}`}>
-                {isBengali 
-                  ? "স্টাডি হাব বর্তমানে এই সংস্করণে চালিত হচ্ছে।" 
-                  : "Study Hub is currently running this production version."}
-              </p>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono text-lg font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">
-                v{currentAppVersion}
-              </span>
-            </div>
-          </div>
-
-          {/* Release Update Form Card */}
-          <div className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-5 sm:p-6 shadow-3xs space-y-6`}>
-            <div className="space-y-1">
-              <h3 className={`text-sm font-black ${theme.textHeading}`}>
-                {isBengali ? "নতুন অ্যাপ সংস্করণ রিলিজ করুন 🚀" : "Release New App Version 🚀"}
-              </h3>
-              <p className={`text-xs ${theme.textMuted}`}>
-                {isBengali 
-                  ? "নতুন আপডেট ফাইল এবং ফিচারের তথ্য দিয়ে সিস্টেম আপগ্রেড রিলিজ করুন।" 
-                  : "Deploy a system-wide upgrade with update notes and feature highlights."}
-              </p>
-            </div>
-
-            {updateMessage && (
-              <div className={`p-4 rounded-xl border text-xs font-bold leading-relaxed ${
-                updateMessage.type === "success" 
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
-                  : "bg-red-500/10 border-red-500/20 text-red-500"
-              }`}>
-                {updateMessage.text}
-              </div>
-            )}
-
-            <form onSubmit={handlePublishUpdate} className="space-y-5">
-              <div className="grid grid-cols-1 gap-5">
-                {/* Version Number Input */}
-                <div className="space-y-2">
-                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
-                    {isBengali ? "নতুন সংস্করণ কোড (Version Code) *" : "New Version Code *"}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., 1.0.2"
-                    value={newVersion}
-                    onChange={(e) => setNewVersion(e.target.value)}
-                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400`}
-                  />
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    {isBengali 
-                      ? "অবশ্যই বর্তমান সংস্করণের চেয়ে বড় হতে হবে (যেমন: v7.5.1 থেকে v7.5.2)।" 
-                      : "Must be incremental to current active version (e.g., v7.5.1 ➔ v7.5.2)."}
-                  </p>
-                </div>
-
-                {/* Bengali Changelog */}
-                <div className="space-y-2">
-                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
-                    {isBengali ? "পরিবর্তনসমূহ (Bengali Changelog)" : "Changes (Bengali Changelog)"}
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder={isBengali ? "যেমন: ১. লাইভ চ্যাটে নতুন রিঅ্যাকশন যোগ করা হয়েছে। ২. বাগ ফিক্স।" : "e.g., 1. Live Chat improvements..."}
-                    value={changelogBn}
-                    onChange={(e) => setChangelogBn(e.target.value)}
-                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400 resize-none`}
-                  />
-                </div>
-
-                {/* English Changelog */}
-                <div className="space-y-2">
-                  <label className={`text-xs font-extrabold tracking-wide uppercase ${theme.textMuted}`}>
-                    {isBengali ? "পরিবর্তনসমূহ (English Changelog)" : "Changes (English Changelog)"}
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g., 1. Added Live chat reaction. 2. Performance optimization."
-                    value={changelogEn}
-                    onChange={(e) => setChangelogEn(e.target.value)}
-                    className={`w-full ${theme.bgPage} px-4 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} placeholder:text-slate-400 resize-none`}
-                  />
-                </div>
-              </div>
-
-              {/* Warning/Disclaimer Banner */}
-              <div className="p-4 rounded-xl border border-amber-500/15 bg-amber-500/5 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400 font-semibold space-y-1">
-                <span className="uppercase font-black tracking-wider text-2xs block text-amber-500">
-                  {isBengali ? "⚠️ গুরুত্বপূর্ণ সতর্কতা" : "⚠️ CRITICAL SYSTEM NOTICE"}
-                </span>
-                <p>
-                  {isBengali 
-                    ? "আপনি 'রিলিজ আপডেট' বোতামে ক্লিক করার সাথে সাথে স্টাডি হাবের সব ব্যবহারকারী এবং প্রশাসকদের ডিভাইসে স্বয়ংক্রিয়ভাবে একটি ইন্টারেক্টিভ ডাউনলোড ও ইন্সটলেশন প্রসেস চালু হয়ে যাবে। সম্পন্ন হলে সবার ডিভাইস সাথে সাথে রিস্টার্ট হবে।" 
-                    : "Once released, all connected students and administrators will instantly experience an automatic full-screen downloading and updating screen. The application will reboot automatically to apply the new version."}
-                </p>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={isPublishing}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-2.5 px-6 rounded-xl bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/40 text-white font-extrabold text-xs shadow-md active:scale-98 transition-all cursor-pointer"
-                >
-                  {isPublishing ? (
-                    <>
-                      <RefreshCcw className="h-4 w-4 animate-spin" />
-                      {isBengali ? "আপডেট রিলিজ হচ্ছে..." : "Releasing Update..."}
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUpCircle className="h-4 w-4" />
-                      {isBengali ? "আপডেট রিলিজ করুন" : "Release Update Now"}
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
         </motion.div>
       )}
 

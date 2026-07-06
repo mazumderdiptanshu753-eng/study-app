@@ -1,12 +1,13 @@
+var __defProp = Object.defineProperty;
+var __name = (target, value) =>
+  __defProp(target, "name", { value, configurable: true });
 import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-
 dotenv.config();
-
 import {
   initDatabase,
   getUsers,
@@ -45,91 +46,43 @@ import {
   createNotification,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  deleteNotification
+  deleteNotification,
 } from "./server/db.js";
-
-// Ensure data directory exists
 const DATA_DIR = path.join(process.cwd(), "data");
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
-
-interface ChatMessage {
-  id: string;
-  senderName: string;
-  senderEmail: string;
-  senderRole: "Admin" | "Student";
-  message: string;
-  timestamp: string;
-  studentEmail: string;
-  studentName: string;
-}
-
-interface StudentProfile {
-  fullName: string;
-  email: string;
-  grade: string;
-  preferredSubject: string;
-  registeredAt: string;
-  avatarUrl?: string;
-  role: "Admin" | "Student";
-}
-
-interface ForumReply {
-  id: string;
-  authorEmail: string;
-  authorName: string;
-  content: string;
-  timestamp: string;
-}
-
-interface ForumPost {
-  id: string;
-  authorEmail: string;
-  authorName: string;
-  title: string;
-  content: string;
-  timestamp: string;
-  likes: number;
-  replies: ForumReply[];
-}
-
-interface LiveClass {
-  id: string;
-  title: string;
-  subject: string;
-  instructor: string;
-  scheduledTime: string;
-  link: string;
-  status: "Scheduled" | "Live" | "Completed";
-  createdAt: string;
-}
-
-// Global firestore mock variable to keep types/code happy or clean
-let firestore: any = null;
-
-
-async function withRetry(operation: any, maxRetries = 3) {
+let firestore = null;
+async function withRetry(operation, maxRetries = 3) {
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error) {
       lastError = error;
-      const status = error?.status || error?.statusCode || error?.response?.status;
+      const status =
+        error?.status || error?.statusCode || error?.response?.status;
       const errorMessage = error?.message || "";
-      const isTransient = !status || // If status is undefined, treat as transient network issue
-                          status === 429 || status === 503 || status === 500 || status === 502 || status === 504 ||
-                          errorMessage.includes("429") || errorMessage.includes("503") || errorMessage.includes("500") ||
-                          errorMessage.toLowerCase().includes("too many requests") || 
-                          errorMessage.toLowerCase().includes("resource exhausted") ||
-                          errorMessage.toLowerCase().includes("rate limit") || 
-                          errorMessage.toLowerCase().includes("overloaded");
-      
+      const isTransient =
+        !status ||
+        status === 429 ||
+        status === 503 ||
+        status === 500 ||
+        status === 502 ||
+        status === 504 ||
+        errorMessage.includes("429") ||
+        errorMessage.includes("503") ||
+        errorMessage.includes("500") ||
+        errorMessage.toLowerCase().includes("too many requests") ||
+        errorMessage.toLowerCase().includes("resource exhausted") ||
+        errorMessage.toLowerCase().includes("rate limit") ||
+        errorMessage.toLowerCase().includes("overloaded");
       if (isTransient && i < maxRetries - 1) {
-        const delay = 1000 * (i + 1) * 1.5; // Exponential backoff: 1.5s, 3s, 4.5s
-        console.warn(`Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const delay = 1e3 * (i + 1) * 1.5;
+        console.warn(
+          `Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${delay}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         throw error;
       }
@@ -137,52 +90,50 @@ async function withRetry(operation: any, maxRetries = 3) {
   }
   throw lastError;
 }
-
+__name(withRetry, "withRetry");
 const app = express();
-// Add global no-cache headers to prevent mobile browsers from caching the app
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
   next();
 });
 app.use(express.json());
-
-const PORT = (process.env.RENDER || !process.env.APPLET_ID) && process.env.PORT ? parseInt(process.env.PORT) : 3000;
-
-// Lazy initialization of Gemini client
-let aiInstance: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
+const PORT =
+  (process.env.RENDER || !process.env.APPLET_ID) && process.env.PORT
+    ? parseInt(process.env.PORT)
+    : 3e3;
+let aiInstance = null;
+function getGeminiClient() {
   if (!aiInstance) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY environment variable is missing. Please add it in the Secrets panel.");
+      throw new Error(
+        "GEMINI_API_KEY environment variable is missing. Please add it in the Secrets panel.",
+      );
     }
-    const rawClient = new GoogleGenAI({
-      apiKey,
-    });
-
-    // Decorate generateContent to automatically use retry logic for transient errors
-    const originalGenerateContent = rawClient.models.generateContent.bind(rawClient.models);
-    rawClient.models.generateContent = async function(this: any, ...args: any[]) {
+    const rawClient = new GoogleGenAI({ apiKey });
+    const originalGenerateContent = rawClient.models.generateContent.bind(
+      rawClient.models,
+    );
+    rawClient.models.generateContent = async function (...args) {
       return withRetry(() => originalGenerateContent(...args));
-    } as any;
-
+    };
     aiInstance = rawClient;
   }
   return aiInstance;
 }
-
-// 1. Solve Academic Doubt
-app.post("/api/solve-doubt", async (req: express.Request, res: express.Response): Promise<any> => {
+__name(getGeminiClient, "getGeminiClient");
+app.post("/api/solve-doubt", async (req, res) => {
   try {
     const { question, subject, grade } = req.body;
     if (!question) {
       return res.status(400).json({ error: "Question is required." });
     }
-
     const ai = getGeminiClient();
     const prompt = `You are a warm, extremely clear, and engaging academic tutor. 
 Subject: ${subject || "General Science & Arts"}
@@ -201,7 +152,6 @@ Explain the answer thoroughly. Follow this strict schema:
   - options: Four distinct multiple-choice options (A, B, C, D).
   - correctOptionIndex: The 0-based index of the correct option (0 to 3).
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -209,24 +159,29 @@ Explain the answer thoroughly. Follow this strict schema:
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          required: ["explanation", "steps", "coreConcept", "analogy", "challenge"],
+          required: [
+            "explanation",
+            "steps",
+            "coreConcept",
+            "analogy",
+            "challenge",
+          ],
           properties: {
             explanation: { type: Type.STRING },
-            steps: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
+            steps: { type: Type.ARRAY, items: { type: Type.STRING } },
             coreConcept: { type: Type.STRING },
             analogy: { type: Type.STRING },
             challenge: {
               type: Type.OBJECT,
-              required: ["question", "options", "correctOptionIndex", "explanation"],
+              required: [
+                "question",
+                "options",
+                "correctOptionIndex",
+                "explanation",
+              ],
               properties: {
                 question: { type: Type.STRING },
-                options: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
+                options: { type: Type.ARRAY, items: { type: Type.STRING } },
                 correctOptionIndex: { type: Type.INTEGER },
                 explanation: { type: Type.STRING },
               },
@@ -235,23 +190,21 @@ Explain the answer thoroughly. Follow this strict schema:
         },
       },
     });
-
     const data = JSON.parse(response.text || "{}");
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error solving doubt:", error);
-    res.status(500).json({ error: error.message || "Failed to solve doubt using Gemini." });
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to solve doubt using Gemini." });
   }
 });
-
-// 2. Summarize Study Note
-app.post("/api/summarize-note", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/summarize-note", async (req, res) => {
   try {
     const { title, content } = req.body;
     if (!content) {
       return res.status(400).json({ error: "Content is required." });
     }
-
     const ai = getGeminiClient();
     const prompt = `You are an expert study guide creator. Take the following note titled "${title || "Untitled"}" and summarize it.
 
@@ -261,7 +214,6 @@ Note Content:
 Provide a structured response:
 - summaryPoints: An array of key summary bullet points (clear, informative, and concise).
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -271,35 +223,29 @@ Provide a structured response:
           type: Type.OBJECT,
           required: ["summaryPoints", "tags"],
           properties: {
-            summaryPoints: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            tags: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
+            summaryPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
           },
         },
       },
     });
-
     const data = JSON.parse(response.text || "{}");
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error summarizing note:", error);
-    res.status(500).json({ error: error.message || "Failed to summarize note." });
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to summarize note." });
   }
 });
-
-// 3. Generate Flashcards from Note
-app.post("/api/generate-flashcards", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/generate-flashcards", async (req, res) => {
   try {
     const { title, content } = req.body;
     if (!content) {
-      return res.status(400).json({ error: "Content is required to generate flashcards." });
+      return res
+        .status(400)
+        .json({ error: "Content is required to generate flashcards." });
     }
-
     const ai = getGeminiClient();
     const prompt = `Analyze the following note content titled "${title || "Untitled"}" and extract 4 to 6 core concepts. 
 Turn each concept into an interactive study flashcard (question/term on the front, clear and concise definition/answer on the back).
@@ -308,7 +254,6 @@ Note Content:
 "${content}"
 
 Return a list of flashcards.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -324,8 +269,16 @@ Return a list of flashcards.`;
                 type: Type.OBJECT,
                 required: ["front", "back"],
                 properties: {
-                  front: { type: Type.STRING, description: "The front of the flashcard containing a term, question, or problem." },
-                  back: { type: Type.STRING, description: "The back of the flashcard containing the definition, explanation, or answer." },
+                  front: {
+                    type: Type.STRING,
+                    description:
+                      "The front of the flashcard containing a term, question, or problem.",
+                  },
+                  back: {
+                    type: Type.STRING,
+                    description:
+                      "The back of the flashcard containing the definition, explanation, or answer.",
+                  },
                 },
               },
             },
@@ -333,43 +286,38 @@ Return a list of flashcards.`;
         },
       },
     });
-
     const data = JSON.parse(response.text || "{}");
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating flashcards:", error);
-    res.status(500).json({ error: error.message || "Failed to generate flashcards." });
+    res
+      .status(500)
+      .json({ error: error.message || "Failed to generate flashcards." });
   }
 });
-
-
-
-// --- AI Study Assistant ---
 app.post("/api/study-assistant/chat", async (req, res) => {
   try {
     const { messages, lang } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "Messages array is required." });
     }
-
     const ai = getGeminiClient();
     const isBengali = lang === "bn";
-    
-    let chatHistory = "You are a helpful and intelligent AI Study Assistant designed to help students understand their academic subjects. Be encouraging, clear, and educational.\n\n";
-    chatHistory += "Language of explanation: " + (isBengali ? "Bengali (বাংলা)" : "English") + "\n\n";
-    
-    // Format previous messages
+    let chatHistory =
+      "You are a helpful and intelligent AI Study Assistant designed to help students understand their academic subjects. Be encouraging, clear, and educational.\n\n";
+    chatHistory +=
+      "Language of explanation: " +
+      (isBengali ? "Bengali (\u09AC\u09BE\u0982\u09B2\u09BE)" : "English") +
+      "\n\n";
     for (const msg of messages) {
-      chatHistory += `${msg.role === 'user' ? 'Student' : 'Assistant'}: ${msg.content}\n`;
+      chatHistory += `${msg.role === "user" ? "Student" : "Assistant"}: ${msg.content}
+`;
     }
-    
     chatHistory += "Assistant:";
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: chatHistory,
     });
-    
     if (response.text) {
       res.json({ text: response.text });
     } else {
@@ -380,17 +328,13 @@ app.post("/api/study-assistant/chat", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Notes Summarizer ---
-app.post("/api/summarize-note", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/summarize-note", async (req, res) => {
   try {
     const { title, content: noteContent } = req.body;
     if (!noteContent) {
       return res.status(400).json({ error: "Content is required." });
     }
-
     const ai = getGeminiClient();
-    
     const prompt = `You are an expert AI Study Assistant. Please summarize the following academic notes into a short, concise, and easy-to-understand summary. 
     Highlight key points and important takeaways.
     
@@ -400,86 +344,74 @@ app.post("/api/summarize-note", async (req: express.Request, res: express.Respon
     ${noteContent}
     """
     `;
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-    
     if (response.text) {
       res.json({ summary: response.text });
     } else {
       res.status(500).json({ error: "Failed to generate summary." });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Summarizer Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- AI Flashcards Generator ---
-app.post("/api/generate-flashcards", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/generate-flashcards", async (req, res) => {
   try {
     const { title, content: noteContent } = req.body;
     const ai = getGeminiClient();
-    
     const prompt = `Create 3-5 study flashcards based on these notes. Return ONLY a JSON array of objects with "question" and "answer" string keys.
     Notes Title: ${title}
     Notes content: ${noteContent}`;
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-    
     let text = response.text;
     text = text.replace(/```json/g, "").replace(/```/g, "");
-    
     res.json({ flashcards: JSON.parse(text) });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Flashcard Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// 5. Solve Math with AI
-app.post("/api/solve-math", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/solve-math", async (req, res) => {
   try {
     const { problem, file, lang } = req.body;
     if (!problem && !file) {
-      return res.status(400).json({ error: "Please provide a mathematical problem statement or upload an image/PDF." });
+      return res
+        .status(400)
+        .json({
+          error:
+            "Please provide a mathematical problem statement or upload an image/PDF.",
+        });
     }
-
     const ai = getGeminiClient();
     const isBengali = lang === "bn";
-    
     const prompt = `You are an expert mathematical tutor and solver. 
 ${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the math problem, and solve it." : ""}
 Please solve the mathematical problem in a step-by-step, pedagogical, and extremely clear manner.
 
 ${problem ? `Math Problem/Context provided by user: "${problem}"` : "Please extract and solve the math problem shown in the provided document."}
 
-Language of explanation: ${isBengali ? "Bengali (বাংলা)" : "English"}
+Language of explanation: ${isBengali ? "Bengali (\u09AC\u09BE\u0982\u09B2\u09BE)" : "English"}
 
 Please provide a highly detailed response. Follow this strict schema:
 - problem: The extracted or original mathematical problem statement.
-- coreConcept: The primary mathematical rule, theorem, formula, or concept involved (e.g., "Quadratic Formula: x = (-b ± √(b² - 4ac)) / 2a").
+- coreConcept: The primary mathematical rule, theorem, formula, or concept involved (e.g., "Quadratic Formula: x = (-b \xB1 \u221A(b\xB2 - 4ac)) / 2a").
 - steps: A sequential array of step-by-step mathematical operations and logical explanations showing how to solve the problem. Keep the steps clear, mathematically sound, and easy to follow.
 - finalAnswer: The final, simplified answer (e.g., "x = 2 or x = 3").`;
-
     const contents: any[] = [prompt];
     if (file && file.data && file.mimeType) {
       contents.push({
-        inlineData: {
-          data: file.data,
-          mimeType: file.mimeType
-        }
+        inlineData: { data: file.data, mimeType: file.mimeType },
       });
     }
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
-      contents: contents,
+      contents,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -488,99 +420,90 @@ Please provide a highly detailed response. Follow this strict schema:
           properties: {
             problem: { type: Type.STRING },
             coreConcept: { type: Type.STRING },
-            steps: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            finalAnswer: { type: Type.STRING }
-          }
-        }
-      }
+            steps: { type: Type.ARRAY, items: { type: Type.STRING } },
+            finalAnswer: { type: Type.STRING },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || "{}");
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error solving math with AI:", error);
-    res.status(500).json({ error: error.message || "Failed to solve math problem using AI." });
+    res
+      .status(500)
+      .json({
+        error: error.message || "Failed to solve math problem using AI.",
+      });
   }
 });
-
-// --- App Version & Update API ---
-app.get("/api/app-version", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/app-version", async (req, res) => {
   try {
     const versionInfo = await getAppVersion();
     res.json(versionInfo);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error getting app version:", error);
     res.status(500).json({ error: "Failed to get app version settings." });
   }
 });
-
-app.post("/api/app-version", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/app-version", async (req, res) => {
   try {
     const { latestVersion, changelogEn, changelogBn, adminEmail } = req.body;
-    const headerAdminEmail = req.headers['x-admin-email'] as string;
+    const headerAdminEmail = req.headers["x-admin-email"];
     const emailToVerify = (adminEmail || headerAdminEmail || "").trim();
-
     if (!emailToVerify) {
-      return res.status(401).json({ error: "Unauthorized: Admin verification email is missing." });
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: Admin verification email is missing." });
     }
-
     const user = await getUserByEmail(emailToVerify);
-    const isRootAdmin = emailToVerify.toLowerCase() === "mazumderdiptanshu753@gmail.com";
+    const isRootAdmin =
+      emailToVerify.toLowerCase() === "mazumderdiptanshu753@gmail.com";
     const isAdmin = isRootAdmin || (user && user.role === "Admin");
-
     if (!isAdmin) {
-      return res.status(403).json({ error: "Forbidden: Only administrators can release updates." });
+      return res
+        .status(403)
+        .json({ error: "Forbidden: Only administrators can release updates." });
     }
-
     if (!latestVersion) {
       return res.status(400).json({ error: "latestVersion is required." });
     }
     const versionInfo = {
       latestVersion,
       changelogEn: changelogEn || "",
-      changelogBn: changelogBn || ""
+      changelogBn: changelogBn || "",
     };
     const saved = await saveAppVersion(versionInfo);
-    
-    // Create global notification for new app version release
     try {
       await createNotification({
-        title: "নতুন অ্যাপ আপডেট উপলব্ধ! 🚀",
-        message: `স্টাডি হাবের নতুন সংস্করণ v${latestVersion} প্রকাশ করা হয়েছে। পরিবর্তনসমূহ: ${changelogBn || changelogEn || "বাগ ফিক্স এবং উন্নত কার্যক্ষমতা।"}`,
-        type: "info"
+        title:
+          "\u09A8\u09A4\u09C1\u09A8 \u0985\u09CD\u09AF\u09BE\u09AA \u0986\u09AA\u09A1\u09C7\u099F \u0989\u09AA\u09B2\u09AC\u09CD\u09A7! \u{1F680}",
+        message: `\u09B8\u09CD\u099F\u09BE\u09A1\u09BF \u09B9\u09BE\u09AC\u09C7\u09B0 \u09A8\u09A4\u09C1\u09A8 \u09B8\u0982\u09B8\u09CD\u0995\u09B0\u09A3 v${latestVersion} \u09AA\u09CD\u09B0\u0995\u09BE\u09B6 \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7\u0964 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8\u09B8\u09AE\u09C2\u09B9: ${changelogBn || changelogEn || "\u09AC\u09BE\u0997 \u09AB\u09BF\u0995\u09CD\u09B8 \u098F\u09AC\u0982 \u0989\u09A8\u09CD\u09A8\u09A4 \u0995\u09BE\u09B0\u09CD\u09AF\u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u0964"}`,
+        type: "info",
       });
     } catch (notifErr) {
       console.error("Failed to create update release notification:", notifErr);
     }
-    
     res.json(saved);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving app version:", error);
     res.status(500).json({ error: "Failed to release update." });
   }
 });
-
-// --- General Knowledge API ---
-app.get("/api/gk-questions", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/gk-questions", async (req, res) => {
   try {
     const ai = getGeminiClient();
-    
-    // We want the questions to change every 7 days.
-    // Calculate a seed based on the current week number.
     const now = new Date();
     const oneJan = new Date(now.getFullYear(), 0, 1);
-    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+    const numberOfDays = Math.floor(
+      (now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3),
+    );
     const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
     const seed = `${now.getFullYear()}-W${weekNumber}`;
-
     const prompt = `Generate 5 multiple-choice General Knowledge questions suitable for government exam preparation.
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Make sure the topics are relevant for competitive government exams (History, Geography, Polity, Science, Current Events).
 Format the output strictly as JSON following this schema.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -594,81 +517,95 @@ Format the output strictly as JSON following this schema.`;
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
-                required: ["question", "options", "correctOptionIndex", "explanation"],
+                required: [
+                  "question",
+                  "options",
+                  "correctOptionIndex",
+                  "explanation",
+                ],
                 properties: {
                   question: { type: Type.STRING },
-                  options: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
                   correctOptionIndex: { type: Type.INTEGER },
-                  explanation: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
-      }
+                  explanation: { type: Type.STRING },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || '{"questions": []}');
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.warn("Using fallback for GK questions due to API limit.");
     const fallbackData = {
       questions: [
         {
-          question: "Which of the following planets is known as the Red Planet?",
+          question:
+            "Which of the following planets is known as the Red Planet?",
           options: ["Venus", "Mars", "Jupiter", "Saturn"],
           correctOptionIndex: 1,
-          explanation: "Mars is often called the 'Red Planet' due to the iron oxide prevalent on its surface."
+          explanation:
+            "Mars is often called the 'Red Planet' due to the iron oxide prevalent on its surface.",
         },
         {
           question: "Who was the first President of independent India?",
-          options: ["Jawaharlal Nehru", "Dr. Rajendra Prasad", "Sardar Vallabhbhai Patel", "B.R. Ambedkar"],
+          options: [
+            "Jawaharlal Nehru",
+            "Dr. Rajendra Prasad",
+            "Sardar Vallabhbhai Patel",
+            "B.R. Ambedkar",
+          ],
           correctOptionIndex: 1,
-          explanation: "Dr. Rajendra Prasad was the first President of India, serving from 1950 to 1962."
+          explanation:
+            "Dr. Rajendra Prasad was the first President of India, serving from 1950 to 1962.",
         },
         {
           question: "What is the capital of Australia?",
           options: ["Sydney", "Melbourne", "Canberra", "Perth"],
           correctOptionIndex: 2,
-          explanation: "Canberra is the capital city of Australia."
+          explanation: "Canberra is the capital city of Australia.",
         },
         {
-          question: "The Indus Valley Civilization was primarily located in which present-day regions?",
-          options: ["India and Nepal", "Pakistan and Northwest India", "Afghanistan and Iran", "Bangladesh and East India"],
+          question:
+            "The Indus Valley Civilization was primarily located in which present-day regions?",
+          options: [
+            "India and Nepal",
+            "Pakistan and Northwest India",
+            "Afghanistan and Iran",
+            "Bangladesh and East India",
+          ],
           correctOptionIndex: 1,
-          explanation: "The Indus Valley Civilization flourished in the basins of the Indus River, largely in present-day Pakistan and northwest India."
+          explanation:
+            "The Indus Valley Civilization flourished in the basins of the Indus River, largely in present-day Pakistan and northwest India.",
         },
         {
           question: "What is the chemical symbol for gold?",
           options: ["Ag", "Au", "Pb", "Fe"],
           correctOptionIndex: 1,
-          explanation: "The symbol 'Au' comes from the Latin word for gold, 'aurum'."
-        }
-      ]
+          explanation:
+            "The symbol 'Au' comes from the Latin word for gold, 'aurum'.",
+        },
+      ],
     };
     res.json(fallbackData);
   }
 });
-
-// --- Important Questions API ---
-app.get("/api/important-questions", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/important-questions", async (req, res) => {
   try {
     const ai = getGeminiClient();
-    
     const now = new Date();
     const oneJan = new Date(now.getFullYear(), 0, 1);
-    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+    const numberOfDays = Math.floor(
+      (now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3),
+    );
     const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
     const seed = `${now.getFullYear()}-W${weekNumber}-Important`;
-
     const prompt = `Generate 100 important, frequently asked one-liner questions and their direct answers for Indian government competitive exams (like UPSC, SSC, Railways, State PSC). 
 Make sure to include a good mix of subjects, including some Mathematics/Quantitative Aptitude questions.
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Format the output strictly as JSON following this schema.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -686,72 +623,67 @@ Format the output strictly as JSON following this schema.`;
                 properties: {
                   question: { type: Type.STRING },
                   answer: { type: Type.STRING },
-                  subject: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
-      }
+                  subject: { type: Type.STRING },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || '{"qnaList": []}');
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.warn("Using fallback for important questions due to API limit.");
     const fallbackData = {
       qnaList: [
         {
           question: "Who is known as the 'Father of the Indian Constitution'?",
           answer: "Dr. B.R. Ambedkar",
-          subject: "Polity"
+          subject: "Polity",
         },
         {
           question: "What is the SI unit of electric current?",
           answer: "Ampere (A)",
-          subject: "Science"
+          subject: "Science",
         },
         {
-          question: "Which article of the Indian Constitution deals with the 'Right to Equality'?",
+          question:
+            "Which article of the Indian Constitution deals with the 'Right to Equality'?",
           answer: "Article 14 to Article 18",
-          subject: "Polity"
+          subject: "Polity",
         },
         {
           question: "Who was the founder of the Maurya Empire?",
           answer: "Chandragupta Maurya",
-          "subject": "History"
+          subject: "History",
         },
         {
-          question: "What is the largest river in the world by volume of water?",
+          question:
+            "What is the largest river in the world by volume of water?",
           answer: "Amazon River",
-          subject: "Geography"
+          subject: "Geography",
         },
         {
-          question: "If the sum of two numbers is 14 and their difference is 4, what is the product of the two numbers?",
+          question:
+            "If the sum of two numbers is 14 and their difference is 4, what is the product of the two numbers?",
           answer: "45 (The numbers are 9 and 5)",
-          subject: "Mathematics"
-        }
-      ]
+          subject: "Mathematics",
+        },
+      ],
     };
     res.json(fallbackData);
   }
 });
-
-
-// --- Current Affairs API ---
-app.get("/api/current-affairs", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/current-affairs", async (req, res) => {
   try {
     const ai = getGeminiClient();
-    
-    // We want current affairs to change daily.
     const now = new Date();
-    const dateString = now.toISOString().split('T')[0];
+    const dateString = now.toISOString().split("T")[0];
     const seed = `CurrentAffairs-${dateString}`;
-
     const prompt = `Generate 5 important daily current affairs headlines and brief descriptions for Indian government competitive exams (like UPSC, SSC, Railways, State PSC) for today.
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -770,71 +702,72 @@ Format the output strictly as JSON following this schema.`;
                   headline: { type: Type.STRING },
                   description: { type: Type.STRING },
                   category: { type: Type.STRING },
-                  date: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
-      }
+                  date: { type: Type.STRING },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || '{"news": []}');
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.warn("Using fallback for current affairs due to API limit.");
     const fallbackData = {
       news: [
         {
-          headline: "India's space agency successfully launches new communication satellite",
-          description: "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
+          headline:
+            "India's space agency successfully launches new communication satellite",
+          description:
+            "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
           category: "Science & Technology",
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split("T")[0],
         },
         {
           headline: "Government announces new economic package for MSMEs",
-          description: "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
+          description:
+            "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
           category: "Economy",
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split("T")[0],
         },
         {
-          headline: "International summit on climate change begins in New Delhi",
-          description: "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
+          headline:
+            "International summit on climate change begins in New Delhi",
+          description:
+            "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
           category: "Environment",
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split("T")[0],
         },
         {
-          headline: "Prominent sportsperson wins gold at international championship",
-          description: "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
+          headline:
+            "Prominent sportsperson wins gold at international championship",
+          description:
+            "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
           category: "Sports",
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split("T")[0],
         },
         {
           headline: "Parliament passes new bill on data privacy",
-          description: "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
+          description:
+            "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
           category: "Polity",
-          date: new Date().toISOString().split('T')[0]
-        }
-      ]
+          date: new Date().toISOString().split("T")[0],
+        },
+      ],
     };
     res.json(fallbackData);
   }
 });
-
-
-// --- Job Alerts API ---
-app.get("/api/job-alerts", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/job-alerts", async (req, res) => {
   try {
     const ai = getGeminiClient();
-    
     const now = new Date();
-    const dateString = now.toISOString().split('T')[0];
+    const dateString = now.toISOString().split("T")[0];
     const seed = `JobAlerts-${dateString}`;
-
     const prompt = `Generate 5 latest Indian government job alerts, admit card releases, or exam result announcements for the current year ${now.getFullYear()} (e.g., SSC, UPSC, Railway, State PSC, Police).
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -848,24 +781,46 @@ Format the output strictly as JSON following this schema.`;
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
-                required: ["title", "organization", "type", "lastDateOrStatus", "link"],
+                required: [
+                  "title",
+                  "organization",
+                  "type",
+                  "lastDateOrStatus",
+                  "link",
+                ],
                 properties: {
-                  title: { type: Type.STRING, description: "Job title or alert name" },
-                  organization: { type: Type.STRING, description: "Organization name like SSC, UPSC" },
-                  type: { type: Type.STRING, description: "Type of alert: 'New Job', 'Admit Card', 'Result'" },
-                  lastDateOrStatus: { type: Type.STRING, description: "Last date to apply or current status" },
-                  link: { type: Type.STRING, description: "A placeholder link, e.g., 'https://ssc.nic.in'" }
-                }
-              }
-            }
-          }
-        }
-      }
+                  title: {
+                    type: Type.STRING,
+                    description: "Job title or alert name",
+                  },
+                  organization: {
+                    type: Type.STRING,
+                    description: "Organization name like SSC, UPSC",
+                  },
+                  type: {
+                    type: Type.STRING,
+                    description:
+                      "Type of alert: 'New Job', 'Admit Card', 'Result'",
+                  },
+                  lastDateOrStatus: {
+                    type: Type.STRING,
+                    description: "Last date to apply or current status",
+                  },
+                  link: {
+                    type: Type.STRING,
+                    description:
+                      "A placeholder link, e.g., 'https://ssc.nic.in'",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || '{"alerts": []}');
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.warn("Using fallback for job alerts due to API limit.");
     const fallbackData = {
       alerts: [
@@ -874,39 +829,35 @@ Format the output strictly as JSON following this schema.`;
           organization: "Staff Selection Commission (SSC)",
           type: "New Job",
           lastDateOrStatus: `Last Date: 24-07-${new Date().getFullYear()}`,
-          link: "https://ssc.nic.in"
+          link: "https://ssc.nic.in",
         },
         {
           title: `Railway ALP Admit Card ${new Date().getFullYear()}`,
           organization: "Railway Recruitment Board (RRB)",
           type: "Admit Card",
           lastDateOrStatus: "Available Now",
-          link: "https://indianrailways.gov.in"
+          link: "https://indianrailways.gov.in",
         },
         {
           title: "UPSC Civil Services Prelims Result",
           organization: "Union Public Service Commission (UPSC)",
           type: "Result",
           lastDateOrStatus: "Declared",
-          link: "https://upsc.gov.in"
-        }
-      ]
+          link: "https://upsc.gov.in",
+        },
+      ],
     };
     res.json(fallbackData);
   }
 });
-
-// --- Previous Year Questions (PYQ) API ---
-app.get("/api/pyq", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/pyq", async (req, res) => {
   try {
     const ai = getGeminiClient();
     const exam = req.query.exam || "SSC CGL";
     const seed = `PYQ-${exam}`;
-
     const prompt = `Generate 5 authentic-looking Previous Year Questions (PYQ) for the ${exam} exam.
 Include the year it was asked. Make sure the questions are relevant to the exam.
 Format the output strictly as JSON following this schema.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
@@ -920,109 +871,116 @@ Format the output strictly as JSON following this schema.`;
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
-                required: ["question", "options", "correctAnswer", "year", "subject"],
+                required: [
+                  "question",
+                  "options",
+                  "correctAnswer",
+                  "year",
+                  "subject",
+                ],
                 properties: {
                   question: { type: Type.STRING },
-                  options: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
                   correctAnswer: { type: Type.STRING },
                   year: { type: Type.STRING },
-                  subject: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
-      }
+                  subject: { type: Type.STRING },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-
     const data = JSON.parse(response.text || '{"questions": []}');
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.warn("Using fallback for PYQ due to API limit.");
     const fallbackData = {
       questions: [
         {
-          question: "Which article of the Indian Constitution deals with the abolition of untouchability?",
+          question:
+            "Which article of the Indian Constitution deals with the abolition of untouchability?",
           options: ["Article 14", "Article 15", "Article 16", "Article 17"],
           correctAnswer: "Article 17",
           year: "2021",
-          subject: "Polity"
+          subject: "Polity",
         },
         {
           question: "What is the chemical name of baking soda?",
-          options: ["Sodium Carbonate", "Sodium Bicarbonate", "Calcium Carbonate", "Calcium Hydroxide"],
+          options: [
+            "Sodium Carbonate",
+            "Sodium Bicarbonate",
+            "Calcium Carbonate",
+            "Calcium Hydroxide",
+          ],
           correctAnswer: "Sodium Bicarbonate",
           year: "2020",
-          subject: "Science"
+          subject: "Science",
         },
         {
           question: "The first battle of Panipat was fought in which year?",
           options: ["1526", "1556", "1761", "1857"],
           correctAnswer: "1526",
           year: "2019",
-          subject: "History"
-        }
-      ]
+          subject: "History",
+        },
+      ],
     };
     res.json(fallbackData);
   }
 });
-
-// --- Chat Application APIs ---
-
-// Get Chat Messages
-app.get("/api/chat/messages", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/chat/messages", async (req, res) => {
   const { email, role, name } = req.query;
-  
   try {
     let messages = await getChatMessages();
-    
     if (role !== "Admin") {
       if (!email) {
-        return res.status(400).json({ error: "Email is required for students." });
+        return res
+          .status(400)
+          .json({ error: "Email is required for students." });
       }
       const studentEmail = (email as string).trim().toLowerCase();
-      messages = messages.filter(m => m.studentEmail.toLowerCase() === studentEmail);
+      messages = messages.filter(
+        (m) => m.studentEmail.toLowerCase() === studentEmail,
+      );
     }
-
-    // Sort by timestamp ascending
-    messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-    // If new student, insert an auto-welcome message
+    messages.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
     if (role !== "Admin" && messages.length === 0 && name && email) {
       const studentEmail = (email as string).trim().toLowerCase();
       const welcomeMsg = {
         id: `welcome-${Date.now()}`,
         senderName: "Admin (Diptanshu)",
         senderEmail: "mazumderdiptanshu753@gmail.com",
-        senderRole: "Admin" as const,
+        senderRole: "Admin",
         message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
         timestamp: new Date().toISOString(),
-        studentEmail: studentEmail,
-        studentName: name as string
+        studentEmail,
+        studentName: name,
       };
       await saveChatMessage(welcomeMsg);
       return res.json([welcomeMsg]);
     }
-
     return res.json(messages);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching chat messages:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// Post a new Chat Message
-app.post("/api/chat/messages", async (req: express.Request, res: express.Response): Promise<any> => {
-  const { senderName, senderEmail, senderRole, message, studentEmail, studentName } = req.body;
-
+app.post("/api/chat/messages", async (req, res) => {
+  const {
+    senderName,
+    senderEmail,
+    senderRole,
+    message,
+    studentEmail,
+    studentName,
+  } = req.body;
   if (!message || !studentEmail || !studentName) {
     return res.status(400).json({ error: "Missing required message details." });
   }
-
   const newMsg = {
     id: `msg-${Date.now()}`,
     senderName,
@@ -1031,111 +989,101 @@ app.post("/api/chat/messages", async (req: express.Request, res: express.Respons
     message,
     timestamp: new Date().toISOString(),
     studentEmail: studentEmail.trim().toLowerCase(),
-    studentName
+    studentName,
   };
-
   try {
     await saveChatMessage(newMsg);
     res.status(201).json(newMsg);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error posting chat message:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// AI Simulated Admin Auto-Response endpoint using Gemini
-app.post("/api/chat/ai-reply", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/chat/ai-reply", async (req, res) => {
   try {
     const { studentName, studentEmail, lastMessage } = req.body;
     if (!studentEmail || !lastMessage) {
-      return res.status(400).json({ error: "Missing message details for AI reply." });
+      return res
+        .status(400)
+        .json({ error: "Missing message details for AI reply." });
     }
-
     const ai = getGeminiClient();
     const prompt = `You are Diptanshu, the Admin of STUDY HUB. You are responding to a student named ${studentName} who just sent you this message in the support chat:
 "${lastMessage}"
 
 Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes or summarizing). Keep it very human, conversational, and direct. Do not use AI jargon.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-flash-latest",
       contents: prompt,
     });
-
-    const aiMessageText = response.text?.trim() || "Let me know if you need any help with your math studies!";
-
+    const aiMessageText =
+      response.text?.trim() ||
+      "Let me know if you need any help with your math studies!";
     const aiMsg = {
       id: `ai-msg-${Date.now()}`,
       senderName: "Admin (Diptanshu - AI)",
       senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin" as const,
+      senderRole: "Admin",
       message: aiMessageText,
       timestamp: new Date().toISOString(),
       studentEmail: studentEmail.trim().toLowerCase(),
-      studentName
+      studentName,
     };
-
     await saveChatMessage(aiMsg);
     res.json(aiMsg);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating Admin AI reply:", error);
-    // Fallback message
     const fallbackMsg = {
       id: `fallback-${Date.now()}`,
       senderName: "Admin (Diptanshu)",
       senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin" as const,
-      message: "Thanks for your message! I'll look into this and get back to you. Make sure to check out the Notes Workspace for your math studies!",
+      senderRole: "Admin",
+      message:
+        "Thanks for your message! I'll look into this and get back to you. Make sure to check out the Notes Workspace for your math studies!",
       timestamp: new Date().toISOString(),
       studentEmail: req.body.studentEmail.trim().toLowerCase(),
-      studentName: req.body.studentName
+      studentName: req.body.studentName,
     };
-    
     await saveChatMessage(fallbackMsg);
     res.json(fallbackMsg);
   }
 });
-
-
-
-// --- Community Forum API ---
-app.get("/api/forum/posts", async (req: express.Request, res: express.Response) => {
+app.get("/api/forum/posts", async (req, res) => {
   try {
     const postsList = await getForumPosts();
-    postsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    postsList.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
     res.json(postsList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching forum posts:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/forum/posts", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/forum/posts", async (req, res) => {
   const post = req.body;
-  if (!post.authorEmail || !post.title || !post.content) return res.status(400).json({ error: "Missing fields" });
-  
+  if (!post.authorEmail || !post.title || !post.content)
+    return res.status(400).json({ error: "Missing fields" });
   post.id = `post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   post.timestamp = new Date().toISOString();
   post.likes = 0;
   post.replies = [];
-
   try {
     await saveForumPost(post);
     res.status(201).json(post);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving forum post:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/forum/posts/:postId/replies", async (req, res) => {
   const { postId } = req.params;
   const reply = req.body;
-  if (!reply.authorEmail || !reply.content) return res.status(400).json({ error: "Missing fields" });
-  
+  if (!reply.authorEmail || !reply.content)
+    return res.status(400).json({ error: "Missing fields" });
   reply.id = `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   reply.timestamp = new Date().toISOString();
-
   try {
     const success = await addForumReply(postId, reply);
     if (success) {
@@ -1143,46 +1091,43 @@ app.post("/api/forum/posts/:postId/replies", async (req: express.Request, res: e
     } else {
       res.status(404).json({ error: "Post not found" });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving forum reply:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-
-// --- Live Classes API ---
-app.get("/api/live-classes", async (req: express.Request, res: express.Response) => {
+app.get("/api/live-classes", async (req, res) => {
   try {
     const classesList = await getLiveClasses();
-    classesList.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
+    classesList.sort(
+      (a, b) =>
+        new Date(a.scheduledTime).getTime() -
+        new Date(b.scheduledTime).getTime(),
+    );
     res.json(classesList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching live classes:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/live-classes", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/live-classes", async (req, res) => {
   const cls = req.body;
-  if (!cls.title || !cls.link || !cls.scheduledTime) return res.status(400).json({ error: "Missing fields" });
-  
+  if (!cls.title || !cls.link || !cls.scheduledTime)
+    return res.status(400).json({ error: "Missing fields" });
   cls.id = `class-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   cls.createdAt = new Date().toISOString();
   cls.status = cls.status || "Scheduled";
-
   try {
     await saveLiveClass(cls);
     res.status(201).json(cls);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving live class:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.patch("/api/live-classes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.patch("/api/live-classes/:id", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  
   try {
     const updated = await updateLiveClassStatus(id, status);
     if (updated) {
@@ -1190,144 +1135,138 @@ app.patch("/api/live-classes/:id", async (req: express.Request, res: express.Res
     } else {
       res.status(404).json({ error: "Not found" });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating live class:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/live-classes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/live-classes/:id", async (req, res) => {
   const { id } = req.params;
-  
   try {
     await deleteLiveClass(id);
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting live class:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Users API (Admin Panel Persistence) ---
-app.get("/api/users", async (req: express.Request, res: express.Response) => {
+app.get("/api/users", async (req, res) => {
   try {
     const usersList = await getUsers();
     res.json(usersList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/users", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/users", async (req, res) => {
   const user = req.body;
   if (!user.email) return res.status(400).json({ error: "Email is required" });
-  
   try {
     await saveUser(user);
     const usersList = await getUsers();
     res.json(usersList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving user:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/users", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/users", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
-
   try {
     await deleteUser(email);
     const usersList = await getUsers();
     res.json(usersList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Activity Logs API ---
-app.get("/api/activity-logs", async (req: express.Request, res: express.Response) => {
+app.get("/api/activity-logs", async (req, res) => {
   try {
     const logsList = await getActivityLogs();
-    logsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    logsList.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
     res.json(logsList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching activity logs:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/activity-logs", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/activity-logs", async (req, res) => {
   const log = req.body;
-  if (!log.userEmail || !log.action) return res.status(400).json({ error: "Missing required fields" });
-  
+  if (!log.userEmail || !log.action)
+    return res.status(400).json({ error: "Missing required fields" });
   log.id = `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   if (!log.timestamp) log.timestamp = new Date().toISOString();
-
   try {
     await saveActivityLog(log);
     res.status(201).json(log);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving activity log:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Personal Study Notes API ---
-app.get("/api/study-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/study-notes", async (req, res) => {
   const { email } = req.query;
-  if (!email) return res.status(400).json({ error: "Email query param is required" });
+  if (!email)
+    return res.status(400).json({ error: "Email query param is required" });
   try {
     const notes = await getStudyNotes(email as string);
     res.json(notes);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching study notes:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/study-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/study-notes", async (req, res) => {
   const note = req.body;
   if (!note.id || !note.title || !note.userEmail) {
-    return res.status(400).json({ error: "Missing required fields (id, title, userEmail)" });
+    return res
+      .status(400)
+      .json({ error: "Missing required fields (id, title, userEmail)" });
   }
   try {
     const saved = await saveStudyNote(note);
-    
-    // Create personal notification
     await createNotification({
-      title: "নতুন স্টাডি নোট তৈরি হয়েছে",
-      message: `আপনি "${note.title}" নামে একটি নতুন ব্যক্তিগত স্টাডি নোট তৈরি করেছেন।`,
+      title:
+        "\u09A8\u09A4\u09C1\u09A8 \u09B8\u09CD\u099F\u09BE\u09A1\u09BF \u09A8\u09CB\u099F \u09A4\u09C8\u09B0\u09BF \u09B9\u09DF\u09C7\u099B\u09C7",
+      message: `\u0986\u09AA\u09A8\u09BF "${note.title}" \u09A8\u09BE\u09AE\u09C7 \u098F\u0995\u099F\u09BF \u09A8\u09A4\u09C1\u09A8 \u09AC\u09CD\u09AF\u0995\u09CD\u09A4\u09BF\u0997\u09A4 \u09B8\u09CD\u099F\u09BE\u09A1\u09BF \u09A8\u09CB\u099F \u09A4\u09C8\u09B0\u09BF \u0995\u09B0\u09C7\u099B\u09C7\u09A8\u0964`,
       type: "note",
-      userEmail: note.userEmail
+      userEmail: note.userEmail,
     });
-
     res.json(saved);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving study note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/study-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/study-notes/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const success = await deleteStudyNote(id);
     res.json({ success });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting study note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Firestore Batch Recovery API ---
-app.post("/api/recover-firestore", async (req: express.Request, res: express.Response): Promise<any> => {
-  const { users, studyNotes, chatMessages, forumPosts, liveClasses, activityLogs, govtJobNotes, aiPdfNotes } = req.body;
-  
+app.post("/api/recover-firestore", async (req, res) => {
+  const {
+    users,
+    studyNotes,
+    chatMessages,
+    forumPosts,
+    liveClasses,
+    activityLogs,
+    govtJobNotes,
+    aiPdfNotes,
+  } = req.body;
   console.log("Processing bulk firestore recovery payload...");
-  const results: any = {
+  const results = {
     users: 0,
     studyNotes: 0,
     chatMessages: 0,
@@ -1335,9 +1274,8 @@ app.post("/api/recover-firestore", async (req: express.Request, res: express.Res
     liveClasses: 0,
     activityLogs: 0,
     govtJobNotes: 0,
-    aiPdfNotes: 0
+    aiPdfNotes: 0,
   };
-
   try {
     if (Array.isArray(users)) {
       for (const item of users) {
@@ -1382,7 +1320,12 @@ app.post("/api/recover-firestore", async (req: express.Request, res: express.Res
     if (Array.isArray(activityLogs)) {
       for (const item of activityLogs) {
         if (item.id || (item.userEmail && item.action)) {
-          const logItem = { ...item, id: item.id || `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}` };
+          const logItem = {
+            ...item,
+            id:
+              item.id ||
+              `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          };
           await saveActivityLog(logItem);
           results.activityLogs++;
         }
@@ -1404,63 +1347,56 @@ app.post("/api/recover-firestore", async (req: express.Request, res: express.Res
         }
       }
     }
-
     console.log("Firestore recovery completed. Results:", results);
     res.json({ success: true, results });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error performing firestore recovery:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Govt Job Notes API ---
-app.get("/api/govt-job-notes", async (req: express.Request, res: express.Response) => {
+app.get("/api/govt-job-notes", async (req, res) => {
   try {
     const { subject } = req.query;
     let notes = await getGovtJobNotes(subject as string);
-    notes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    notes.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
     res.json(notes);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching govt job notes:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/govt-job-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/govt-job-notes", async (req, res) => {
   const note = req.body;
-  if (!note.title || !note.content || !note.subject) return res.status(400).json({ error: "Missing fields" });
-  
+  if (!note.title || !note.content || !note.subject)
+    return res.status(400).json({ error: "Missing fields" });
   note.id = `gjn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   note.timestamp = new Date().toISOString();
   note.comments = [];
-
   try {
     await saveGovtJobNote(note);
-
-    // Create global notification
     await createNotification({
-      title: "নতুন সরকারি চাকরির প্রস্তুতি নোট প্রকাশিত হয়েছে",
-      message: `একটি নতুন সরকারি চাকরির প্রস্তুতির নোট প্রকাশিত হয়েছে: "${note.title}"`,
-      type: "note"
+      title:
+        "\u09A8\u09A4\u09C1\u09A8 \u09B8\u09B0\u0995\u09BE\u09B0\u09BF \u099A\u09BE\u0995\u09B0\u09BF\u09B0 \u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF \u09A8\u09CB\u099F \u09AA\u09CD\u09B0\u0995\u09BE\u09B6\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7",
+      message: `\u098F\u0995\u099F\u09BF \u09A8\u09A4\u09C1\u09A8 \u09B8\u09B0\u0995\u09BE\u09B0\u09BF \u099A\u09BE\u0995\u09B0\u09BF\u09B0 \u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u09B0 \u09A8\u09CB\u099F \u09AA\u09CD\u09B0\u0995\u09BE\u09B6\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7: "${note.title}"`,
+      type: "note",
     });
-
     res.status(201).json(note);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving govt job note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/govt-job-notes/:id/comments", async (req, res) => {
   const { id } = req.params;
   const comment = req.body;
   if (!comment.authorEmail || !comment.authorName || !comment.text) {
     return res.status(400).json({ error: "Missing comment fields" });
   }
-  
   comment.id = `cmt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   comment.timestamp = new Date().toISOString();
-
   try {
     const success = await addGovtJobNoteComment(id, comment);
     if (success) {
@@ -1468,39 +1404,41 @@ app.post("/api/govt-job-notes/:id/comments", async (req: express.Request, res: e
     } else {
       res.status(404).json({ error: "Note not found" });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error adding comment to govt job note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/govt-job-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/govt-job-notes/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await deleteGovtJobNote(id);
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting govt job note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- AI PDF Notes Endpoints ---
-
-// Monthly incrementing helper
-function getNextMonthName(existingNotes: any[]): string {
+function getNextMonthName(existingNotes) {
   if (existingNotes.length === 0) {
     return "July 2026";
   }
-  
   const months = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
-  
   let latestYear = 2026;
-  let latestMonthIndex = 6; // July
-  
+  let latestMonthIndex = 6;
   for (const note of existingNotes) {
     if (note.month) {
       const parts = note.month.split(" ");
@@ -1508,7 +1446,10 @@ function getNextMonthName(existingNotes: any[]): string {
         const mIndex = months.indexOf(parts[0]);
         const year = parseInt(parts[1], 10);
         if (mIndex !== -1 && !isNaN(year)) {
-          if (year > latestYear || (year === latestYear && mIndex > latestMonthIndex)) {
+          if (
+            year > latestYear ||
+            (year === latestYear && mIndex > latestMonthIndex)
+          ) {
             latestYear = year;
             latestMonthIndex = mIndex;
           }
@@ -1516,39 +1457,37 @@ function getNextMonthName(existingNotes: any[]): string {
       }
     }
   }
-  
   latestMonthIndex++;
   if (latestMonthIndex >= 12) {
     latestMonthIndex = 0;
     latestYear++;
   }
-  
   return `${months[latestMonthIndex]} ${latestYear}`;
 }
-
-app.get("/api/ai-pdf-notes", async (req: express.Request, res: express.Response): Promise<any> => {
+__name(getNextMonthName, "getNextMonthName");
+app.get("/api/ai-pdf-notes", async (req, res) => {
   try {
     const { subject } = req.query;
     let notesList = await getAiPdfNotes(subject as string);
-    notesList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    notesList.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
     res.json(notesList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching AI PDF notes:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/ai-pdf-notes/generate", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/ai-pdf-notes/generate", async (req, res) => {
   try {
     const { subject } = req.body;
     if (!subject) {
       return res.status(400).json({ error: "Subject is required." });
     }
-
     const existingNotes = await getAiPdfNotes(subject);
     const nextMonth = getNextMonthName(existingNotes);
-
-    const subjectNameMap: any = {
+    const subjectNameMap = {
       math: "Mathematics & Quantitative Aptitude (Shortcuts, Formulas, and MCQs)",
       reasoning: "Reasoning & Mental Ability",
       english: "English Grammar & Comprehension",
@@ -1556,10 +1495,9 @@ app.post("/api/ai-pdf-notes/generate", async (req: express.Request, res: express
       history: "History (Indian Subcontinent History, BCS & WB specific)",
       geography: "Geography, Environment & Disaster Management",
       polity: "Constitution & Government Policy (Polity)",
-      economics: "Economics & Development Planning"
+      economics: "Economics & Development Planning",
     };
     const subjectName = subjectNameMap[subject] || subject;
-
     const ai = getGeminiClient();
     const prompt = `You are an expert Government Job Preparation Coach and Content Designer for exams like BCS, Bank Exams, Primary, PSC, SSC in West Bengal and Bangladesh. 
 Generate a comprehensive, high-yield Monthly Study Guide & Notes in PDF style.
@@ -1571,7 +1509,6 @@ Ensure the content is detailed, engaging, and covers extremely important topics,
 Write primarily in Bengali, with English translations/terms where appropriate (especially for Math, Science, English, and Economics) so students find it highly practical.
 
 The response MUST match the JSON schema exactly and be comprehensive. Make the 'theoryContent' long and thorough (around 500-1000 words). Include at least 5 high-yield multiple choice questions (MCQs) in the 'mcqs' section with proper explanation of the answers.`;
-
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
@@ -1582,10 +1519,7 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
           properties: {
             title: { type: Type.STRING },
             introduction: { type: Type.STRING },
-            keyTopics: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
+            keyTopics: { type: Type.ARRAY, items: { type: Type.STRING } },
             theoryContent: { type: Type.STRING },
             mcqs: {
               type: Type.ARRAY,
@@ -1593,24 +1527,30 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
                 type: Type.OBJECT,
                 properties: {
                   question: { type: Type.STRING },
-                  options: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                  },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
                   correctAnswer: { type: Type.STRING },
-                  explanation: { type: Type.STRING }
+                  explanation: { type: Type.STRING },
                 },
-                required: ["question", "options", "correctAnswer", "explanation"]
-              }
-            }
+                required: [
+                  "question",
+                  "options",
+                  "correctAnswer",
+                  "explanation",
+                ],
+              },
+            },
           },
-          required: ["title", "introduction", "keyTopics", "theoryContent", "mcqs"]
-        }
-      }
+          required: [
+            "title",
+            "introduction",
+            "keyTopics",
+            "theoryContent",
+            "mcqs",
+          ],
+        },
+      },
     });
-
     const parsedData = JSON.parse(response.text.trim());
-    
     const newPdfNote = {
       id: `pdfn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       subject,
@@ -1620,37 +1560,31 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
       theoryContent: parsedData.theoryContent || "",
       mcqs: parsedData.mcqs || [],
       month: nextMonth,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-
     await saveAiPdfNote(newPdfNote);
-
-    // Create global notification
     await createNotification({
-      title: "নতুন এআই পিডিএফ স্টাডি গাইড তৈরি হয়েছে",
-      message: `এআই সহকারী দ্বারা একটি নতুন মাসিক গাইড তৈরি করা হয়েছে: "${newPdfNote.title}"`,
-      type: "note"
+      title:
+        "\u09A8\u09A4\u09C1\u09A8 \u098F\u0986\u0987 \u09AA\u09BF\u09A1\u09BF\u098F\u09AB \u09B8\u09CD\u099F\u09BE\u09A1\u09BF \u0997\u09BE\u0987\u09A1 \u09A4\u09C8\u09B0\u09BF \u09B9\u09DF\u09C7\u099B\u09C7",
+      message: `\u098F\u0986\u0987 \u09B8\u09B9\u0995\u09BE\u09B0\u09C0 \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE \u098F\u0995\u099F\u09BF \u09A8\u09A4\u09C1\u09A8 \u09AE\u09BE\u09B8\u09BF\u0995 \u0997\u09BE\u0987\u09A1 \u09A4\u09C8\u09B0\u09BF \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7: "${newPdfNote.title}"`,
+      type: "note",
     });
-
     res.status(201).json(newPdfNote);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error generating AI PDF note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/ai-pdf-notes/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/ai-pdf-notes/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await deleteAiPdfNote(id);
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting AI PDF note:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// Database Seeding Logic for AI PDF Notes (Deprecated local version)
 async function deprecatedSeedAiPdfNotes() {
   try {
     let count = 0;
@@ -1660,62 +1594,93 @@ async function deprecatedSeedAiPdfNotes() {
     } else {
       count = 0;
     }
-
     if (count > 0) {
       console.log("AI PDF Notes already seeded.");
       return;
     }
-
     const seedData = [
       {
         id: "pdfn-seed-math",
         subject: "math",
-        title: "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
-        introduction: "এই গাইডটিতে শতকরা ও অনুপাতের জটিল অংকগুলো মাত্র ৫-১০ সেকেন্ডে সমাধান করার শর্টকাট টেকনিক ও গুরুত্বপূর্ণ প্রশ্ন আলোচনা করা হয়েছে।",
+        title:
+          "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
+        introduction:
+          "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B6\u09A4\u0995\u09B0\u09BE \u0993 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u09C7\u09B0 \u099C\u099F\u09BF\u09B2 \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09AE\u09BE\u09A4\u09CD\u09B0 \u09EB-\u09E7\u09E6 \u09B8\u09C7\u0995\u09C7\u09A8\u09CD\u09A1\u09C7 \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8 \u0995\u09B0\u09BE\u09B0 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09C7\u0995\u09A8\u09BF\u0995 \u0993 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0986\u09B2\u09CB\u099A\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
         keyTopics: ["Percentage Rules", "Ratio & Proportion", "BCS Prep Hacks"],
-        theoryContent: "### ১. শতকরা নির্নয়ের ম্যাজিক ট্রিক (Percentage Shortcuts):\nশতকরা অংকগুলো সহজে করার জন্য ভগ্নাংশে রূপান্তর করা শিখতে হবে।\n* ২০% = ১/৫\n* ২৫% = ১/৪\n* ৫০% = ১/২\n\n**উদাহরণ ১:** চালের মূল্য ২০% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচের কোনো পরিবর্তন হবে না?\n* **শর্টকাট সূত্র:** (R / (100 + R)) * 100\n* সমাধান: (২০ / ১২০) * ১০০ = ১৬.৬৭%\n\n### ২. অনুপাত ও অংশীদারিত্ব (Ratio & Proportion Hacks):\nযদি A:B = 2:3 এবং B:C = 4:5 হয়, তবে A:B:C = ?\n* **শর্টকাট 'দ' পদ্ধতি:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * উত্তর: 8:12:15",
+        theoryContent:
+          "### \u09E7. \u09B6\u09A4\u0995\u09B0\u09BE \u09A8\u09BF\u09B0\u09CD\u09A8\u09DF\u09C7\u09B0 \u09AE\u09CD\u09AF\u09BE\u099C\u09BF\u0995 \u099F\u09CD\u09B0\u09BF\u0995 (Percentage Shortcuts):\n\u09B6\u09A4\u0995\u09B0\u09BE \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09B8\u09B9\u099C\u09C7 \u0995\u09B0\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF \u09AD\u0997\u09CD\u09A8\u09BE\u0982\u09B6\u09C7 \u09B0\u09C2\u09AA\u09BE\u09A8\u09CD\u09A4\u09B0 \u0995\u09B0\u09BE \u09B6\u09BF\u0996\u09A4\u09C7 \u09B9\u09AC\u09C7\u0964\n* \u09E8\u09E6% = \u09E7/\u09EB\n* \u09E8\u09EB% = \u09E7/\u09EA\n* \u09EB\u09E6% = \u09E7/\u09E8\n\n**\u0989\u09A6\u09BE\u09B9\u09B0\u09A3 \u09E7:** \u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09E6% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A\u09C7\u09B0 \u0995\u09CB\u09A8\u09CB \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B9\u09AC\u09C7 \u09A8\u09BE?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u09B8\u09C2\u09A4\u09CD\u09B0:** (R / (100 + R)) * 100\n* \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8: (\u09E8\u09E6 / \u09E7\u09E8\u09E6) * \u09E7\u09E6\u09E6 = \u09E7\u09EC.\u09EC\u09ED%\n\n### \u09E8. \u0985\u09A8\u09C1\u09AA\u09BE\u09A4 \u0993 \u0985\u0982\u09B6\u09C0\u09A6\u09BE\u09B0\u09BF\u09A4\u09CD\u09AC (Ratio & Proportion Hacks):\n\u09AF\u09A6\u09BF A:B = 2:3 \u098F\u09AC\u0982 B:C = 4:5 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C = ?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F '\u09A6' \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * \u0989\u09A4\u09CD\u09A4\u09B0: 8:12:15",
         mcqs: [
           {
-            question: "চালের মূল্য ২৫% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচ অপরিবর্তিত থাকবে?",
-            options: ["২০%", "২৫%", "১৬.৬৭%", "১৫%"],
-            correctAnswer: "২০%",
-            explanation: "সূত্র: (R / (100+R)) * 100 => (25/125)*100 = 20%."
+            question:
+              "\u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09EB% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A \u0985\u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09A5\u09BE\u0995\u09AC\u09C7?",
+            options: [
+              "\u09E8\u09E6%",
+              "\u09E8\u09EB%",
+              "\u09E7\u09EC.\u09EC\u09ED%",
+              "\u09E7\u09EB%",
+            ],
+            correctAnswer: "\u09E8\u09E6%",
+            explanation:
+              "\u09B8\u09C2\u09A4\u09CD\u09B0: (R / (100+R)) * 100 => (25/125)*100 = 20%.",
           },
           {
-            question: "যদি A:B = 3:4 এবং B:C = 5:6 হয়, তবে A:B:C কত?",
+            question:
+              "\u09AF\u09A6\u09BF A:B = 3:4 \u098F\u09AC\u0982 B:C = 5:6 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C \u0995\u09A4?",
             options: ["15:20:24", "15:24:20", "3:5:6", "9:12:16"],
             correctAnswer: "15:20:24",
-            explanation: "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. সুতরাং অনুপাতটি ১৫:২০:২৪।"
-          }
+            explanation:
+              "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. \u09B8\u09C1\u09A4\u09B0\u09BE\u0982 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u099F\u09BF \u09E7\u09EB:\u09E8\u09E6:\u09E8\u09EA\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-reasoning",
         subject: "reasoning",
-        title: "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
-        introduction: "এই গাইডটিতে রিজনিং বা মানসিক দক্ষতার সবচেয়ে গুরুত্বপূর্ণ টপিক কোডিং-ডিকোডিং এবং দিক নির্ণয় সংক্রান্ত শর্টকাট ট্রিক্স দেওয়া হলো।",
-        keyTopics: ["Alphabet Series Codes", "Direction & Distances", "Visual Analogy"],
-        theoryContent: "### ১. কোডিং-ডিকোডিং সহজ করার নিয়ম:\nইংরেজি বর্ণমালার অবস্থান সহজে মনে রাখার জন্য **EJOTY** সূত্র ব্যবহার করুন:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n**উদাহরণ:** যদি CAT কে ২৫ লেখা হয়, তবে DOG কে কত লেখা হবে?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### ২. দিক নির্ণয় (Direction Sense):\nসব সময় নিজের ডানদিককে পূর্ব (East), বামদিককে পশ্চিম (West), সামনের দিককে উত্তর (North), এবং পিছনের দিককে দক্ষিণ (South) হিসেবে ধরে নিন। পিথাগোরাসের উপপাদ্য ( can be applied: অতিভুজ² = লম্ব² + ভূমি²) ব্যবহার করে দূরত্ব বের করুন।",
+        title:
+          "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
+        introduction:
+          "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B0\u09BF\u099C\u09A8\u09BF\u0982 \u09AC\u09BE \u09AE\u09BE\u09A8\u09B8\u09BF\u0995 \u09A6\u0995\u09CD\u09B7\u09A4\u09BE\u09B0 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u099F\u09AA\u09BF\u0995 \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u098F\u09AC\u0982 \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09CD\u09B0\u09BF\u0995\u09CD\u09B8 \u09A6\u09C7\u0993\u09DF\u09BE \u09B9\u09B2\u09CB\u0964",
+        keyTopics: [
+          "Alphabet Series Codes",
+          "Direction & Distances",
+          "Visual Analogy",
+        ],
+        theoryContent:
+          "### \u09E7. \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u09B8\u09B9\u099C \u0995\u09B0\u09BE\u09B0 \u09A8\u09BF\u09DF\u09AE:\n\u0987\u0982\u09B0\u09C7\u099C\u09BF \u09AC\u09B0\u09CD\u09A3\u09AE\u09BE\u09B2\u09BE\u09B0 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u09B8\u09B9\u099C\u09C7 \u09AE\u09A8\u09C7 \u09B0\u09BE\u0996\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF **EJOTY** \u09B8\u09C2\u09A4\u09CD\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C1\u09A8:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n**\u0989\u09A6\u09BE\u09B9\u09B0\u09A3:** \u09AF\u09A6\u09BF CAT \u0995\u09C7 \u09E8\u09EB \u09B2\u09C7\u0996\u09BE \u09B9\u09DF, \u09A4\u09AC\u09C7 DOG \u0995\u09C7 \u0995\u09A4 \u09B2\u09C7\u0996\u09BE \u09B9\u09AC\u09C7?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### \u09E8. \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF (Direction Sense):\n\u09B8\u09AC \u09B8\u09AE\u09DF \u09A8\u09BF\u099C\u09C7\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09C2\u09B0\u09CD\u09AC (East), \u09AC\u09BE\u09AE\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE (West), \u09B8\u09BE\u09AE\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u0989\u09A4\u09CD\u09A4\u09B0 (North), \u098F\u09AC\u0982 \u09AA\u09BF\u099B\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u09A6\u0995\u09CD\u09B7\u09BF\u09A3 (South) \u09B9\u09BF\u09B8\u09C7\u09AC\u09C7 \u09A7\u09B0\u09C7 \u09A8\u09BF\u09A8\u0964 \u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF ( can be applied: \u0985\u09A4\u09BF\u09AD\u09C1\u099C\xB2 = \u09B2\u09AE\u09CD\u09AC\xB2 + \u09AD\u09C2\u09AE\u09BF\xB2) \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C7 \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC \u09AC\u09C7\u09B0 \u0995\u09B0\u09C1\u09A8\u0964",
         mcqs: [
           {
-            question: "এক ব্যক্তি উত্তর দিকে ৪ কিমি হাঁটার পর ডানদিকে ঘুরে ৩ কিমি হাঁটলো। সে শুরুর স্থান থেকে এখন কত দূরে আছে?",
-            options: ["৫ কিমি", "৭ কিমি", "১ কিমি", "১২ কিমি"],
-            correctAnswer: "৫ কিমি",
-            explanation: "পিথাগোরাসের উপপাদ্য অনুসারে, দূরত্ব = √(৪² + ৩²) = √(১৬ + ৯) = √২৫ = ৫ কিমি।"
-          }
+            question:
+              "\u098F\u0995 \u09AC\u09CD\u09AF\u0995\u09CD\u09A4\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u09A6\u09BF\u0995\u09C7 \u09EA \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09BE\u09B0 \u09AA\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u09C7 \u0998\u09C1\u09B0\u09C7 \u09E9 \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09B2\u09CB\u0964 \u09B8\u09C7 \u09B6\u09C1\u09B0\u09C1\u09B0 \u09B8\u09CD\u09A5\u09BE\u09A8 \u09A5\u09C7\u0995\u09C7 \u098F\u0996\u09A8 \u0995\u09A4 \u09A6\u09C2\u09B0\u09C7 \u0986\u099B\u09C7?",
+            options: [
+              "\u09EB \u0995\u09BF\u09AE\u09BF",
+              "\u09ED \u0995\u09BF\u09AE\u09BF",
+              "\u09E7 \u0995\u09BF\u09AE\u09BF",
+              "\u09E7\u09E8 \u0995\u09BF\u09AE\u09BF",
+            ],
+            correctAnswer: "\u09EB \u0995\u09BF\u09AE\u09BF",
+            explanation:
+              "\u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF \u0985\u09A8\u09C1\u09B8\u09BE\u09B0\u09C7, \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC = \u221A(\u09EA\xB2 + \u09E9\xB2) = \u221A(\u09E7\u09EC + \u09EF) = \u221A\u09E8\u09EB = \u09EB \u0995\u09BF\u09AE\u09BF\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-english",
         subject: "english",
-        title: "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
-        introduction: "চাকরির পরীক্ষায় ইংরেজিতে সবচেয়ে বেশি আসা Subject-Verb Agreement এর জটিল নিয়মগুলো বাংলায় সহজ ব্যাখ্যাসহ শিখুন।",
-        keyTopics: ["Collective Noun Rules", "Either/Or, Neither/Nor Cases", "Prepositional Phrases"],
-        theoryContent: "### Rule 1: Collective Nouns\nCollective Noun সাধারণত singular verb গ্রহণ করে। কিন্তু তারা যদি বিভক্ত মতবাদ প্রকাশ করে, তবে plural verb হয়।\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or বা Neither... nor দ্বারা দুটি Subject যুক্ত থাকলে, verb সর্বদা দ্বিতীয়/নিকটবর্তী Subject অনুয়ায়ী পরিবর্তিত হয়।\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, তাই are হয়েছে)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, তাই is হয়েছে)",
+        title:
+          "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
+        introduction:
+          "\u099A\u09BE\u0995\u09B0\u09BF\u09B0 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE\u09DF \u0987\u0982\u09B0\u09C7\u099C\u09BF\u09A4\u09C7 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u09AC\u09C7\u09B6\u09BF \u0986\u09B8\u09BE Subject-Verb Agreement \u098F\u09B0 \u099C\u099F\u09BF\u09B2 \u09A8\u09BF\u09DF\u09AE\u0997\u09C1\u09B2\u09CB \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09B8\u09B9\u099C \u09AC\u09CD\u09AF\u09BE\u0996\u09CD\u09AF\u09BE\u09B8\u09B9 \u09B6\u09BF\u0996\u09C1\u09A8\u0964",
+        keyTopics: [
+          "Collective Noun Rules",
+          "Either/Or, Neither/Nor Cases",
+          "Prepositional Phrases",
+        ],
+        theoryContent:
+          "### Rule 1: Collective Nouns\nCollective Noun \u09B8\u09BE\u09A7\u09BE\u09B0\u09A3\u09A4 singular verb \u0997\u09CD\u09B0\u09B9\u09A3 \u0995\u09B0\u09C7\u0964 \u0995\u09BF\u09A8\u09CD\u09A4\u09C1 \u09A4\u09BE\u09B0\u09BE \u09AF\u09A6\u09BF \u09AC\u09BF\u09AD\u0995\u09CD\u09A4 \u09AE\u09A4\u09AC\u09BE\u09A6 \u09AA\u09CD\u09B0\u0995\u09BE\u09B6 \u0995\u09B0\u09C7, \u09A4\u09AC\u09C7 plural verb \u09B9\u09DF\u0964\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or \u09AC\u09BE Neither... nor \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE \u09A6\u09C1\u099F\u09BF Subject \u09AF\u09C1\u0995\u09CD\u09A4 \u09A5\u09BE\u0995\u09B2\u09C7, verb \u09B8\u09B0\u09CD\u09AC\u09A6\u09BE \u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF/\u09A8\u09BF\u0995\u099F\u09AC\u09B0\u09CD\u09A4\u09C0 Subject \u0985\u09A8\u09C1\u09DF\u09BE\u09DF\u09C0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09B9\u09DF\u0964\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, \u09A4\u09BE\u0987 are \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, \u09A4\u09BE\u0987 is \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)",
         mcqs: [
           {
             question: "Identify the correct sentence:",
@@ -1723,201 +1688,248 @@ async function deprecatedSeedAiPdfNotes() {
               "Many a boy has done his homework.",
               "Many a boy have done their homework.",
               "Many a boys have done his homework.",
-              "Many boys has done their homework."
+              "Many boys has done their homework.",
             ],
             correctAnswer: "Many a boy has done his homework.",
-            explanation: "'Many a' এর পর singular noun এবং singular verb বসে। তাই 'Many a boy has' সঠিক।"
-          }
+            explanation:
+              "'Many a' \u098F\u09B0 \u09AA\u09B0 singular noun \u098F\u09AC\u0982 singular verb \u09AC\u09B8\u09C7\u0964 \u09A4\u09BE\u0987 'Many a boy has' \u09B8\u09A0\u09BF\u0995\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-science",
         subject: "science",
-        title: "July 2026 - General Science: Physics Laws & Human Physiology Basics",
-        introduction: "পদার্থবিজ্ঞানের প্রধান সূত্রাবলী এবং জীববিজ্ঞানের মানবদেহ সম্পর্কিত অতি গুরুত্বপূর্ণ প্রশ্ন ও উত্তর।",
-        keyTopics: ["Newton's Laws of Motion", "Human Blood & Circulation", "Optical Instruments"],
-        theoryContent: "### ১. নিউটনের গতিসূত্র (Newton's Laws of Motion):\n* **প্রথম সূত্র:** বাহ্যিক বল প্রয়োগ না করলে স্থির বস্তু চিরকাল স্থির এবং গতিশীল বস্তু চিরকাল সুষম গতিতে চলতে থাকবে (জড়তার ধারণা)।\n* **দ্বিতীয় সূত্র:** বস্তুর ভরবেগের পরিবর্তনের হার তার উপর প্রযুক্ত বলের সমানুপাতিক (F = ma)।\n* **তৃতীয় সূত্র:** প্রত্যেক ক্রিয়ারই একটি সমান ও বিপরীত প্রতিক্রিয়া আছে।\n\n### ২. মানব রক্ত সংবহন (Human Blood Group):\n* **সর্বজনীন দাতা (Universal Donor):** O Negative (O-)\n* **সর্বজনীন গ্রহীতা (Universal Recipient):** AB Positive (AB+)",
+        title:
+          "July 2026 - General Science: Physics Laws & Human Physiology Basics",
+        introduction:
+          "\u09AA\u09A6\u09BE\u09B0\u09CD\u09A5\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09B8\u09C2\u09A4\u09CD\u09B0\u09BE\u09AC\u09B2\u09C0 \u098F\u09AC\u0982 \u099C\u09C0\u09AC\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AE\u09BE\u09A8\u09AC\u09A6\u09C7\u09B9 \u09B8\u09AE\u09CD\u09AA\u09B0\u09CD\u0995\u09BF\u09A4 \u0985\u09A4\u09BF \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0993 \u0989\u09A4\u09CD\u09A4\u09B0\u0964",
+        keyTopics: [
+          "Newton's Laws of Motion",
+          "Human Blood & Circulation",
+          "Optical Instruments",
+        ],
+        theoryContent:
+          "### \u09E7. \u09A8\u09BF\u0989\u099F\u09A8\u09C7\u09B0 \u0997\u09A4\u09BF\u09B8\u09C2\u09A4\u09CD\u09B0 (Newton's Laws of Motion):\n* **\u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09C2\u09A4\u09CD\u09B0:** \u09AC\u09BE\u09B9\u09CD\u09AF\u09BF\u0995 \u09AC\u09B2 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u09A8\u09BE \u0995\u09B0\u09B2\u09C7 \u09B8\u09CD\u09A5\u09BF\u09B0 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09CD\u09A5\u09BF\u09B0 \u098F\u09AC\u0982 \u0997\u09A4\u09BF\u09B6\u09C0\u09B2 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09C1\u09B7\u09AE \u0997\u09A4\u09BF\u09A4\u09C7 \u099A\u09B2\u09A4\u09C7 \u09A5\u09BE\u0995\u09AC\u09C7 (\u099C\u09DC\u09A4\u09BE\u09B0 \u09A7\u09BE\u09B0\u09A3\u09BE)\u0964\n* **\u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF \u09B8\u09C2\u09A4\u09CD\u09B0:** \u09AC\u09B8\u09CD\u09A4\u09C1\u09B0 \u09AD\u09B0\u09AC\u09C7\u0997\u09C7\u09B0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8\u09C7\u09B0 \u09B9\u09BE\u09B0 \u09A4\u09BE\u09B0 \u0989\u09AA\u09B0 \u09AA\u09CD\u09B0\u09AF\u09C1\u0995\u09CD\u09A4 \u09AC\u09B2\u09C7\u09B0 \u09B8\u09AE\u09BE\u09A8\u09C1\u09AA\u09BE\u09A4\u09BF\u0995 (F = ma)\u0964\n* **\u09A4\u09C3\u09A4\u09C0\u09DF \u09B8\u09C2\u09A4\u09CD\u09B0:** \u09AA\u09CD\u09B0\u09A4\u09CD\u09AF\u09C7\u0995 \u0995\u09CD\u09B0\u09BF\u09DF\u09BE\u09B0\u0987 \u098F\u0995\u099F\u09BF \u09B8\u09AE\u09BE\u09A8 \u0993 \u09AC\u09BF\u09AA\u09B0\u09C0\u09A4 \u09AA\u09CD\u09B0\u09A4\u09BF\u0995\u09CD\u09B0\u09BF\u09DF\u09BE \u0986\u099B\u09C7\u0964\n\n### \u09E8. \u09AE\u09BE\u09A8\u09AC \u09B0\u0995\u09CD\u09A4 \u09B8\u0982\u09AC\u09B9\u09A8 (Human Blood Group):\n* **\u09B8\u09B0\u09CD\u09AC\u099C\u09A8\u09C0\u09A8 \u09A6\u09BE\u09A4\u09BE (Universal Donor):** O Negative (O-)\n* **\u09B8\u09B0\u09CD\u09AC\u099C\u09A8\u09C0\u09A8 \u0997\u09CD\u09B0\u09B9\u09C0\u09A4\u09BE (Universal Recipient):** AB Positive (AB+)",
         mcqs: [
           {
-            question: "কোন রক্ত গ্রুপকে সর্বজনীন দাতা বলা হয়?",
+            question:
+              "\u0995\u09CB\u09A8 \u09B0\u0995\u09CD\u09A4 \u0997\u09CD\u09B0\u09C1\u09AA\u0995\u09C7 \u09B8\u09B0\u09CD\u09AC\u099C\u09A8\u09C0\u09A8 \u09A6\u09BE\u09A4\u09BE \u09AC\u09B2\u09BE \u09B9\u09DF?",
             options: ["O-", "O+", "AB+", "A-"],
             correctAnswer: "O-",
-            explanation: "O Negative রক্তের গ্রুপে কোনো অ্যান্টিজেন থাকে না, তাই এটি যেকোনো রোগীকে দেওয়া যায়।"
-          }
+            explanation:
+              "O Negative \u09B0\u0995\u09CD\u09A4\u09C7\u09B0 \u0997\u09CD\u09B0\u09C1\u09AA\u09C7 \u0995\u09CB\u09A8\u09CB \u0985\u09CD\u09AF\u09BE\u09A8\u09CD\u099F\u09BF\u099C\u09C7\u09A8 \u09A5\u09BE\u0995\u09C7 \u09A8\u09BE, \u09A4\u09BE\u0987 \u098F\u099F\u09BF \u09AF\u09C7\u0995\u09CB\u09A8\u09CB \u09B0\u09CB\u0997\u09C0\u0995\u09C7 \u09A6\u09C7\u0993\u09DF\u09BE \u09AF\u09BE\u09DF\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-history",
         subject: "history",
-        title: "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
-        introduction: "প্রাচীন বাংলার শাসন ব্যবস্থা এবং সিপাহী বিদ্রোহ থেকে শুরু করে ১৯৪৭ সাল পর্যন্ত স্বাধীনতা সংগ্রামের সালভিত্তিক সারসংক্ষেপ।",
-        keyTopics: ["Mauryan & Gupta Rule", "Mughal Bengal", "Indian Independence Movement"],
-        theoryContent: "### ১. প্রাচীন বাংলার ইতিহাস:\n* প্রথম স্বাধীন নরপতি বা রাজা ছিলেন **শশাঙ্ক** (যার রাজধানী ছিল কর্ণসুবর্ণ)।\n* পাল বংশের প্রতিষ্ঠাতা ছিলেন **গোপাল**, যিনি বাংলায় প্রথম গণতান্ত্রিক পদ্ধতিতে নির্বাচিত রাজা ছিলেন।\n\n### ২. ভারতের স্বাধীনতা সংগ্রাম (১৮৫৭ - ১৯৪৭):\n* **১৮৫৭:** সিপাহী বিদ্রোহ (মঙ্গল পান্ডে প্রথম শহীদ হন)।\n* **১৯০৫:** বঙ্গভঙ্গ (লর্ড কার্জন দ্বারা)।\n* **১৯১১:** বঙ্গভঙ্গ রদ (লর্ড হার্ডিঞ্জ দ্বারা)।\n* **১৯৪২:** ভারত ছাড়ো আন্দোলন।\n* **১৯৪৭:** ভারত ও পাকিস্তানের স্বাধীনতা লাভ।",
+        title:
+          "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
+        introduction:
+          "\u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09B6\u09BE\u09B8\u09A8 \u09AC\u09CD\u09AF\u09AC\u09B8\u09CD\u09A5\u09BE \u098F\u09AC\u0982 \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 \u09A5\u09C7\u0995\u09C7 \u09B6\u09C1\u09B0\u09C1 \u0995\u09B0\u09C7 \u09E7\u09EF\u09EA\u09ED \u09B8\u09BE\u09B2 \u09AA\u09B0\u09CD\u09AF\u09A8\u09CD\u09A4 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE\u09C7\u09B0 \u09B8\u09BE\u09B2\u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u09B8\u09BE\u09B0\u09B8\u0982\u0995\u09CD\u09B7\u09C7\u09AA\u0964",
+        keyTopics: [
+          "Mauryan & Gupta Rule",
+          "Mughal Bengal",
+          "Indian Independence Movement",
+        ],
+        theoryContent:
+          "### \u09E7. \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0987\u09A4\u09BF\u09B9\u09BE\u09B8:\n* \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u09A8\u09B0\u09AA\u09A4\u09BF \u09AC\u09BE \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u09B6\u09B6\u09BE\u0999\u09CD\u0995** (\u09AF\u09BE\u09B0 \u09B0\u09BE\u099C\u09A7\u09BE\u09A8\u09C0 \u099B\u09BF\u09B2 \u0995\u09B0\u09CD\u09A3\u09B8\u09C1\u09AC\u09B0\u09CD\u09A3)\u0964\n* \u09AA\u09BE\u09B2 \u09AC\u0982\u09B6\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A4\u09BF\u09B7\u09CD\u09A0\u09BE\u09A4\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u0997\u09CB\u09AA\u09BE\u09B2**, \u09AF\u09BF\u09A8\u09BF \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09AA\u09CD\u09B0\u09A5\u09AE \u0997\u09A3\u09A4\u09BE\u09A8\u09CD\u09A4\u09CD\u09B0\u09BF\u0995 \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF\u09A4\u09C7 \u09A8\u09BF\u09B0\u09CD\u09AC\u09BE\u099A\u09BF\u09A4 \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8\u0964\n\n### \u09E8. \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE (\u09E7\u09EE\u09EB\u09ED - \u09E7\u09EF\u09EA\u09ED):\n* **\u09E7\u09EE\u09EB\u09ED:** \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 (\u09AE\u0999\u09CD\u0997\u09B2 \u09AA\u09BE\u09A8\u09CD\u09A1\u09C7 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B6\u09B9\u09C0\u09A6 \u09B9\u09A8)\u0964\n* **\u09E7\u09EF\u09E6\u09EB:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 (\u09B2\u09B0\u09CD\u09A1 \u0995\u09BE\u09B0\u09CD\u099C\u09A8 \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09E7\u09E7:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 \u09B0\u09A6 (\u09B2\u09B0\u09CD\u09A1 \u09B9\u09BE\u09B0\u09CD\u09A1\u09BF\u099E\u09CD\u099C \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09EA\u09E8:** \u09AD\u09BE\u09B0\u09A4 \u099B\u09BE\u09DC\u09CB \u0986\u09A8\u09CD\u09A6\u09CB\u09B2\u09A8\u0964\n* **\u09E7\u09EF\u09EA\u09ED:** \u09AD\u09BE\u09B0\u09A4 \u0993 \u09AA\u09BE\u0995\u09BF\u09B8\u09CD\u09A4\u09BE\u09A8\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B2\u09BE\u09AD\u0964",
         mcqs: [
           {
-            question: "বাংলার প্রথম স্বাধীন ও সার্বভৌম রাজা কে ছিলেন?",
-            options: ["শশাঙ্ক", "গোপাল", "ধর্মপাল", "লক্ষণ সেন"],
-            correctAnswer: "শশাঙ্ক",
-            explanation: "রাজা শশাঙ্ক সপ্তম শতাব্দীর শুরুতে প্রাচীন বাংলার গৌড় রাজ্যের প্রথম স্বাধীন ও সার্বভৌম শাসক ছিলেন।"
-          }
+            question:
+              "\u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B0\u09BE\u099C\u09BE \u0995\u09C7 \u099B\u09BF\u09B2\u09C7\u09A8?",
+            options: [
+              "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
+              "\u0997\u09CB\u09AA\u09BE\u09B2",
+              "\u09A7\u09B0\u09CD\u09AE\u09AA\u09BE\u09B2",
+              "\u09B2\u0995\u09CD\u09B7\u09A3 \u09B8\u09C7\u09A8",
+            ],
+            correctAnswer: "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
+            explanation:
+              "\u09B0\u09BE\u099C\u09BE \u09B6\u09B6\u09BE\u0999\u09CD\u0995 \u09B8\u09AA\u09CD\u09A4\u09AE \u09B6\u09A4\u09BE\u09AC\u09CD\u09A6\u09C0\u09B0 \u09B6\u09C1\u09B0\u09C1\u09A4\u09C7 \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0997\u09CC\u09A1\u09BC \u09B0\u09BE\u099C\u09CD\u09AF\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B6\u09BE\u09B8\u0995 \u099B\u09BF\u09B2\u09C7\u09A8\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-geography",
         subject: "geography",
-        title: "July 2026 - Geography: Physical Geography of Bengal & River Systems",
-        introduction: "বাংলাদেশ ও ভারতের ভৌগোলিক অবস্থান, ভূপ্রকৃতি, নদনদী এবং জলবায়ু পরিবর্তন সংক্রান্ত গুরুত্বপূর্ণ তথ্যাবলী।",
-        keyTopics: ["Geographical Boundaries", "River Systems of Bengal", "Natural Disasters"],
-        theoryContent: "### ১. বাংলার ভৌগোলিক অবস্থান ও সীমানা:\n* বাংলার উপর দিয়ে **কর্কটক্রান্তি রেখা (Tropic of Cancer)** অতিবাহিত হয়েছে।\n* পৃথিবীর দীর্ঘতম সমুদ্র সৈকত **কক্সবাজার** এবং বৃহত্তম ম্যানগ্রোভ বন **সুন্দরবন** বাংলায় অবস্থিত।\n\n### ২. নদনদী ও উপনদী:\n* পদ্মা নদী ভারতে **গঙ্গা** নামে পরিচিত। এটি চাঁপাইনবাবগঞ্জ দিয়ে বাংলাদেশে প্রবেশ করেছে।\n* ব্রহ্মপুত্র নদ কুড়িগ্রাম জেলার মধ্য দিয়ে বাংলাদেশে প্রবেশ করে পরবর্তীতে যমুনা নামে প্রবাহিত হয়েছে।",
+        title:
+          "July 2026 - Geography: Physical Geography of Bengal & River Systems",
+        introduction:
+          "\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8, \u09AD\u09C2\u09AA\u09CD\u09B0\u0995\u09C3\u09A4\u09BF, \u09A8\u09A6\u09A8\u09A6\u09C0 \u098F\u09AC\u0982 \u099C\u09B2\u09AC\u09BE\u09AF\u09BC\u09C1 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09A4\u09A5\u09CD\u09AF\u09BE\u09AC\u09B2\u09C0\u0964",
+        keyTopics: [
+          "Geographical Boundaries",
+          "River Systems of Bengal",
+          "Natural Disasters",
+        ],
+        theoryContent:
+          "### \u09E7. \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u0993 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE:\n* \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 **\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE (Tropic of Cancer)** \u0985\u09A4\u09BF\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964\n* \u09AA\u09C3\u09A5\u09BF\u09AC\u09C0\u09B0 \u09A6\u09C0\u09B0\u09CD\u0998\u09A4\u09AE \u09B8\u09AE\u09C1\u09A6\u09CD\u09B0 \u09B8\u09C8\u0995\u09A4 **\u0995\u0995\u09CD\u09B8\u09AC\u09BE\u099C\u09BE\u09B0** \u098F\u09AC\u0982 \u09AC\u09C3\u09B9\u09A4\u09CD\u09A4\u09AE \u09AE\u09CD\u09AF\u09BE\u09A8\u0997\u09CD\u09B0\u09CB\u09AD \u09AC\u09A8 **\u09B8\u09C1\u09A8\u09CD\u09A6\u09B0\u09AC\u09A8** \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u0985\u09AC\u09B8\u09CD\u09A5\u09BF\u09A4\u0964\n\n### \u09E8. \u09A8\u09A6\u09A8\u09A6\u09C0 \u0993 \u0989\u09AA\u09A8\u09A6\u09C0:\n* \u09AA\u09A6\u09CD\u09AE\u09BE \u09A8\u09A6\u09C0 \u09AD\u09BE\u09B0\u09A4\u09C7 **\u0997\u0999\u09CD\u0997\u09BE** \u09A8\u09BE\u09AE\u09C7 \u09AA\u09B0\u09BF\u099A\u09BF\u09A4\u0964 \u098F\u099F\u09BF \u099A\u09BE\u0981\u09AA\u09BE\u0987\u09A8\u09AC\u09BE\u09AC\u0997\u099E\u09CD\u099C \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7\u099B\u09C7\u0964\n* \u09AC\u09CD\u09B0\u09B9\u09CD\u09AE\u09AA\u09C1\u09A4\u09CD\u09B0 \u09A8\u09A6 \u0995\u09C1\u09DC\u09BF\u0997\u09CD\u09B0\u09BE\u09AE \u099C\u09C7\u09B2\u09BE\u09B0 \u09AE\u09A7\u09CD\u09AF \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7 \u09AA\u09B0\u09AC\u09B0\u09CD\u09A4\u09C0\u09A4\u09C7 \u09AF\u09AE\u09C1\u09A8\u09BE \u09A8\u09BE\u09AE\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
         mcqs: [
           {
-            question: "কর্কটক্রান্তি রেখা বাংলার কোন অংশের উপর দিয়ে গিয়েছে?",
-            options: ["ঠিক মাঝখান দিয়ে", "উত্তরাঞ্চল দিয়ে", "দক্ষিণাঞ্চল দিয়ে", "সীমান্তবর্তী এলাকা দিয়ে"],
-            correctAnswer: "ঠিক মাঝখান দিয়ে",
-            explanation: "২৩.৫ ডিগ্রি উত্তর অক্ষাংশ বা কর্কটক্রান্তি রেখা বাংলার (বাংলাদেশ ও পশ্চিমবঙ্গ) প্রায় মাঝখান দিয়ে প্রবাহিত হয়েছে।"
-          }
+            question:
+              "\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0995\u09CB\u09A8 \u0985\u0982\u09B6\u09C7\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 \u0997\u09BF\u09DF\u09C7\u099B\u09C7?",
+            options: [
+              "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
+              "\u0989\u09A4\u09CD\u09A4\u09B0\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
+              "\u09A6\u0995\u09CD\u09B7\u09BF\u09A3\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
+              "\u09B8\u09C0\u09AE\u09BE\u09A8\u09CD\u09A4\u09AC\u09B0\u09CD\u09A4\u09C0 \u098F\u09B2\u09BE\u0995\u09BE \u09A6\u09BF\u09DF\u09C7",
+            ],
+            correctAnswer:
+              "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
+            explanation:
+              "\u09E8\u09E9.\u09EB \u09A1\u09BF\u0997\u09CD\u09B0\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u0985\u0995\u09CD\u09B7\u09BE\u0982\u09B6 \u09AC\u09BE \u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 (\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE\u09AC\u0999\u09CD\u0997) \u09AA\u09CD\u09B0\u09BE\u09DF \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-polity",
         subject: "polity",
-        title: "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
-        introduction: "সংবিধানের প্রধান বৈশিষ্ট্যসমূহ, মৌলিক অধিকার, এবং সরকারি নীতি নির্ধারণের মূল উৎসসমূহ সহজ ভাষায় আলোচনা।",
-        keyTopics: ["Preamble & Structure", "Fundamental Rights", "Directive Principles"],
-        theoryContent: "### ১. সংবিধানের কাঠামো:\n* সংবিধান হলো রাষ্ট্রের সর্বোচ্চ আইন।\n* মূল সংবিধানে নাগরিকদের মৌলিক অধিকারগুলো সুনির্দিষ্টভাবে বর্ণনা করা থাকে।\n\n### ২. মৌলিক অধিকারসমূহ (Fundamental Rights):\n* আইন বা আদালতের মাধ্যমে মৌলিক অধিকার প্রয়োগ করা যায়।\n* রাষ্ট্রের জরুরি অবস্থায় নাগরিক অধিকার সাময়িকভাবে স্থগিত করা হতে পারে।",
+        title:
+          "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
+        introduction:
+          "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AC\u09C8\u09B6\u09BF\u09B7\u09CD\u099F\u09CD\u09AF\u09B8\u09AE\u09C2\u09B9, \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0, \u098F\u09AC\u0982 \u09B8\u09B0\u0995\u09BE\u09B0\u09BF \u09A8\u09C0\u09A4\u09BF \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3\u09C7\u09B0 \u09AE\u09C2\u09B2 \u0989\u09CE\u09B8\u09B8\u09AE\u09C2\u09B9 \u09B8\u09B9\u099C \u09AD\u09BE\u09B7\u09BE\u09DF \u0986\u09B2\u09CB\u099A\u09A8\u09BE\u0964",
+        keyTopics: [
+          "Preamble & Structure",
+          "Fundamental Rights",
+          "Directive Principles",
+        ],
+        theoryContent:
+          "### \u09E7. \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB:\n* \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B9\u09B2\u09CB \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09B8\u09B0\u09CD\u09AC\u09CB\u099A\u09CD\u099A \u0986\u0987\u09A8\u0964\n* \u09AE\u09C2\u09B2 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u0997\u09C1\u09B2\u09CB \u09B8\u09C1\u09A8\u09BF\u09B0\u09CD\u09A6\u09BF\u09B7\u09CD\u099F\u09AD\u09BE\u09AC\u09C7 \u09AC\u09B0\u09CD\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09A5\u09BE\u0995\u09C7\u0964\n\n### \u09E8. \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09B8\u09AE\u09C2\u09B9 (Fundamental Rights):\n* \u0986\u0987\u09A8 \u09AC\u09BE \u0986\u09A6\u09BE\u09B2\u09A4\u09C7\u09B0 \u09AE\u09BE\u09A7\u09CD\u09AF\u09AE\u09C7 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u0995\u09B0\u09BE \u09AF\u09BE\u09DF\u0964\n* \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u099C\u09B0\u09C1\u09B0\u09BF \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09DF \u09A8\u09BE\u0997\u09B0\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09B8\u09BE\u09AE\u09DF\u09BF\u0995\u09AD\u09BE\u09AC\u09C7 \u09B8\u09CD\u09A5\u0997\u09BF\u09A4 \u0995\u09B0\u09BE \u09B9\u09A4\u09C7 \u09AA\u09BE\u09B0\u09C7\u0964",
         mcqs: [
           {
-            question: "কোনো দেশের সংবিধানের প্রধান কাজ কী?",
+            question:
+              "\u0995\u09CB\u09A8\u09CB \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u0995\u09BE\u099C \u0995\u09C0?",
             options: [
-              "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+              "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
               " his/her basic tax",
-              "বিদেশি সম্পর্ক নিয়ন্ত্রণ করা",
-              "বিচারকদের বেতন নির্ধারণ করা"
+              "\u09AC\u09BF\u09A6\u09C7\u09B6\u09BF \u09B8\u09AE\u09CD\u09AA\u09B0\u09CD\u0995 \u09A8\u09BF\u09DF\u09A8\u09CD\u09A4\u09CD\u09B0\u09A3 \u0995\u09B0\u09BE",
+              "\u09AC\u09BF\u099A\u09BE\u09B0\u0995\u09A6\u09C7\u09B0 \u09AC\u09C7\u09A4\u09A8 \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3 \u0995\u09B0\u09BE",
             ],
-            correctAnswer: "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
-            explanation: "সংবিধান রাষ্ট্রের মৌলিক আইন যা সরকারের কাঠামো ও নাগরিকদের অধিকারের গ্যারান্টি দেয়।"
-          }
+            correctAnswer:
+              "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
+            explanation:
+              "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0986\u0987\u09A8 \u09AF\u09BE \u09B8\u09B0\u0995\u09BE\u09B0\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB \u0993 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09C7\u09B0 \u0997\u09CD\u09AF\u09BE\u09B0\u09BE\u09A8\u09CD\u099F\u09BF \u09A6\u09C7\u09DF\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: "pdfn-seed-economics",
         subject: "economics",
-        title: "July 2026 - Economics: National Income & Five-Year Planning Analysis",
-        introduction: "জিডিপি, জিএনপি এবং পঞ্চবার্ষিক পরিকল্পনা ও বাজেট সংক্রান্ত অর্থনৈতিক জটিল শব্দসমূহের সহজ বিশ্লেষণ।",
-        keyTopics: ["National Income (GDP, GNP)", "Inflation & Banking", "Five-Year Plans"],
-        theoryContent: "### ১. জাতীয় আয় পরিমাপের উপাদান:\n* **GDP (Gross Domestic Product):** একটি দেশের ভৌগোলিক সীমানার ভিতরে উৎপাদিত মোট পণ্য ও সেবার মূল্য।\n* **GNP (Gross National Product):** দেশের নাগরিকদের উৎপাদিত মোট পণ্য ও সেবা (দেশ এবং বিদেশে)।\n\n### ২. মুদ্রাস্ফীতি (Inflation):\n* বাজারে মুদ্রার সরবরাহ বেড়ে গেলে পণ্যের দাম বাড়ে এবং টাকার মান কমে যায়, একে মুদ্রাস্ফীতি বলে।",
+        title:
+          "July 2026 - Economics: National Income & Five-Year Planning Analysis",
+        introduction:
+          "\u099C\u09BF\u09A1\u09BF\u09AA\u09BF, \u099C\u09BF\u098F\u09A8\u09AA\u09BF \u098F\u09AC\u0982 \u09AA\u099E\u09CD\u099A\u09AC\u09BE\u09B0\u09CD\u09B7\u09BF\u0995 \u09AA\u09B0\u09BF\u0995\u09B2\u09CD\u09AA\u09A8\u09BE \u0993 \u09AC\u09BE\u099C\u09C7\u099F \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0985\u09B0\u09CD\u09A5\u09A8\u09C8\u09A4\u09BF\u0995 \u099C\u099F\u09BF\u09B2 \u09B6\u09AC\u09CD\u09A6\u09B8\u09AE\u09C2\u09B9\u09C7\u09B0 \u09B8\u09B9\u099C \u09AC\u09BF\u09B6\u09CD\u09B2\u09C7\u09B7\u09A3\u0964",
+        keyTopics: [
+          "National Income (GDP, GNP)",
+          "Inflation & Banking",
+          "Five-Year Plans",
+        ],
+        theoryContent:
+          "### \u09E7. \u099C\u09BE\u09A4\u09C0\u09DF \u0986\u09DF \u09AA\u09B0\u09BF\u09AE\u09BE\u09AA\u09C7\u09B0 \u0989\u09AA\u09BE\u09A6\u09BE\u09A8:\n* **GDP (Gross Domestic Product):** \u098F\u0995\u099F\u09BF \u09A6\u09C7\u09B6\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09BF\u09A4\u09B0\u09C7 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF\u0964\n* **GNP (Gross National Product):** \u09A6\u09C7\u09B6\u09C7\u09B0 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE (\u09A6\u09C7\u09B6 \u098F\u09AC\u0982 \u09AC\u09BF\u09A6\u09C7\u09B6\u09C7)\u0964\n\n### \u09E8. \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF (Inflation):\n* \u09AC\u09BE\u099C\u09BE\u09B0\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B0 \u09B8\u09B0\u09AC\u09B0\u09BE\u09B9 \u09AC\u09C7\u09DC\u09C7 \u0997\u09C7\u09B2\u09C7 \u09AA\u09A3\u09CD\u09AF\u09C7\u09B0 \u09A6\u09BE\u09AE \u09AC\u09BE\u09DC\u09C7 \u098F\u09AC\u0982 \u099F\u09BE\u0995\u09BE\u09B0 \u09AE\u09BE\u09A8 \u0995\u09AE\u09C7 \u09AF\u09BE\u09DF, \u098F\u0995\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF \u09AC\u09B2\u09C7\u0964",
         mcqs: [
           {
-            question: "GDP এবং GNP এর মধ্যে প্রধান পার্থক্য কী?",
+            question:
+              "GDP \u098F\u09AC\u0982 GNP \u098F\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u0995\u09C0?",
             options: [
-              "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
-              "ট্যাক্স ও ভ্যাট সংক্রান্ত হিসাব",
-              "আমদানি ও রপ্তানির অনুপাত",
-              "কোনো পার্থক্য নেই"
+              "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
+              "\u099F\u09CD\u09AF\u09BE\u0995\u09CD\u09B8 \u0993 \u09AD\u09CD\u09AF\u09BE\u099F \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u09B9\u09BF\u09B8\u09BE\u09AC",
+              "\u0986\u09AE\u09A6\u09BE\u09A8\u09BF \u0993 \u09B0\u09AA\u09CD\u09A4\u09BE\u09A8\u09BF\u09B0 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4",
+              "\u0995\u09CB\u09A8\u09CB \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u09A8\u09C7\u0987",
             ],
-            correctAnswer: "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
-            explanation: "GDP গণনা করা হয় ভৌগোলিক সীমানার ভেতরের উৎপাদনের ওপর ভিত্তি করে, আর GNP দেশের সকল নাগরিকের মোট আয়ের ওপর ভিত্তি করে।"
-          }
+            correctAnswer:
+              "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
+            explanation:
+              "GDP \u0997\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09C7\u09A4\u09B0\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7, \u0986\u09B0 GNP \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0995\u09B2 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09C7\u09B0 \u09AE\u09CB\u099F \u0986\u09DF\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7\u0964",
+          },
         ],
         month: "July 2026",
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     ];
-
     if (firestore) {
       for (const note of seedData) {
         await firestore.collection("aiPdfNotes").doc(note.id).set(note);
       }
     } else {
-      // no-op
     }
     console.log("AI PDF Notes successfully seeded in database!");
   } catch (error) {
     console.error("Error seeding AI PDF notes:", error);
   }
 }
-
-// --- App Updates API ---
-app.get("/api/updates/check", (req: express.Request, res: express.Response) => {
+__name(deprecatedSeedAiPdfNotes, "deprecatedSeedAiPdfNotes");
+app.get("/api/updates/check", (req, res) => {
   try {
     const currentVersion = (req.query.currentVersion as string) || "1.0.0";
-    
-    // Always provide a newer version for demonstration purposes
-    const parts = currentVersion.split('.').map(Number);
+    const parts = currentVersion.split(".").map(Number);
     const major = parts[0] || 1;
     const minor = parts[1] || 0;
     const patch = parts[2] || 0;
     const nextVersion = `${major}.${minor}.${patch + 1}`;
-    
     res.json({
       latestVersion: nextVersion,
-      changelog: "New feature updates, performance improvements, and bug fixes."
+      changelog:
+        "New feature updates, performance improvements, and bug fixes.",
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to read server version" });
   }
 });
-
-app.post("/api/updates/install", (req: express.Request, res: express.Response) => {
-  // Client handles storing the updated version
+app.post("/api/updates/install", (req, res) => {
   res.json({ success: true });
 });
-
-// --- Video Lectures API ---
-app.get("/api/videos", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/videos", async (req, res) => {
   try {
     const videosList = await getVideoLectures();
     res.json(videosList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching video lectures:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/videos", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/videos", async (req, res) => {
   const video = req.body;
   if (!video.id || !video.title || !video.videoUrl) {
-    return res.status(400).json({ error: "Missing required fields (id, title, videoUrl)" });
+    return res
+      .status(400)
+      .json({ error: "Missing required fields (id, title, videoUrl)" });
   }
   try {
     const saved = await saveVideoLecture(video);
-    
-    // Create global notification
     await createNotification({
-      title: "নতুন ভিডিও লেকচার যুক্ত করা হয়েছে",
-      message: `প্রশাসক দ্বারা একটি নতুন ভিডিও লেকচার আপলোড করা হয়েছে: "${video.title}"`,
-      type: "video"
+      title:
+        "\u09A8\u09A4\u09C1\u09A8 \u09AD\u09BF\u09A1\u09BF\u0993 \u09B2\u09C7\u0995\u099A\u09BE\u09B0 \u09AF\u09C1\u0995\u09CD\u09A4 \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7",
+      message: `\u09AA\u09CD\u09B0\u09B6\u09BE\u09B8\u0995 \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE \u098F\u0995\u099F\u09BF \u09A8\u09A4\u09C1\u09A8 \u09AD\u09BF\u09A1\u09BF\u0993 \u09B2\u09C7\u0995\u099A\u09BE\u09B0 \u0986\u09AA\u09B2\u09CB\u09A1 \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7: "${video.title}"`,
+      type: "video",
     });
-    
     res.status(201).json(saved);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error saving video lecture:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/videos/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/videos/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const success = await deleteVideoLecture(id);
     res.json({ success });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting video lecture:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/videos/:id/comments", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/videos/:id/comments", async (req, res) => {
   const { id } = req.params;
   const comment = req.body;
   if (!comment.senderEmail || !comment.comment) {
@@ -1925,7 +1937,7 @@ app.post("/api/videos/:id/comments", async (req: express.Request, res: express.R
   }
   try {
     const videosList = await getVideoLectures();
-    const video = videosList.find((v: any) => v.id === id);
+    const video = videosList.find((v) => v.id === id);
     if (!video) {
       return res.status(404).json({ error: "Video not found" });
     }
@@ -1933,97 +1945,90 @@ app.post("/api/videos/:id/comments", async (req: express.Request, res: express.R
     video.comments.push(comment);
     await saveVideoLecture(video);
     res.status(201).json(comment);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error adding comment to video:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/videos/:id/comments/:commentId", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/videos/:id/comments/:commentId", async (req, res) => {
   const { id, commentId } = req.params;
   try {
     const videosList = await getVideoLectures();
-    const video = videosList.find((v: any) => v.id === id);
+    const video = videosList.find((v) => v.id === id);
     if (!video) {
       return res.status(404).json({ error: "Video not found" });
     }
     if (video.comments) {
-      video.comments = video.comments.filter((c: any) => c.id !== commentId);
+      video.comments = video.comments.filter((c) => c.id !== commentId);
     }
     await saveVideoLecture(video);
     res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting comment from video:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Notifications API ---
-app.get("/api/notifications", async (req: express.Request, res: express.Response): Promise<any> => {
+app.get("/api/notifications", async (req, res) => {
   const { userEmail } = req.query;
   try {
     const notificationsList = await getNotifications(userEmail as string);
     res.json(notificationsList);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching notifications:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/notifications", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/notifications", async (req, res) => {
   try {
     const notification = req.body;
     const saved = await createNotification(notification);
     res.status(201).json(saved);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating custom notification:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/notifications/:id/read", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/notifications/:id/read", async (req, res) => {
   const { id } = req.params;
   try {
     const success = await markNotificationAsRead(id);
     res.json({ success });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error marking notification as read:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.post("/api/notifications/read-all", async (req: express.Request, res: express.Response): Promise<any> => {
+app.post("/api/notifications/read-all", async (req, res) => {
   const { userEmail } = req.body;
   try {
     const success = await markAllNotificationsAsRead(userEmail);
     res.json({ success });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error marking all notifications as read:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-app.delete("/api/notifications/:id", async (req: express.Request, res: express.Response): Promise<any> => {
+app.delete("/api/notifications/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const success = await deleteNotification(id);
     res.json({ success });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting notification:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-// Start express server and integrate Vite
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     app.use((req, res, next) => {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate",
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       next();
     });
-
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -2031,35 +2036,42 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    
-    app.use(express.static(distPath, {
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.webmanifest') || filePath.endsWith('.json')) {
-          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
-        } else {
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      }
-    }));
-    
+    app.use(
+      express.static(distPath, {
+        setHeaders: __name((res, filePath) => {
+          if (
+            filePath.endsWith(".html") ||
+            filePath.endsWith(".js") ||
+            filePath.endsWith(".webmanifest") ||
+            filePath.endsWith(".json")
+          ) {
+            res.setHeader(
+              "Cache-Control",
+              "no-cache, no-store, must-revalidate",
+            );
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+          } else {
+            res.setHeader(
+              "Cache-Control",
+              "public, max-age=31536000, immutable",
+            );
+          }
+        }, "setHeaders"),
+      }),
+    );
     app.get("*", (req, res) => {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
-
-  // Initialize Database (Neon or Local fallback)
   try {
     await initDatabase();
   } catch (err) {
     console.error("Database initialization failed:", err);
   }
-
-  // Seed AI PDF Notes
   try {
     const count = await getAiPdfNotesCount();
     if (count === 0) {
@@ -2067,52 +2079,89 @@ async function startServer() {
         {
           id: "pdfn-seed-math",
           subject: "math",
-          title: "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
-          introduction: "এই গাইডটিতে শতকরা ও অনুপাতের জটিল অংকগুলো মাত্র ৫-১০ সেকেন্ডে সমাধান করার শর্টকাট টেকনিক ও গুরুত্বপূর্ণ প্রশ্ন আলোচনা করা হয়েছে।",
-          keyTopics: ["Percentage Rules", "Ratio & Proportion", "BCS Prep Hacks"],
-          theoryContent: "### ১. শতকরা নির্নয়ের ম্যাজিক ট্রিক (Percentage Shortcuts):\nশতকরা অংকগুলো সহজে করার জন্য ভগ্নাংশে রূপান্তর করা শিখতে হবে।\n* ২০% = ১/৫\n* ২৫% = ১/৪\n* ৫০% = ১/২\n\n** can_be_applied:** চালের মূল্য ২০% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচের কোনো পরিবর্তন হবে না?\n* **শর্টকাট সূত্র:** (R / (100 + R)) * 100\n* সমাধান: (২০ / ১২০) * ১০০ = ১৬.৬৭%\n\n### ২. অনুপাত ও অংশীদারিত্ব (Ratio & Proportion Hacks):\nযদি A:B = 2:3 এবং B:C = 4:5 হয়, তবে A:B:C = ?\n* **শর্টকাট 'দ' পদ্ধতি:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * উত্তর: 8:12:15",
+          title:
+            "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
+          introduction:
+            "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B6\u09A4\u0995\u09B0\u09BE \u0993 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u09C7\u09B0 \u099C\u099F\u09BF\u09B2 \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09AE\u09BE\u09A4\u09CD\u09B0 \u09EB-\u09E7\u09E6 \u09B8\u09C7\u0995\u09C7\u09A8\u09CD\u09A1\u09C7 \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8 \u0995\u09B0\u09BE\u09B0 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09C7\u0995\u09A8\u09BF\u0995 \u0993 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0986\u09B2\u09CB\u099A\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
+          keyTopics: [
+            "Percentage Rules",
+            "Ratio & Proportion",
+            "BCS Prep Hacks",
+          ],
+          theoryContent:
+            "### \u09E7. \u09B6\u09A4\u0995\u09B0\u09BE \u09A8\u09BF\u09B0\u09CD\u09A8\u09DF\u09C7\u09B0 \u09AE\u09CD\u09AF\u09BE\u099C\u09BF\u0995 \u099F\u09CD\u09B0\u09BF\u0995 (Percentage Shortcuts):\n\u09B6\u09A4\u0995\u09B0\u09BE \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09B8\u09B9\u099C\u09C7 \u0995\u09B0\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF \u09AD\u0997\u09CD\u09A8\u09BE\u0982\u09B6\u09C7 \u09B0\u09C2\u09AA\u09BE\u09A8\u09CD\u09A4\u09B0 \u0995\u09B0\u09BE \u09B6\u09BF\u0996\u09A4\u09C7 \u09B9\u09AC\u09C7\u0964\n* \u09E8\u09E6% = \u09E7/\u09EB\n* \u09E8\u09EB% = \u09E7/\u09EA\n* \u09EB\u09E6% = \u09E7/\u09E8\n\n** can_be_applied:** \u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09E6% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A\u09C7\u09B0 \u0995\u09CB\u09A8\u09CB \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B9\u09AC\u09C7 \u09A8\u09BE?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u09B8\u09C2\u09A4\u09CD\u09B0:** (R / (100 + R)) * 100\n* \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8: (\u09E8\u09E6 / \u09E7\u09E8\u09E6) * \u09E7\u09E6\u09E6 = \u09E7\u09EC.\u09EC\u09ED%\n\n### \u09E8. \u0985\u09A8\u09C1\u09AA\u09BE\u09A4 \u0993 \u0985\u0982\u09B6\u09C0\u09A6\u09BE\u09B0\u09BF\u09A4\u09CD\u09AC (Ratio & Proportion Hacks):\n\u09AF\u09A6\u09BF A:B = 2:3 \u098F\u09AC\u0982 B:C = 4:5 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C = ?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F '\u09A6' \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * \u0989\u09A4\u09CD\u09A4\u09B0: 8:12:15",
           mcqs: [
             {
-              question: "চালের মূল্য ২৫% বৃদ্ধি পেলে চালের ব্যবহার শতকরা কত কমালে খরচ অপরিবর্তিত থাকবে?",
-              options: ["২০%", "২৫%", "১৬.৬৭%", "১৫%"],
-              correctAnswer: "২০%",
-              explanation: "সূত্র: (R / (100+R)) * 100 => (25/125)*100 = 20%."
+              question:
+                "\u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09EB% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A \u0985\u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09A5\u09BE\u0995\u09AC\u09C7?",
+              options: [
+                "\u09E8\u09E6%",
+                "\u09E8\u09EB%",
+                "\u09E7\u09EC.\u09EC\u09ED%",
+                "\u09E7\u09EB%",
+              ],
+              correctAnswer: "\u09E8\u09E6%",
+              explanation:
+                "\u09B8\u09C2\u09A4\u09CD\u09B0: (R / (100+R)) * 100 => (25/125)*100 = 20%.",
             },
             {
-              question: "যদি A:B = 3:4 এবং B:C = 5:6 হয়, তবে A:B:C কত?",
+              question:
+                "\u09AF\u09A6\u09BF A:B = 3:4 \u098F\u09AC\u0982 B:C = 5:6 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C \u0995\u09A4?",
               options: ["15:20:24", "15:24:20", "3:5:6", "9:12:16"],
               correctAnswer: "15:20:24",
-              explanation: "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. সুতরাং অনুপাতটি ১৫:২০:২৪।"
-            }
+              explanation:
+                "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. \u09B8\u09C1\u09A4\u09B0\u09BE\u0982 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u099F\u09BF \u09E7\u09EB:\u09E8\u09E6:\u09E8\u09EA\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-reasoning",
           subject: "reasoning",
-          title: "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
-          introduction: "এই গাইডটিতে রিজনিং বা মানসিক দক্ষতার সবচেয়ে গুরুত্বপূর্ণ টপিক কোডিং-ডিকোডিং এবং দিক নির্ণয় সংক্রান্ত শর্টকাট ট্রিক্স দেওয়া হলো।",
-          keyTopics: ["Alphabet Series Codes", "Direction & Distances", "Visual Analogy"],
-          theoryContent: "### ১. কোডিং-ডিকোডিং সহজ করার নিয়ম:\nইংরেজি বর্ণমালার অবস্থান সহজে মনে রাখার জন্য **EJOTY** সূত্র ব্যবহার করুন:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n** can_be_applied:** যদি CAT কে ২৫ লেখা হয়, তবে DOG কে কত লেখা হবে?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### ২. দিক নির্ণয় (Direction Sense):\nসব সময় নিজের ডানদিককে পূর্ব (East),বামদিককে পশ্চিম (West), সামনের দিককে উত্তর (North), এবং পিছনের দিককে দক্ষিণ (South) হিসেবে ধরে নিন। পিথাগোরাসের উপপাদ্য ( can be applied: অতিভুজ² = লম্ব² + ভূমি²) ব্যবহার করে দূরত্ব বের করুন।",
+          title:
+            "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
+          introduction:
+            "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B0\u09BF\u099C\u09A8\u09BF\u0982 \u09AC\u09BE \u09AE\u09BE\u09A8\u09B8\u09BF\u0995 \u09A6\u0995\u09CD\u09B7\u09A4\u09BE\u09B0 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u099F\u09AA\u09BF\u0995 \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u098F\u09AC\u0982 \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09CD\u09B0\u09BF\u0995\u09CD\u09B8 \u09A6\u09C7\u0993\u09DF\u09BE \u09B9\u09B2\u09CB\u0964",
+          keyTopics: [
+            "Alphabet Series Codes",
+            "Direction & Distances",
+            "Visual Analogy",
+          ],
+          theoryContent:
+            "### \u09E7. \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u09B8\u09B9\u099C \u0995\u09B0\u09BE\u09B0 \u09A8\u09BF\u09DF\u09AE:\n\u0987\u0982\u09B0\u09C7\u099C\u09BF \u09AC\u09B0\u09CD\u09A3\u09AE\u09BE\u09B2\u09BE\u09B0 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u09B8\u09B9\u099C\u09C7 \u09AE\u09A8\u09C7 \u09B0\u09BE\u0996\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF **EJOTY** \u09B8\u09C2\u09A4\u09CD\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C1\u09A8:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n** can_be_applied:** \u09AF\u09A6\u09BF CAT \u0995\u09C7 \u09E8\u09EB \u09B2\u09C7\u0996\u09BE \u09B9\u09DF, \u09A4\u09AC\u09C7 DOG \u0995\u09C7 \u0995\u09A4 \u09B2\u09C7\u0996\u09BE \u09B9\u09AC\u09C7?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### \u09E8. \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF (Direction Sense):\n\u09B8\u09AC \u09B8\u09AE\u09DF \u09A8\u09BF\u099C\u09C7\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09C2\u09B0\u09CD\u09AC (East),\u09AC\u09BE\u09AE\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE (West), \u09B8\u09BE\u09AE\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u0989\u09A4\u09CD\u09A4\u09B0 (North), \u098F\u09AC\u0982 \u09AA\u09BF\u099B\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u09A6\u0995\u09CD\u09B7\u09BF\u09A3 (South) \u09B9\u09BF\u09B8\u09C7\u09AC\u09C7 \u09A7\u09B0\u09C7 \u09A8\u09BF\u09A8\u0964 \u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF ( can be applied: \u0985\u09A4\u09BF\u09AD\u09C1\u099C\xB2 = \u09B2\u09AE\u09CD\u09AC\xB2 + \u09AD\u09C2\u09AE\u09BF\xB2) \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C7 \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC \u09AC\u09C7\u09B0 \u0995\u09B0\u09C1\u09A8\u0964",
           mcqs: [
             {
-              question: "এক ব্যক্তি উত্তর দিকে ৪ কিমি হাঁটার পর ডানদিকে ঘুরে ৩ কিমি হাঁটলো। সে শুরুর স্থান থেকে এখন কত দূরে আছে?",
-              options: ["৫ কিমি", "৭ কিমি", "১ কিমি", "১২ কিমি"],
-              correctAnswer: "৫ কিমি",
-              explanation: "পিথাগোরাসের উপপাদ্য অনুসারে, দূরত্ব = √(৪² + ৩²) = √(১৬ + ৯) = √২৫ = ৫ কিমি।"
-            }
+              question:
+                "\u098F\u0995 \u09AC\u09CD\u09AF\u0995\u09CD\u09A4\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u09A6\u09BF\u0995\u09C7 \u09EA \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09BE\u09B0 \u09AA\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u09C7 \u0998\u09C1\u09B0\u09C7 \u09E9 \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09B2\u09CB\u0964 \u09B8\u09C7 \u09B6\u09C1\u09B0\u09C1\u09B0 \u09B8\u09CD\u09A5\u09BE\u09A8 \u09A5\u09C7\u0995\u09C7 \u098F\u0996\u09A8 \u0995\u09A4 \u09A6\u09C2\u09B0\u09C7 \u0986\u099B\u09C7?",
+              options: [
+                "\u09EB \u0995\u09BF\u09AE\u09BF",
+                "\u09ED \u0995\u09BF\u09AE\u09BF",
+                "\u09E7 \u0995\u09BF\u09AE\u09BF",
+                "\u09E7\u09E8 \u0995\u09BF\u09AE\u09BF",
+              ],
+              correctAnswer: "\u09EB \u0995\u09BF\u09AE\u09BF",
+              explanation:
+                "\u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF \u0985\u09A8\u09C1\u09B8\u09BE\u09B0\u09C7, \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC = \u221A(\u09EA\xB2 + \u09E9\xB2) = \u221A(\u09E7\u09EC + \u09EF) = \u221A\u09E8\u09EB = \u09EB \u0995\u09BF\u09AE\u09BF\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-english",
           subject: "english",
-          title: "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
-          introduction: "চাকরির পরীক্ষায় ইংরেজিতে সবচেয়ে বেশি আসা Subject-Verb Agreement এর জটিল নিয়মগুলো বাংলায় সহজ ব্যাখ্যাসহ শিখুন।",
-          keyTopics: ["Collective Noun Rules", "Either/Or, Neither/Nor Cases", "Prepositional Phrases"],
-          theoryContent: "### Rule 1: Collective Nouns\nCollective Noun সাধারণত singular verb গ্রহণ করে। কিন্তু তারা যদি বিভক্ত মতবাদ প্রকাশ করে, তবে plural verb হয়।\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or বা Neither... nor দ্বারা দুটি Subject যুক্ত থাকলে, verb সর্বদা দ্বিতীয়/নিকটবর্তী Subject অনুয়ায়ী পরিবর্তিত হয়।\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, তাই are হয়েছে)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, তাই is হয়েছে)",
+          title:
+            "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
+          introduction:
+            "\u099A\u09BE\u0995\u09B0\u09BF\u09B0 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE\u09DF \u0987\u0982\u09B0\u09C7\u099C\u09BF\u09A4\u09C7 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u09AC\u09C7\u09B6\u09BF \u0986\u09B8\u09BE Subject-Verb Agreement \u098F\u09B0 \u099C\u099F\u09BF\u09B2 \u09A8\u09BF\u09DF\u09AE\u0997\u09C1\u09B2\u09CB \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09B8\u09B9\u099C \u09AC\u09CD\u09AF\u09BE\u0996\u09CD\u09AF\u09BE\u09B8\u09B9 \u09B6\u09BF\u0996\u09C1\u09A8\u0964",
+          keyTopics: [
+            "Collective Noun Rules",
+            "Either/Or, Neither/Nor Cases",
+            "Prepositional Phrases",
+          ],
+          theoryContent:
+            "### Rule 1: Collective Nouns\nCollective Noun \u09B8\u09BE\u09A7\u09BE\u09B0\u09A3\u09A4 singular verb \u0997\u09CD\u09B0\u09B9\u09A3 \u0995\u09B0\u09C7\u0964 \u0995\u09BF\u09A8\u09CD\u09A4\u09C1 \u09A4\u09BE\u09B0\u09BE \u09AF\u09A6\u09BF \u09AC\u09BF\u09AD\u0995\u09CD\u09A4 \u09AE\u09A4\u09AC\u09BE\u09A6 \u09AA\u09CD\u09B0\u0995\u09BE\u09B6 \u0995\u09B0\u09C7, \u09A4\u09AC\u09C7 plural verb \u09B9\u09DF\u0964\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or \u09AC\u09BE Neither... nor \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE \u09A6\u09C1\u099F\u09BF Subject \u09AF\u09C1\u0995\u09CD\u09A4 \u09A5\u09BE\u0995\u09B2\u09C7, verb \u09B8\u09B0\u09CD\u09AC\u09A6\u09BE \u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF/\u09A8\u09BF\u0995\u099F\u09AC\u09B0\u09CD\u09A4\u09C0 Subject \u0985\u09A8\u09C1\u09DF\u09BE\u09DF\u09C0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09B9\u09DF\u0964\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, \u09A4\u09BE\u0987 are \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, \u09A4\u09BE\u0987 is \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)",
           mcqs: [
             {
               question: "Identify the correct sentence:",
@@ -2120,115 +2169,174 @@ async function startServer() {
                 "Many a boy has done his homework.",
                 "Many a boy have done their homework.",
                 "Many a boys have done his homework.",
-                "Many boys has done their homework."
+                "Many boys has done their homework.",
               ],
               correctAnswer: "Many a boy has done his homework.",
-              explanation: "'Many a' এর পর singular noun এবং singular verb বসে। তাই 'Many a boy has' সঠিক।"
-            }
+              explanation:
+                "'Many a' \u098F\u09B0 \u09AA\u09B0 singular noun \u098F\u09AC\u0982 singular verb \u09AC\u09B8\u09C7\u0964 \u09A4\u09BE\u0987 'Many a boy has' \u09B8\u09A0\u09BF\u0995\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-science",
           subject: "science",
-          title: "July 2026 - General Science: Physics Laws & Human Physiology Basics",
-          introduction: "পদার্থবিজ্ঞানের প্রধান সূত্রাবলী এবং জীববিজ্ঞানের মানবদেহ সম্পর্কিত অতি গুরুত্বপূর্ণ প্রশ্ন ও উত্তর।",
-          keyTopics: ["Newton's Laws of Motion", "Human Blood & Circulation", "Optical Instruments"],
-          theoryContent: "### ১. নিউটনের গতিসূত্র (Newton's Laws of Motion):\n* **প্রথম সূত্র:** বাহ্যিক বল প্রয়োগ না করলে স্থির বস্তু চিরকাল স্থির এবং গতিশীল বস্তু চিরকাল সুষম গতিতে চলতে থাকবে (জড়তার ধারণা)।\n* **দ্বিতীয় সূত্র:** gymnast-এর ভরবেগের পরিবর্তনের হার তার উপর প্রযুক্ত বলের সমানুপাতিক (F = ma)।\n* ** can_be_applied:** প্রত্যেক ক্রিয়ারই একটি সমান ও বিপরীত প্রতিক্রিয়া আছে।\n\n### ২. মানব রক্ত সংবহন (Human Blood Group):\n* **सर्वजनীন दता (Universal Donor):** O Negative (O-)\n* **सर्वजनীন ग्रहीতা (Universal Recipient):** AB Positive (AB+)",
+          title:
+            "July 2026 - General Science: Physics Laws & Human Physiology Basics",
+          introduction:
+            "\u09AA\u09A6\u09BE\u09B0\u09CD\u09A5\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09B8\u09C2\u09A4\u09CD\u09B0\u09BE\u09AC\u09B2\u09C0 \u098F\u09AC\u0982 \u099C\u09C0\u09AC\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AE\u09BE\u09A8\u09AC\u09A6\u09C7\u09B9 \u09B8\u09AE\u09CD\u09AA\u09B0\u09CD\u0995\u09BF\u09A4 \u0985\u09A4\u09BF \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0993 \u0989\u09A4\u09CD\u09A4\u09B0\u0964",
+          keyTopics: [
+            "Newton's Laws of Motion",
+            "Human Blood & Circulation",
+            "Optical Instruments",
+          ],
+          theoryContent:
+            "### \u09E7. \u09A8\u09BF\u0989\u099F\u09A8\u09C7\u09B0 \u0997\u09A4\u09BF\u09B8\u09C2\u09A4\u09CD\u09B0 (Newton's Laws of Motion):\n* **\u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09C2\u09A4\u09CD\u09B0:** \u09AC\u09BE\u09B9\u09CD\u09AF\u09BF\u0995 \u09AC\u09B2 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u09A8\u09BE \u0995\u09B0\u09B2\u09C7 \u09B8\u09CD\u09A5\u09BF\u09B0 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09CD\u09A5\u09BF\u09B0 \u098F\u09AC\u0982 \u0997\u09A4\u09BF\u09B6\u09C0\u09B2 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09C1\u09B7\u09AE \u0997\u09A4\u09BF\u09A4\u09C7 \u099A\u09B2\u09A4\u09C7 \u09A5\u09BE\u0995\u09AC\u09C7 (\u099C\u09DC\u09A4\u09BE\u09B0 \u09A7\u09BE\u09B0\u09A3\u09BE)\u0964\n* **\u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF \u09B8\u09C2\u09A4\u09CD\u09B0:** gymnast-\u098F\u09B0 \u09AD\u09B0\u09AC\u09C7\u0997\u09C7\u09B0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8\u09C7\u09B0 \u09B9\u09BE\u09B0 \u09A4\u09BE\u09B0 \u0989\u09AA\u09B0 \u09AA\u09CD\u09B0\u09AF\u09C1\u0995\u09CD\u09A4 \u09AC\u09B2\u09C7\u09B0 \u09B8\u09AE\u09BE\u09A8\u09C1\u09AA\u09BE\u09A4\u09BF\u0995 (F = ma)\u0964\n* ** can_be_applied:** \u09AA\u09CD\u09B0\u09A4\u09CD\u09AF\u09C7\u0995 \u0995\u09CD\u09B0\u09BF\u09DF\u09BE\u09B0\u0987 \u098F\u0995\u099F\u09BF \u09B8\u09AE\u09BE\u09A8 \u0993 \u09AC\u09BF\u09AA\u09B0\u09C0\u09A4 \u09AA\u09CD\u09B0\u09A4\u09BF\u0995\u09CD\u09B0\u09BF\u09DF\u09BE \u0986\u099B\u09C7\u0964\n\n### \u09E8. \u09AE\u09BE\u09A8\u09AC \u09B0\u0995\u09CD\u09A4 \u09B8\u0982\u09AC\u09B9\u09A8 (Human Blood Group):\n* **\u0938\u0930\u094D\u0935\u091C\u0928\u09C0\u09A8 \u0926\u0924\u093E (Universal Donor):** O Negative (O-)\n* **\u0938\u0930\u094D\u0935\u091C\u0928\u09C0\u09A8 \u0917\u094D\u0930\u0939\u0940\u09A4\u09BE (Universal Recipient):** AB Positive (AB+)",
           mcqs: [
             {
-              question: "কোন রক্ত গ্রুপকে সর্বজনীন দাতা বলা হয়?",
+              question:
+                "\u0995\u09CB\u09A8 \u09B0\u0995\u09CD\u09A4 \u0997\u09CD\u09B0\u09C1\u09AA\u0995\u09C7 \u09B8\u09B0\u09CD\u09AC\u099C\u09A8\u09C0\u09A8 \u09A6\u09BE\u09A4\u09BE \u09AC\u09B2\u09BE \u09B9\u09DF?",
               options: ["O-", "O+", "AB+", "A-"],
               correctAnswer: "O-",
-              explanation: "O Negative রক্তের গ্রুপে কোনো অ্যান্টিজেন থাকে না, তাই এটি যেকোনো রোগীকে দেওয়া যায়।"
-            }
+              explanation:
+                "O Negative \u09B0\u0995\u09CD\u09A4\u09C7\u09B0 \u0997\u09CD\u09B0\u09C1\u09AA\u09C7 \u0995\u09CB\u09A8\u09CB \u0985\u09CD\u09AF\u09BE\u09A8\u09CD\u099F\u09BF\u099C\u09C7\u09A8 \u09A5\u09BE\u0995\u09C7 \u09A8\u09BE, \u09A4\u09BE\u0987 \u098F\u099F\u09BF \u09AF\u09C7\u0995\u09CB\u09A8\u09CB \u09B0\u09CB\u0997\u09C0\u0995\u09C7 \u09A6\u09C7\u0993\u09DF\u09BE \u09AF\u09BE\u09DF\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-history",
           subject: "history",
-          title: "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
-          introduction: "প্রাচীন বাংলার শাসন ব্যবস্থা এবং সিপাহী বিদ্রোহ থেকে শুরু করে ১৯৪৭ সাল পর্যন্ত স্বাধীনতা সংগ্রামের সালভিত্তিক সারসংক্ষেপ।",
-          keyTopics: ["Mauryan & Gupta Rule", "Mughal Bengal", "Indian Independence Movement"],
-          theoryContent: "### ১. প্রাচীন বাংলার ইতিহাস:\n* প্রথম স্বাধীন নরপতি বা রাজা ছিলেন **শশাঙ্ক** (যার রাজধানী ছিল কর্ণসুবর্ণ)।\n* পাল বংশের প্রতিষ্ঠাতা ছিলেন **গোপাল**, যিনি বাংলায় প্রথম গণতান্ত্রিক পদ্ধতিতে নির্বাচিত রাজা ছিলেন।\n\n### ২. ভারতের স্বাধীনতা সংগ্রাম (১৮৫৭ - ১৯৪৭):\n* **১৮৫৭:** সিপাহী বিদ্রোহ (মঙ্গল পান্ডে প্রথম শহীদ হন)।\n* **১৯০৫:** বঙ্গভঙ্গ (লর্ড কার্জন দ্বারা)।\n* **১৯১১:** বঙ্গভঙ্গ রদ (লর্ড হার্ডিঞ্জ দ্বারা)।\n* **১৯৪২:** ভারত ছাড়ো আন্দোলন।\n* **১৯৪৭:** ভারত ও পাকিস্তানের স্বাধীনতা লাভ।",
+          title:
+            "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
+          introduction:
+            "\u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09B6\u09BE\u09B8\u09A8 \u09AC\u09CD\u09AF\u09AC\u09B8\u09CD\u09A5\u09BE \u098F\u09AC\u0982 \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 \u09A5\u09C7\u0995\u09C7 \u09B6\u09C1\u09B0\u09C1 \u0995\u09B0\u09C7 \u09E7\u09EF\u09EA\u09ED \u09B8\u09BE\u09B2 \u09AA\u09B0\u09CD\u09AF\u09A8\u09CD\u09A4 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE\u09C7\u09B0 \u09B8\u09BE\u09B2\u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u09B8\u09BE\u09B0\u09B8\u0982\u0995\u09CD\u09B7\u09C7\u09AA\u0964",
+          keyTopics: [
+            "Mauryan & Gupta Rule",
+            "Mughal Bengal",
+            "Indian Independence Movement",
+          ],
+          theoryContent:
+            "### \u09E7. \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0987\u09A4\u09BF\u09B9\u09BE\u09B8:\n* \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u09A8\u09B0\u09AA\u09A4\u09BF \u09AC\u09BE \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u09B6\u09B6\u09BE\u0999\u09CD\u0995** (\u09AF\u09BE\u09B0 \u09B0\u09BE\u099C\u09A7\u09BE\u09A8\u09C0 \u099B\u09BF\u09B2 \u0995\u09B0\u09CD\u09A3\u09B8\u09C1\u09AC\u09B0\u09CD\u09A3)\u0964\n* \u09AA\u09BE\u09B2 \u09AC\u0982\u09B6\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A4\u09BF\u09B7\u09CD\u09A0\u09BE\u09A4\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u0997\u09CB\u09AA\u09BE\u09B2**, \u09AF\u09BF\u09A8\u09BF \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09AA\u09CD\u09B0\u09A5\u09AE \u0997\u09A3\u09A4\u09BE\u09A8\u09CD\u09A4\u09CD\u09B0\u09BF\u0995 \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF\u09A4\u09C7 \u09A8\u09BF\u09B0\u09CD\u09AC\u09BE\u099A\u09BF\u09A4 \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8\u0964\n\n### \u09E8. \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE (\u09E7\u09EE\u09EB\u09ED - \u09E7\u09EF\u09EA\u09ED):\n* **\u09E7\u09EE\u09EB\u09ED:** \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 (\u09AE\u0999\u09CD\u0997\u09B2 \u09AA\u09BE\u09A8\u09CD\u09A1\u09C7 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B6\u09B9\u09C0\u09A6 \u09B9\u09A8)\u0964\n* **\u09E7\u09EF\u09E6\u09EB:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 (\u09B2\u09B0\u09CD\u09A1 \u0995\u09BE\u09B0\u09CD\u099C\u09A8 \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09E7\u09E7:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 \u09B0\u09A6 (\u09B2\u09B0\u09CD\u09A1 \u09B9\u09BE\u09B0\u09CD\u09A1\u09BF\u099E\u09CD\u099C \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09EA\u09E8:** \u09AD\u09BE\u09B0\u09A4 \u099B\u09BE\u09DC\u09CB \u0986\u09A8\u09CD\u09A6\u09CB\u09B2\u09A8\u0964\n* **\u09E7\u09EF\u09EA\u09ED:** \u09AD\u09BE\u09B0\u09A4 \u0993 \u09AA\u09BE\u0995\u09BF\u09B8\u09CD\u09A4\u09BE\u09A8\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B2\u09BE\u09AD\u0964",
           mcqs: [
             {
-              question: "বাংলার প্রথম স্বাধীন ও সার্বভৌম রাজা কে ছিলেন?",
-              options: ["শশাঙ্ক", "গোপাল", "ধর্মপাল", "লক্ষণ সেন"],
-              correctAnswer: "শশাঙ্ক",
-              explanation: "রাজা শশাঙ্ক সপ্তম শতাব্দীর শুরুতে প্রাচীন বাংলার গৌড় রাজ্যের প্রথম স্বাধীন ও সার্বভৌম শাসক ছিলেন।"
-            }
+              question:
+                "\u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B0\u09BE\u099C\u09BE \u0995\u09C7 \u099B\u09BF\u09B2\u09C7\u09A8?",
+              options: [
+                "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
+                "\u0997\u09CB\u09AA\u09BE\u09B2",
+                "\u09A7\u09B0\u09CD\u09AE\u09AA\u09BE\u09B2",
+                "\u09B2\u0995\u09CD\u09B7\u09A3 \u09B8\u09C7\u09A8",
+              ],
+              correctAnswer: "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
+              explanation:
+                "\u09B0\u09BE\u099C\u09BE \u09B6\u09B6\u09BE\u0999\u09CD\u0995 \u09B8\u09AA\u09CD\u09A4\u09AE \u09B6\u09A4\u09BE\u09AC\u09CD\u09A6\u09C0\u09B0 \u09B6\u09C1\u09B0\u09C1\u09A4\u09C7 \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0997\u09CC\u09A1\u09BC \u09B0\u09BE\u099C\u09CD\u09AF\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B6\u09BE\u09B8\u0995 \u099B\u09BF\u09B2\u09C7\u09A8\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-geography",
           subject: "geography",
-          title: "July 2026 - Geography: Physical Geography of Bengal & River Systems",
-          introduction: "বাংলাদেশ ও ভারতের ভৌগোলিক অবস্থান, ভূপ্রকৃতি, নদনদী এবং জলবায়ু পরিবর্তন সংক্রান্ত গুরুত্বপূর্ণ তথ্যাবলী।",
-          keyTopics: ["Geographical Boundaries", "River Systems of Bengal", "Natural Disasters"],
-          theoryContent: "### ১. বাংলার ভৌগোলিক অবস্থান ও সীমানা:\n* বাংলার উপর দিয়ে **কর্কটক্রান্তি রেখা (Tropic of Cancer)** অতিবাহিত হয়েছে।\n* পৃথিবীর দীর্ঘতম সমুদ্র সৈকত **কক্সবাজার** এবং বৃহত্তম ম্যানগ্রোভ বন **সুন্দরবন** বাংলায় অবস্থিত।\n\n### ২. নদনদী ও উপনদী:\n* পদ্মা নদী ভারতে **গঙ্গা** নামে পরিচিত। এটি চাঁপাইনবাবগঞ্জ দিয়ে বাংলাদেশে প্রবেশ করেছে।\n* ব্রহ্মপুত্র নদ কুড়িগ্রাম জেলার মধ্য দিয়ে বাংলাদেশে প্রবেশ করে পরবর্তীতে যমুনা নামে প্রবাহিত হয়েছে।",
+          title:
+            "July 2026 - Geography: Physical Geography of Bengal & River Systems",
+          introduction:
+            "\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8, \u09AD\u09C2\u09AA\u09CD\u09B0\u0995\u09C3\u09A4\u09BF, \u09A8\u09A6\u09A8\u09A6\u09C0 \u098F\u09AC\u0982 \u099C\u09B2\u09AC\u09BE\u09AF\u09BC\u09C1 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09A4\u09A5\u09CD\u09AF\u09BE\u09AC\u09B2\u09C0\u0964",
+          keyTopics: [
+            "Geographical Boundaries",
+            "River Systems of Bengal",
+            "Natural Disasters",
+          ],
+          theoryContent:
+            "### \u09E7. \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u0993 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE:\n* \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 **\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE (Tropic of Cancer)** \u0985\u09A4\u09BF\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964\n* \u09AA\u09C3\u09A5\u09BF\u09AC\u09C0\u09B0 \u09A6\u09C0\u09B0\u09CD\u0998\u09A4\u09AE \u09B8\u09AE\u09C1\u09A6\u09CD\u09B0 \u09B8\u09C8\u0995\u09A4 **\u0995\u0995\u09CD\u09B8\u09AC\u09BE\u099C\u09BE\u09B0** \u098F\u09AC\u0982 \u09AC\u09C3\u09B9\u09A4\u09CD\u09A4\u09AE \u09AE\u09CD\u09AF\u09BE\u09A8\u0997\u09CD\u09B0\u09CB\u09AD \u09AC\u09A8 **\u09B8\u09C1\u09A8\u09CD\u09A6\u09B0\u09AC\u09A8** \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u0985\u09AC\u09B8\u09CD\u09A5\u09BF\u09A4\u0964\n\n### \u09E8. \u09A8\u09A6\u09A8\u09A6\u09C0 \u0993 \u0989\u09AA\u09A8\u09A6\u09C0:\n* \u09AA\u09A6\u09CD\u09AE\u09BE \u09A8\u09A6\u09C0 \u09AD\u09BE\u09B0\u09A4\u09C7 **\u0997\u0999\u09CD\u0997\u09BE** \u09A8\u09BE\u09AE\u09C7 \u09AA\u09B0\u09BF\u099A\u09BF\u09A4\u0964 \u098F\u099F\u09BF \u099A\u09BE\u0981\u09AA\u09BE\u0987\u09A8\u09AC\u09BE\u09AC\u0997\u099E\u09CD\u099C \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7\u099B\u09C7\u0964\n* \u09AC\u09CD\u09B0\u09B9\u09CD\u09AE\u09AA\u09C1\u09A4\u09CD\u09B0 \u09A8\u09A6 \u0995\u09C1\u09DC\u09BF\u0997\u09CD\u09B0\u09BE\u09AE \u099C\u09C7\u09B2\u09BE\u09B0 \u09AE\u09A7\u09CD\u09AF \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7 \u09AA\u09B0\u09AC\u09B0\u09CD\u09A4\u09C0\u09A4\u09C7 \u09AF\u09AE\u09C1\u09A8\u09BE \u09A8\u09BE\u09AE\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
           mcqs: [
             {
-              question: "কর্কটক্রান্তি রেখা বাংলার কোন অংশের উপর দিয়ে গিয়েছে?",
-              options: ["ঠিক মাঝখান দিয়ে", "উত্তরাঞ্চল দিয়ে", "দক্ষিণাঞ্চল দিয়ে", "সীমান্তবর্তী এলাকা দিয়ে"],
-              correctAnswer: "ঠিক মাঝখান দিয়ে",
-              explanation: "২৩.৫ ডিগ্রি উত্তর অক্ষাংশ বা কর্কটক্রান্তি রেখা বাংলার (বাংলাদেশ ও পশ্চিমবঙ্গ) প্রায় মাঝখান দিয়ে প্রবাহিত হয়েছে।"
-            }
+              question:
+                "\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0995\u09CB\u09A8 \u0985\u0982\u09B6\u09C7\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 \u0997\u09BF\u09DF\u09C7\u099B\u09C7?",
+              options: [
+                "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
+                "\u0989\u09A4\u09CD\u09A4\u09B0\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
+                "\u09A6\u0995\u09CD\u09B7\u09BF\u09A3\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
+                "\u09B8\u09C0\u09AE\u09BE\u09A8\u09CD\u09A4\u09AC\u09B0\u09CD\u09A4\u09C0 \u098F\u09B2\u09BE\u0995\u09BE \u09A6\u09BF\u09DF\u09C7",
+              ],
+              correctAnswer:
+                "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
+              explanation:
+                "\u09E8\u09E9.\u09EB \u09A1\u09BF\u0997\u09CD\u09B0\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u0985\u0995\u09CD\u09B7\u09BE\u0982\u09B6 \u09AC\u09BE \u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 (\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE\u09AC\u0999\u09CD\u0997) \u09AA\u09CD\u09B0\u09BE\u09DF \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-polity",
           subject: "polity",
-          title: "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
-          introduction: "সংবিধানের প্রধান বৈশিষ্ট্যসমূহ, মৌলিক অধিকার, এবং সরকারি নীতি নির্ধারণের মূল উৎসসমূহ সহজ ভাষায় আলোচনা।",
-          keyTopics: ["Preamble & Structure", "Fundamental Rights", "Directive Principles"],
-          theoryContent: "### ১. সংবিধানের কাঠামো:\n* সংবিধান হলো রাষ্ট্রের সর্বোচ্চ আইন।\n* মূল সংবিধানে নাগরিকদের মৌলিক অধিকারগুলো সুনির্দিষ্টভাবে বর্ণনা করা থাকে।\n\n### ২. মৌলিক অধিকারসমূহ (Fundamental Rights):\n* আইন বা আদালতের মাধ্যমে মৌলিক অধিকার প্রয়োগ করা যায়।\n* রাষ্ট্রের জরুরি অবস্থায় নাগরিক অধিকার সাময়িকভাবে স্থগিত করা হতে পারে।",
+          title:
+            "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
+          introduction:
+            "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AC\u09C8\u09B6\u09BF\u09B7\u09CD\u099F\u09CD\u09AF\u09B8\u09AE\u09C2\u09B9, \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0, \u098F\u09AC\u0982 \u09B8\u09B0\u0995\u09BE\u09B0\u09BF \u09A8\u09C0\u09A4\u09BF \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3\u09C7\u09B0 \u09AE\u09C2\u09B2 \u0989\u09CE\u09B8\u09B8\u09AE\u09C2\u09B9 \u09B8\u09B9\u099C \u09AD\u09BE\u09B7\u09BE\u09DF \u0986\u09B2\u09CB\u099A\u09A8\u09BE\u0964",
+          keyTopics: [
+            "Preamble & Structure",
+            "Fundamental Rights",
+            "Directive Principles",
+          ],
+          theoryContent:
+            "### \u09E7. \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB:\n* \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B9\u09B2\u09CB \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09B8\u09B0\u09CD\u09AC\u09CB\u099A\u09CD\u099A \u0986\u0987\u09A8\u0964\n* \u09AE\u09C2\u09B2 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u0997\u09C1\u09B2\u09CB \u09B8\u09C1\u09A8\u09BF\u09B0\u09CD\u09A6\u09BF\u09B7\u09CD\u099F\u09AD\u09BE\u09AC\u09C7 \u09AC\u09B0\u09CD\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09A5\u09BE\u0995\u09C7\u0964\n\n### \u09E8. \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09B8\u09AE\u09C2\u09B9 (Fundamental Rights):\n* \u0986\u0987\u09A8 \u09AC\u09BE \u0986\u09A6\u09BE\u09B2\u09A4\u09C7\u09B0 \u09AE\u09BE\u09A7\u09CD\u09AF\u09AE\u09C7 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u0995\u09B0\u09BE \u09AF\u09BE\u09DF\u0964\n* \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u099C\u09B0\u09C1\u09B0\u09BF \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09DF \u09A8\u09BE\u0997\u09B0\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09B8\u09BE\u09AE\u09DF\u09BF\u0995\u09AD\u09BE\u09AC\u09C7 \u09B8\u09CD\u09A5\u0997\u09BF\u09A4 \u0995\u09B0\u09BE \u09B9\u09A4\u09C7 \u09AA\u09BE\u09B0\u09C7\u0964",
           mcqs: [
             {
-              question: "কোনো দেশের সংবিধানের প্রধান কাজ কী?",
+              question:
+                "\u0995\u09CB\u09A8\u09CB \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u0995\u09BE\u099C \u0995\u09C0?",
               options: [
-                "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
+                "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
                 " his/her basic tax",
                 " can_be_applied",
-                "বিচারকদের বেতন নির্ধারণ করা"
+                "\u09AC\u09BF\u099A\u09BE\u09B0\u0995\u09A6\u09C7\u09B0 \u09AC\u09C7\u09A4\u09A8 \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3 \u0995\u09B0\u09BE",
               ],
-              correctAnswer: "সরকার ও জনগণের মধ্যে ক্ষমতার ভারসাম্য বজায় রাখা ও রাষ্ট্র পরিচালনা করা",
-              explanation: "সংবিধান রাষ্ট্রের মৌলিক আইন যা সরকারের কাঠামো ও নাগরিকদের অধিকারের গ্যারান্টি দেয়।"
-            }
+              correctAnswer:
+                "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
+              explanation:
+                "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0986\u0987\u09A8 \u09AF\u09BE \u09B8\u09B0\u0995\u09BE\u09B0\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB \u0993 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09C7\u09B0 \u0997\u09CD\u09AF\u09BE\u09B0\u09BE\u09A8\u09CD\u099F\u09BF \u09A6\u09C7\u09DF\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         {
           id: "pdfn-seed-economics",
           subject: "economics",
-          title: "July 2026 - Economics: National Income & Five-Year Planning Analysis",
-          introduction: "জিডিপি, জিএনপি এবং পঞ্চবার্ষিক পরিকল্পনা ও বাজেট সংক্রান্ত অর্থনৈতিক জটিল শব্দসমূহের সহজ বিশ্লেষণ।",
-          keyTopics: ["National Income (GDP, GNP)", "Inflation & Banking", "Five-Year Plans"],
-          theoryContent: "### ১. জাতীয় আয় পরিমাপের উপাদান:\n* **GDP (Gross Domestic Product):** একটি দেশের ভৌগোলিক সীমানার ভিতরে উৎপাদিত মোট পণ্য ও সেবার মূল্য।\n* **GNP (Gross National Product):** দেশের নাগরিকদের উৎপাদিত মোট পণ্য ও সেবা (দেশ এবং বিদেশে)।\n\n### ২. মুদ্রাস্ফীতি (Inflation):\n* বাজারে মুদ্রার সরবরাহ বেড়ে গেলে পণ্যের দাম বাড়ে এবং টাকার মান কমে যায়, একে মুদ্রাস্ফীতি বলে।",
+          title:
+            "July 2026 - Economics: National Income & Five-Year Planning Analysis",
+          introduction:
+            "\u099C\u09BF\u09A1\u09BF\u09AA\u09BF, \u099C\u09BF\u098F\u09A8\u09AA\u09BF \u098F\u09AC\u0982 \u09AA\u099E\u09CD\u099A\u09AC\u09BE\u09B0\u09CD\u09B7\u09BF\u0995 \u09AA\u09B0\u09BF\u0995\u09B2\u09CD\u09AA\u09A8\u09BE \u0993 \u09AC\u09BE\u099C\u09C7\u099F \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0985\u09B0\u09CD\u09A5\u09A8\u09C8\u09A4\u09BF\u0995 \u099C\u099F\u09BF\u09B2 \u09B6\u09AC\u09CD\u09A6\u09B8\u09AE\u09C2\u09B9\u09C7\u09B0 \u09B8\u09B9\u099C \u09AC\u09BF\u09B6\u09CD\u09B2\u09C7\u09B7\u09A3\u0964",
+          keyTopics: [
+            "National Income (GDP, GNP)",
+            "Inflation & Banking",
+            "Five-Year Plans",
+          ],
+          theoryContent:
+            "### \u09E7. \u099C\u09BE\u09A4\u09C0\u09DF \u0986\u09DF \u09AA\u09B0\u09BF\u09AE\u09BE\u09AA\u09C7\u09B0 \u0989\u09AA\u09BE\u09A6\u09BE\u09A8:\n* **GDP (Gross Domestic Product):** \u098F\u0995\u099F\u09BF \u09A6\u09C7\u09B6\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09BF\u09A4\u09B0\u09C7 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF\u0964\n* **GNP (Gross National Product):** \u09A6\u09C7\u09B6\u09C7\u09B0 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE (\u09A6\u09C7\u09B6 \u098F\u09AC\u0982 \u09AC\u09BF\u09A6\u09C7\u09B6\u09C7)\u0964\n\n### \u09E8. \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF (Inflation):\n* \u09AC\u09BE\u099C\u09BE\u09B0\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B0 \u09B8\u09B0\u09AC\u09B0\u09BE\u09B9 \u09AC\u09C7\u09DC\u09C7 \u0997\u09C7\u09B2\u09C7 \u09AA\u09A3\u09CD\u09AF\u09C7\u09B0 \u09A6\u09BE\u09AE \u09AC\u09BE\u09DC\u09C7 \u098F\u09AC\u0982 \u099F\u09BE\u0995\u09BE\u09B0 \u09AE\u09BE\u09A8 \u0995\u09AE\u09C7 \u09AF\u09BE\u09DF, \u098F\u0995\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF \u09AC\u09B2\u09C7\u0964",
           mcqs: [
             {
-              question: "GDP এবং GNP এর মধ্যে প্রধান পার্থক্য কী?",
+              question:
+                "GDP \u098F\u09AC\u0982 GNP \u098F\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u0995\u09C0?",
               options: [
-                "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
+                "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
                 " can_be_applied",
-                "আমদানি ও রপ্তানির অনুপাত",
-                "কোনো পার্থক্য নেই"
+                "\u0986\u09AE\u09A6\u09BE\u09A8\u09BF \u0993 \u09B0\u09AA\u09CD\u09A4\u09BE\u09A8\u09BF\u09B0 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4",
+                "\u0995\u09CB\u09A8\u09CB \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u09A8\u09C7\u0987",
               ],
-              correctAnswer: "ভৌগোলিক সীমানা বনাম নাগরিকত্ব ভিত্তিক উৎপাদন",
-              explanation: "GDP গণনা করা হয় ভৌগোলিক সীমানার ভেতরের উৎপাদনের ওপর ভিত্তি করে, আর GNP দেশের সকল নাগরিকের মোট আয়ের ওপর ভিত্তি করে।"
-            }
+              correctAnswer:
+                "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
+              explanation:
+                "GDP \u0997\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09C7\u09A4\u09B0\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7, \u0986\u09B0 GNP \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0995\u09B2 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09C7\u09B0 \u09AE\u09CB\u099F \u0986\u09DF\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7\u0964",
+            },
           ],
           month: "July 2026",
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       ];
       await seedAiPdfNotes(seedData);
       console.log("Successfully seeded AI PDF notes in Database!");
@@ -2238,10 +2346,9 @@ async function startServer() {
   } catch (err) {
     console.error("Failed to seed AI PDF notes:", err);
   }
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running at http://0.0.0.0:${PORT}`);
   });
 }
-
+__name(startServer, "startServer");
 startServer();
