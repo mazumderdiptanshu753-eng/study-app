@@ -103,6 +103,90 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
 
+  // App Update states
+  const CURRENT_CLIENT_VERSION = "1.0.1";
+  const [serverVersionInfo, setServerVersionInfo] = useState<{
+    latestVersion: string;
+    changelogEn: string;
+    changelogBn: string;
+  } | null>(null);
+  const [isUpdatingApp, setIsUpdatingApp] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStatusStep, setUpdateStatusStep] = useState<string>("");
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const isNewerVersion = (latest: string, current: string) => {
+    if (!latest || !current) return false;
+    const lParts = latest.replace(/[^\d.]/g, "").split(".").map(Number);
+    const cParts = current.replace(/[^\d.]/g, "").split(".").map(Number);
+    for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+      const l = lParts[i] || 0;
+      const c = cParts[i] || 0;
+      if (l > c) return true;
+      if (l < c) return false;
+    }
+    return false;
+  };
+
+  const checkAppVersion = async () => {
+    try {
+      const res = await fetch("/api/app-version");
+      if (res.ok) {
+        const data = await res.json();
+        setServerVersionInfo(data);
+        if (data.latestVersion && isNewerVersion(data.latestVersion, CURRENT_CLIENT_VERSION)) {
+          // Only show update modal if we're not already in the middle of updating
+          setShowUpdateModal(true);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to check app version:", e);
+    }
+  };
+
+  const startUpdateProcess = () => {
+    setShowUpdateModal(false);
+    setIsUpdatingApp(true);
+    setUpdateProgress(0);
+    setUpdateStatusStep(lang === "bn" ? "নতুন আপডেট ফাইল ডাউনলোড হচ্ছে..." : "Downloading update package...");
+
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 12) + 5;
+      if (currentProgress >= 100) {
+        currentProgress = 100;
+        setUpdateProgress(100);
+        setUpdateStatusStep(lang === "bn" ? "স্টাডি হাব রিস্টার্ট হচ্ছে!" : "Restarting Study Hub!");
+        clearInterval(interval);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setUpdateProgress(currentProgress);
+        if (currentProgress < 25) {
+          setUpdateStatusStep(lang === "bn" ? "নতুন আপডেট ফাইল ডাউনলোড হচ্ছে..." : "Downloading update package...");
+        } else if (currentProgress < 50) {
+          setUpdateStatusStep(lang === "bn" ? "ফাইল এক্সট্র্যাক্ট এবং যাচাই করা হচ্ছে..." : "Extracting and verifying resources...");
+        } else if (currentProgress < 75) {
+          setUpdateStatusStep(lang === "bn" ? "কনফিগারেশন এবং ডাটাবেস সিঙ্ক করা হচ্ছে..." : "Synchronizing system settings...");
+        } else {
+          setUpdateStatusStep(lang === "bn" ? "সবকিছু প্রস্তুত করা হচ্ছে..." : "Finalizing system upgrade...");
+        }
+      }
+    }, 400);
+  };
+
+  useEffect(() => {
+    // Check initially after 4s
+    const timer = setTimeout(checkAppVersion, 4000);
+    // Poll every 12s for near real-time reactivity
+    const interval = setInterval(checkAppVersion, 12000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     const handleSetSubject = (e: any) => {
       setSelectedGovtJobSubject(e.detail);
@@ -792,14 +876,15 @@ export default function App() {
                   onVideosCountChange={setVideosCount}
                 />
               )}
-              {currentTab === "admin" && profile.role === "Admin" && (
+              {currentTab === "admin" && profile && profile.role === "Admin" && (
                 <AdminPanel
                   lang={lang}
                   users={users}
                   onToggleAdminRole={handleToggleAdminRole}
                   onDeleteUser={handleDeleteUser}
-                  currentUserEmail={profile.email}
+                  currentUserEmail={profile?.email || ""}
                   theme={theme}
+                  currentAppVersion={CURRENT_CLIENT_VERSION}
                 />
               )}
               {currentTab === "liveClasses" && (
@@ -954,6 +1039,117 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Full-screen sleek updating overlay */}
+      {isUpdatingApp && (
+        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-2xl text-white">
+          <div className="w-full max-w-sm px-6 text-center space-y-8">
+            <div className="relative inline-flex items-center justify-center">
+              {/* Rotating outer rings */}
+              <div className="absolute inset-0 rounded-full border-2 border-dashed border-teal-500/30 animate-spin" style={{ animationDuration: "12s" }}></div>
+              <div className="absolute -inset-4 rounded-full border border-teal-500/10 animate-reverse-spin" style={{ animationDuration: "8s" }}></div>
+              
+              <div className="h-20 w-20 rounded-3xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20 shadow-lg shadow-teal-500/10">
+                <GraduationCap className="h-10 w-10 text-teal-400 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-black tracking-tight text-slate-100">
+                {lang === "bn" ? "স্টাডি হাব আপডেট হচ্ছে" : "Upgrading STUDY HUB"}
+              </h2>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide min-h-5">
+                {updateStatusStep}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {/* Progress track */}
+              <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5 p-0.5">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-teal-500 via-emerald-400 to-teal-400 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${updateProgress}%` }}
+                  transition={{ ease: "easeInOut", duration: 0.2 }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-slate-500 font-extrabold tracking-wider font-mono uppercase">
+                <span>{lang === "bn" ? "ধাপ" : "STEP"} {updateProgress < 25 ? "1/4" : updateProgress < 50 ? "2/4" : updateProgress < 75 ? "3/4" : "4/4"}</span>
+                <span className="text-teal-400">{updateProgress}%</span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              {lang === "bn" 
+                ? "অনুগ্রহ করে অপেক্ষা করুন। আপডেট প্রসেস সম্পূর্ণ হলে অ্যাপটি স্বয়ংক্রিয়ভাবে রিস্টার্ট হবে।" 
+                : "Please do not close or refresh this tab. System will resume automatically."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Update dialogue modal */}
+      {showUpdateModal && !isUpdatingApp && (
+        <div className="fixed inset-0 z-99 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`w-full max-w-md rounded-2xl border ${theme.borderCard} p-6 shadow-2xl space-y-6 ${theme.bgCard}`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20 shrink-0">
+                <Download className="h-6 w-6 animate-bounce" />
+              </div>
+              <div className="space-y-1">
+                <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-black tracking-wider uppercase rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  {lang === "bn" ? "নতুন সংস্করণ উপলব্ধ" : "New Version Available"}
+                </span>
+                <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
+                  {lang === "bn" ? "স্টাডি হাব আপডেট করুন!" : "Upgrade STUDY HUB!"}
+                </h3>
+              </div>
+            </div>
+
+            <div className="space-y-3.5 pt-1">
+              <div className="flex items-center justify-between text-xs font-bold py-2 border-y border-slate-500/10">
+                <span className={theme.textMuted}>{lang === "bn" ? "বর্তমান সংস্করণ:" : "Installed:"}</span>
+                <span className="font-mono text-slate-400 font-semibold">v{CURRENT_CLIENT_VERSION}</span>
+                <span className="text-teal-500">➔</span>
+                <span className={theme.textMuted}>{lang === "bn" ? "নতুন সংস্করণ:" : "Latest:"}</span>
+                <span className="font-mono text-teal-400 font-black">v{serverVersionInfo?.latestVersion}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className={`text-[10px] uppercase font-bold tracking-wider ${theme.textMuted} block`}>
+                  {lang === "bn" ? "নতুন সংস্করণে যা আছে:" : "What's New in this Release:"}
+                </span>
+                <div className={`p-3.5 rounded-xl border ${theme.borderCard} bg-slate-500/5 text-xs ${theme.textMain} leading-relaxed max-h-36 overflow-y-auto space-y-1`}>
+                  <p className="font-semibold">
+                    {lang === "bn" ? serverVersionInfo?.changelogBn : serverVersionInfo?.changelogEn}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold border ${theme.borderCard} ${theme.textMuted} hover:bg-slate-500/10 active:scale-98 transition-all cursor-pointer`}
+              >
+                {lang === "bn" ? "পরে করুন" : "Later"}
+              </button>
+              <button
+                onClick={startUpdateProcess}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-teal-500 hover:bg-teal-600 text-white shadow-md active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                {lang === "bn" ? "এখনই আপডেট" : "Update Now"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
     </motion.div>
     )}
   </AnimatePresence>

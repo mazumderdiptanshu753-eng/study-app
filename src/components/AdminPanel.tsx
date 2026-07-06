@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2 } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, ArrowUpCircle, RefreshCcw } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -12,6 +12,7 @@ interface AdminPanelProps {
   onDeleteUser: (email: string) => void;
   currentUserEmail: string;
   theme: ThemeConfig;
+  currentAppVersion: string;
 }
 
 interface ActivityLog {
@@ -22,13 +23,62 @@ interface ActivityLog {
   timestamp: string;
 }
 
-export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme }: AdminPanelProps) {
+export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs" | "version">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
+  // App Version Management states
+  const [latestVersionInput, setLatestVersionInput] = useState("");
+  const [changelogEnInput, setChangelogEnInput] = useState("");
+  const [changelogBnInput, setChangelogBnInput] = useState("");
+  const [loadingVersion, setLoadingVersion] = useState(false);
+  const [publishingVersion, setPublishingVersion] = useState(false);
+  const [versionStatusMessage, setVersionStatusMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [serverVersionInfo, setServerVersionInfo] = useState<{ latestVersion: string; changelogEn: string; changelogBn: string } | null>(null);
+
   const isBengali = lang === "bn";
+
+  const isNewerVersion = (latest: string, current: string) => {
+    if (!latest || !current) return false;
+    const lParts = latest.replace(/[^\d.]/g, "").split(".").map(Number);
+    const cParts = current.replace(/[^\d.]/g, "").split(".").map(Number);
+    for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+      const l = lParts[i] || 0;
+      const c = cParts[i] || 0;
+      if (l > c) return true;
+      if (l < c) return false;
+    }
+    return false;
+  };
+
+  const isVersionNewer = isNewerVersion(latestVersionInput, serverVersionInfo?.latestVersion || "1.0.1");
+
+  const fetchServerVersion = async () => {
+    setLoadingVersion(true);
+    setVersionStatusMessage(null);
+    try {
+      const res = await fetch("/api/app-version");
+      if (res.ok) {
+        const data = await res.json();
+        setServerVersionInfo(data);
+        setLatestVersionInput(data.latestVersion || "");
+        setChangelogEnInput(data.changelogEn || "");
+        setChangelogBnInput(data.changelogBn || "");
+      }
+    } catch (e) {
+      console.error("Failed to fetch server version:", e);
+    } finally {
+      setLoadingVersion(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "version") {
+      fetchServerVersion();
+    }
+  }, [activeTab]);
 
   const fetchLogs = async (isPolling = false) => {
     if (!isPolling) setLoadingLogs(true);
@@ -191,6 +241,15 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
         >
           <Activity className="h-4 w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Activity Logs"}
+        </button>
+        <button
+          onClick={() => setActiveTab("version")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "version" ? "border-teal-500 text-teal-400" : "border-transparent text-slate-400 hover:text-slate-300"
+          }`}
+        >
+          <ArrowUpCircle className="h-4 w-4" />
+          {isBengali ? "আপডেট রিলিজ" : "Release Update"}
         </button>
       </motion.div>
 
@@ -370,8 +429,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${
                           log.action === "Login"
-                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
-                            : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400"
+                             ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
+                             : "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400"
                         }`}>
                           {log.action === "Login" ? <LogIn className="w-3 h-3" /> : <LogOut className="w-3 h-3" />}
                           {log.action}
@@ -391,6 +450,189 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
               </table>
             </div>
           )}
+        </motion.div>
+      )}
+
+      {activeTab === "version" && (
+        <motion.div variants={itemVariants} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Version Information Details Card */}
+            <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} p-6 space-y-4 shadow-sm`}>
+              <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
+                {isBengali ? "বর্তমান সংস্করণ বিবরণ" : "Current Version Status"}
+              </h3>
+              
+              <div className="space-y-3.5 pt-2">
+                <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
+                  <span className={`text-xs font-semibold ${theme.textMuted}`}>
+                    {isBengali ? "বর্তমান ক্লায়েন্ট সংস্করণ:" : "Installed Client Version:"}
+                  </span>
+                  <span className={`px-2.5 py-1 text-xs font-black rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400`}>
+                    v{currentAppVersion}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-slate-500/10">
+                  <span className={`text-xs font-semibold ${theme.textMuted}`}>
+                    {isBengali ? "সার্ভার কনফিগারড সংস্করণ:" : "Server Declared Version:"}
+                  </span>
+                  {loadingVersion ? (
+                    <RefreshCcw className="h-4 w-4 animate-spin text-teal-500" />
+                  ) : (
+                    <span className={`px-2.5 py-1 text-xs font-black rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400`}>
+                      v{serverVersionInfo?.latestVersion || "1.0.1"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <span className={`text-xs font-bold ${theme.textMuted} block`}>
+                    {isBengali ? "অ্যাক্টিভ চেঞ্জলগ (English):" : "Active Changelog (English):"}
+                  </span>
+                  <div className={`p-3 rounded-xl border ${theme.borderCard} ${theme.bgPage} text-xs ${theme.textMain} max-h-24 overflow-y-auto leading-relaxed`}>
+                    {serverVersionInfo?.changelogEn || "No changes specified."}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className={`text-xs font-bold ${theme.textMuted} block`}>
+                    {isBengali ? "অ্যাক্টিভ চেঞ্জলগ (বাংলা):" : "Active Changelog (Bengali):"}
+                  </span>
+                  <div className={`p-3 rounded-xl border ${theme.borderCard} ${theme.bgPage} text-xs ${theme.textMain} max-h-24 overflow-y-auto leading-relaxed`}>
+                    {serverVersionInfo?.changelogBn || "কোনো পরিবর্তন উল্লেখ করা হয়নি।"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Release Version Update Form */}
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!latestVersionInput.trim()) {
+                  setVersionStatusMessage({
+                    text: isBengali ? "সংস্করণ নম্বর আবশ্যক।" : "Version code is required.",
+                    isError: true
+                  });
+                  return;
+                }
+                setPublishingVersion(true);
+                setVersionStatusMessage(null);
+                try {
+                  const res = await fetch("/api/app-version", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      latestVersion: latestVersionInput.trim(),
+                      changelogEn: changelogEnInput,
+                      changelogBn: changelogBnInput,
+                      adminEmail: currentUserEmail
+                    })
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setServerVersionInfo(data);
+                    setVersionStatusMessage({
+                      text: isBengali 
+                        ? "নতুন সংস্করণ সফলভাবে প্রকাশ করা হয়েছে! ব্যবহারকারীরা এখন আপডেট নোটিফিকেশন পাবেন।" 
+                        : "New version released successfully! Active users will be notified to update immediately.",
+                      isError: false
+                    });
+                  } else {
+                    throw new Error("Failed to post update");
+                  }
+                } catch (err) {
+                  setVersionStatusMessage({
+                    text: isBengali ? "সংস্করণ প্রকাশে ত্রুটি ঘটেছে।" : "Failed to release the version update.",
+                    isError: true
+                  });
+                } finally {
+                  setPublishingVersion(false);
+                }
+              }}
+              className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} p-6 space-y-4 shadow-sm`}
+            >
+              <h3 className={`text-lg font-black tracking-tight ${theme.textHeading}`}>
+                {isBengali ? "নতুন সংস্করণ রিলিজ করুন" : "Release New Update"}
+              </h3>
+
+              {versionStatusMessage && (
+                <div className={`p-3 rounded-xl text-xs font-semibold ${
+                  versionStatusMessage.isError 
+                    ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" 
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                }`}>
+                  {versionStatusMessage.text}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
+                  {isBengali ? "নতুন সংস্করণ নম্বর (যেমন: v1.0.2)" : "New Version Number (e.g. 1.0.2)"}
+                </label>
+                <input
+                  type="text"
+                  placeholder="1.0.2"
+                  value={latestVersionInput}
+                  onChange={(e) => setLatestVersionInput(e.target.value)}
+                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain}`}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
+                  {isBengali ? "চেঞ্জলগ / নতুন কি আছে? (English)" : "Changelog / What's New? (English)"}
+                </label>
+                <textarea
+                  placeholder="Added mathematics review tools and dynamic PDF flashcards."
+                  value={changelogEnInput}
+                  onChange={(e) => setChangelogEnInput(e.target.value)}
+                  rows={2}
+                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} resize-none`}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={`text-2xs uppercase tracking-wider font-extrabold ${theme.textMuted}`}>
+                  {isBengali ? "চেঞ্জলগ / নতুন কি আছে? (বাংলা)" : "Changelog / What's New? (Bengali)"}
+                </label>
+                <textarea
+                  placeholder="গণিত রিভিশন টুল এবং ডাইনামিক পিডিএফ ফ্ল্যাশকার্ড যুক্ত করা হয়েছে।"
+                  value={changelogBnInput}
+                  onChange={(e) => setChangelogBnInput(e.target.value)}
+                  rows={2}
+                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${theme.textMain} resize-none`}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={publishingVersion || !isVersionNewer}
+                className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  isVersionNewer 
+                    ? "bg-teal-500 text-white shadow-md hover:bg-teal-600 active:scale-98"
+                    : "bg-slate-500/10 text-slate-500 border border-slate-500/10 cursor-not-allowed"
+                }`}
+              >
+                {publishingVersion ? (
+                  <>
+                    <RefreshCcw className="h-4 w-4 animate-spin" />
+                    {isBengali ? "রিলিজ করা হচ্ছে..." : "Releasing Update..."}
+                  </>
+                ) : !isVersionNewer ? (
+                  <>
+                    <Shield className="h-4 w-4" />
+                    {isBengali ? "রিলিজড সংস্করণ সক্রিয় আছে" : "Active Version Up to Date"}
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpCircle className="h-4 w-4" />
+                    {isBengali ? "রিলিজ আপডেট" : "Release Update"}
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         </motion.div>
       )}
 

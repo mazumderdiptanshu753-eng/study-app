@@ -30,7 +30,14 @@ let localDB: any = {
   liveClasses: [],
   govtJobNotes: [],
   aiPdfNotes: [],
-  studyNotes: []
+  studyNotes: [],
+  systemSettings: {
+    app_version: {
+      latestVersion: "1.0.1",
+      changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
+      changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
+    }
+  }
 };
 
 // Load local DB
@@ -171,6 +178,11 @@ export async function initDatabase(): Promise<boolean> {
         "attachmentUrl" TEXT,
         "attachmentName" VARCHAR(255),
         "attachmentType" VARCHAR(50) DEFAULT 'none'
+      );
+
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value JSONB
       );
     `);
     console.log("Neon database tables ensured successfully!");
@@ -464,6 +476,20 @@ export async function deleteUser(email: string): Promise<boolean> {
   localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== email.trim().toLowerCase());
   saveLocalDB();
   return localDB.users.length < len;
+}
+
+export async function getUserByEmail(email: string): Promise<any | null> {
+  if (!email) return null;
+  const normalizedEmail = email.trim().toLowerCase();
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+      if (res.rows.length > 0) return res.rows[0];
+    } catch (e) {
+      console.error("Error fetching user by email from PG:", e);
+    }
+  }
+  return (localDB.users || []).find((u: any) => (u.email || '').trim().toLowerCase() === normalizedEmail) || null;
 }
 
 // --- Chat Messages Database Queries ---
@@ -1026,4 +1052,49 @@ export async function deleteStudyNote(id: string): Promise<boolean> {
   localDB.studyNotes = (localDB.studyNotes || []).filter((n: any) => n.id !== id);
   saveLocalDB();
   return (localDB.studyNotes || []).length < len;
+}
+
+export async function getAppVersion(): Promise<any> {
+  if (pool) {
+    try {
+      const res = await pool.query("SELECT value FROM system_settings WHERE key = $1", ["app_version"]);
+      if (res.rows.length > 0) {
+        return res.rows[0].value;
+      }
+    } catch (e) {
+      console.error("Error fetching app version from PG, falling back:", e);
+    }
+  }
+  if (!localDB.systemSettings) {
+    localDB.systemSettings = {};
+  }
+  if (!localDB.systemSettings.app_version) {
+    localDB.systemSettings.app_version = {
+      latestVersion: "1.0.1",
+      changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
+      changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
+    };
+  }
+  return localDB.systemSettings.app_version;
+}
+
+export async function saveAppVersion(versionInfo: any): Promise<any> {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ($1, $2)
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+      `, ["app_version", JSON.stringify(versionInfo)]);
+      return versionInfo;
+    } catch (e) {
+      console.error("Error saving app version to PG, falling back:", e);
+    }
+  }
+  if (!localDB.systemSettings) {
+    localDB.systemSettings = {};
+  }
+  localDB.systemSettings.app_version = versionInfo;
+  saveLocalDB();
+  return versionInfo;
 }
