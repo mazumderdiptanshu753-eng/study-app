@@ -2,30 +2,12 @@
   "users": [
     {
       "email": "mazumderdiptanshu753@gmail.com",
-      "fullName": "CREATER ADMIN DIPTANSHU MAZUMDER",
+      "fullName": "dip",
       "grade": "High School",
       "preferredSubject": "Mathematics",
-      "registeredAt": "2026-07-06T16:36:35.415Z",
+      "registeredAt": "2026-07-08T01:33:59.546Z",
       "avatarUrl": "👑",
       "role": "Admin"
-    },
-    {
-      "email": "anwitchaki@gmail.com",
-      "fullName": "Anwit Chaki",
-      "grade": "Undergraduate",
-      "preferredSubject": "Mathematics",
-      "registeredAt": "2026-07-06T09:31:52.107Z",
-      "avatarUrl": "🎓",
-      "role": "Student"
-    },
-    {
-      "email": "an]]]",
-      "fullName": "Anwit Chaki",
-      "grade": "High School",
-      "preferredSubject": "Mathematics",
-      "registeredAt": "2026-07-06T09:30:26.889Z",
-      "avatarUrl": "🎓",
-      "role": "Student"
     }
   ],
   "chatMessages": [
@@ -41,6 +23,20 @@
     }
   ],
   "activityLogs": [
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "dip",
+      "action": "Login",
+      "timestamp": "2026-07-08T01:33:59.546Z",
+      "id": "log-1783474442528-t9ol8khwn"
+    },
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "CREATER ADMIN DIPTANSHU MAZUMDER",
+      "action": "Logout",
+      "timestamp": "2026-07-08T01:28:10.642Z",
+      "id": "log-1783474093622-yo1ww0685"
+    },
     {
       "id": "log-1783355797083-qlunphofj",
       "userEmail": "mazumderdiptanshu753@gmail.com",

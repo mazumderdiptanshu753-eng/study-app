@@ -6,7 +6,7 @@ import {
   Shield, 
   Sparkles, 
   Clock, 
-  Bot, 
+  
   Search,
   MessageCircle,
   AlertCircle
@@ -31,9 +31,6 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
   // For Admin View
   const [selectedStudentEmail, setSelectedStudentEmail] = useState<string | null>(null);
   const [adminSearchTerm, setAdminSearchTerm] = useState("");
-  
-  // Simulated AI responder toggle for students
-  const [aiAutoResponder, setAiAutoResponder] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -113,33 +110,6 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
       
       const savedMsg = await res.json();
       setMessages(prev => [...prev, savedMsg]);
-
-      // If student sent message and AI responder is ON, simulate/request an AI reply
-      if (!isAdmin && aiAutoResponder) {
-        setIsTyping(true);
-        // Delay slightly for a natural typing feel
-        setTimeout(async () => {
-          try {
-            const aiRes = await fetch("/api/chat/ai-reply", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                studentName: profile.fullName,
-                studentEmail: profile.email,
-                lastMessage: messageText
-              })
-            });
-            if (aiRes.ok) {
-              const aiMsg = await aiRes.json();
-              setMessages(prev => [...prev, aiMsg]);
-            }
-          } catch (err) {
-            console.error("AI reply error:", err);
-          } finally {
-            setIsTyping(false);
-          }
-        }, 1500);
-      }
     } catch (err: any) {
       setError("Failed to deliver your message. Please try again.");
     }
@@ -220,31 +190,10 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
           </h1>
           <p className="text-xs text-slate-500">
             {isAdmin 
-              ? (lang === "bn" ? "প্রশাসক নিয়ন্ত্রণ প্যানেল: শিক্ষার্থীদের প্রশ্নের উত্তর দিন এবং তাদের সাহায্য করুন।" : "Admin Control Panel: Reply to student questions and guide their mathematics studies.")
+              ? (lang === "bn" ? "প্রশাসক নিয়ন্ত্রণ প্যানেল: শিক্ষার্থীদের প্রশ্নের উত্তর দিন এবং তাদের সাহায্য করুন।" : "Admin Control Panel: Reply to student questions and guide their studies.")
               : t.chatAssistantHint}
           </p>
         </div>
-
-        {/* Student AI auto-reply toggle */}
-        {!isAdmin && (
-          <div className="inline-flex items-center gap-3 bg-teal-50/60 border border-teal-100/80 rounded-xl px-4 py-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-300 animate-pulse" />
-              <span className="text-xs font-semibold text-teal-950">
-                {lang === "bn" ? "এআই এডমিন অটো-রেসপন্ডার" : "AI Admin Auto-Responder"}
-              </span>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={aiAutoResponder} 
-                onChange={(e) => setAiAutoResponder(e.target.checked)}
-                className="sr-only peer" 
-              />
-              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
-            </label>
-          </div>
-        )}
       </div>
 
       {error && (
@@ -334,7 +283,7 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
                 </button>
               )}
               <div className="h-9 w-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0 shadow-3xs">
-                {isAdmin ? <Shield className="h-4.5 w-4.5" /> : <Bot className="h-4.5 w-4.5" />}
+                {isAdmin ? <Shield className="h-4.5 w-4.5" /> : <Shield className="h-4.5 w-4.5" />}
               </div>
               <div className="text-left">
                 <span className="font-bold text-xs text-slate-800 block">

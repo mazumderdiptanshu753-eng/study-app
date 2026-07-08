@@ -35,7 +35,7 @@ let localDB: any = {
   notifications: [],
   systemSettings: {
     app_version: {
-      latestVersion: "7.5.1",
+      latestVersion: "2.6.1",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     }
@@ -68,18 +68,21 @@ function saveLocalDB() {
 
 // Pool initialization
 let pool: pg.Pool | null = null;
-const connectionString = process.env.DATABASE_URL;
-const isPostgresActive = !!connectionString;
 
-if (connectionString) {
-  console.log("Found Neon/PostgreSQL connection string. Initializing database pool...");
+const sqlHost = process.env.SQL_HOST;
+const isPostgresActive = !!sqlHost;
+
+if (sqlHost) {
+  console.log("Found Cloud SQL credentials. Initializing database pool...");
   pool = new Pool({
-    connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    host: process.env.SQL_HOST,
+    user: process.env.SQL_USER,
+    password: process.env.SQL_PASSWORD,
+    database: process.env.SQL_DB_NAME,
+    connectionTimeoutMillis: 15000,
   });
-} else {
+}
+ else {
   console.log("No DATABASE_URL found. Running with local db.json file database.");
 }
 
@@ -112,124 +115,7 @@ export async function initDatabase(): Promise<boolean> {
     }
 
     // Create tables
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        email VARCHAR(255) PRIMARY KEY,
-        "fullName" VARCHAR(255) NOT NULL,
-        grade VARCHAR(100),
-        "preferredSubject" VARCHAR(100),
-        "registeredAt" VARCHAR(100),
-        "avatarUrl" VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'Student'
-      );
-
-      CREATE TABLE IF NOT EXISTS chat_messages (
-        id VARCHAR(255) PRIMARY KEY,
-        "senderName" VARCHAR(255),
-        "senderEmail" VARCHAR(255),
-        "senderRole" VARCHAR(50),
-        message TEXT,
-        timestamp VARCHAR(100),
-        "studentEmail" VARCHAR(255),
-        "studentName" VARCHAR(255)
-      );
-
-      CREATE TABLE IF NOT EXISTS forum_posts (
-        id VARCHAR(255) PRIMARY KEY,
-        "authorEmail" VARCHAR(255),
-        "authorName" VARCHAR(255),
-        title VARCHAR(255),
-        content TEXT,
-        timestamp VARCHAR(100),
-        likes INTEGER DEFAULT 0,
-        replies JSONB DEFAULT '[]'::jsonb
-      );
-
-      CREATE TABLE IF NOT EXISTS live_classes (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255),
-        subject VARCHAR(255),
-        instructor VARCHAR(255),
-        "scheduledTime" VARCHAR(100),
-        link TEXT,
-        status VARCHAR(50) DEFAULT 'Scheduled',
-        "createdAt" VARCHAR(100)
-      );
-
-      CREATE TABLE IF NOT EXISTS activity_logs (
-        id VARCHAR(255) PRIMARY KEY,
-        "userEmail" VARCHAR(255),
-        "userName" VARCHAR(255),
-        action VARCHAR(100),
-        timestamp VARCHAR(100),
-        details TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS govt_job_notes (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255),
-        content TEXT,
-        subject VARCHAR(100),
-        timestamp VARCHAR(100),
-        comments JSONB DEFAULT '[]'::jsonb,
-        "authorEmail" VARCHAR(255),
-        "authorName" VARCHAR(255)
-      );
-
-      CREATE TABLE IF NOT EXISTS ai_pdf_notes (
-        id VARCHAR(255) PRIMARY KEY,
-        "fileName" VARCHAR(255),
-        title VARCHAR(255),
-        summary TEXT,
-        mcqs JSONB DEFAULT '[]'::jsonb,
-        flashcards JSONB DEFAULT '[]'::jsonb,
-        timestamp VARCHAR(100),
-        "userEmail" VARCHAR(255),
-        subject VARCHAR(100)
-      );
-
-      CREATE TABLE IF NOT EXISTS study_notes (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        content TEXT,
-        subject VARCHAR(100),
-        "userEmail" VARCHAR(255),
-        "summaryPoints" JSONB DEFAULT '[]'::jsonb,
-        tags JSONB DEFAULT '[]'::jsonb,
-        flashcards JSONB DEFAULT '[]'::jsonb,
-        timestamp VARCHAR(100),
-        "attachmentUrl" TEXT,
-        "attachmentName" VARCHAR(255),
-        "attachmentType" VARCHAR(50) DEFAULT 'none'
-      );
-
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value JSONB
-      );
-
-      CREATE TABLE IF NOT EXISTS video_lectures (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        "videoUrl" TEXT NOT NULL,
-        "uploadedBy" VARCHAR(255),
-        timestamp VARCHAR(100),
-        subject VARCHAR(255),
-        comments JSONB DEFAULT '[]'::jsonb
-      );
-
-      CREATE TABLE IF NOT EXISTS notifications (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        type VARCHAR(50) DEFAULT 'info',
-        timestamp VARCHAR(100) NOT NULL,
-        "isRead" BOOLEAN DEFAULT FALSE,
-        "userEmail" VARCHAR(255)
-      );
-    `);
-    console.log("Neon database tables ensured successfully!");
+    console.log("Database initialized");
     
     // Auto-migrate local JSON database data to Neon PostgreSQL
     await migrateLocalDataToPostgres();
@@ -1198,7 +1084,7 @@ export async function getAppVersion(): Promise<any> {
   }
   if (!localDB.systemSettings.app_version) {
     localDB.systemSettings.app_version = {
-      latestVersion: "7.5.1",
+      latestVersion: "2.6.1",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     };

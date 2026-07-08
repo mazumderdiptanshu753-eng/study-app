@@ -1,23 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import { 
   BrainCircuit, 
   Sparkles, 
-  CornerDownLeft, 
-  RefreshCw, 
   AlertCircle, 
   CheckCircle, 
   Info, 
   BookOpen,
-  UploadCloud,
-  FileText,
-  Image as ImageIcon,
-  X
+  Send,
+  Upload,
+  Bot,
+  User,
+  X,
+  Loader2,
+  FileText
 } from "lucide-react";
 
 interface SolveWithAIProps {
+  onClose?: () => void;
   lang: Language;
   theme: ThemeConfig;
 }
@@ -29,69 +31,72 @@ interface MathSolution {
   finalAnswer: string;
 }
 
-export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
-  const [problem, setProblem] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [solution, setSolution] = useState<MathSolution | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Input mode: "text" for typing, "file" for uploading image/pdf
-  const [inputMode, setInputMode] = useState<"text" | "file">("text");
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content?: string;
+  attachment?: { name: string; data: string; mimeType: string };
+  solution?: MathSolution;
+  error?: string;
+}
 
-  // File upload state
+export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: string; mimeType: string } | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isBengali = lang === "bn";
-
   const t = {
-    title: isBengali ? "এআই দিয়ে সমাধান করুন (Solve with AI)" : "Solve with AI",
+    title: isBengali ? "এআই ৭.০ (AI 7.0)" : "AI 7.0",
     subtitle: isBengali 
-      ? "যেকোনো কঠিন গণিত বা সমীকরণ টাইপ করুন বা আপলোড করুন এবং এআই-এর মাধ্যমে ধাপে ধাপে সমাধান বুঝে নিন" 
-      : "Type or upload any complex math question, equation, or word problem for step-by-step solutions",
+      ? "Google দ্বারা পরিচালিত, দীপ্তাংশু মজুমদার দ্বারা তৈরি" 
+      : "Powered by Google , Created by Diptanshu Mazumder",
     placeholder: isBengali 
-      ? "যেমন: x² - 5x + 6 = 0 সমীকরণটি সমাধান করুন অথবা 3x² + sin(x) এর ব্যবকলন নির্ণয় করুন..." 
-      : "e.g. Solve x^2 - 5x + 6 = 0 or find the derivative of 3x^2 + sin(x)...",
-    solveBtn: isBengali ? "এআই সমাধান শুরু করুন" : "Solve with AI",
-    solving: isBengali ? "এআই হিসাব করছে..." : "AI is solving...",
-    coreConceptLabel: isBengali ? "মূল গাণিতিক সূত্র / তত্ত্ব:" : "Core Formula / Concept:",
-    stepsLabel: isBengali ? "ধাপে ধাপে সমাধান:" : "Step-by-Step Derivation:",
-    finalAnswerLabel: isBengali ? "চূড়ান্ত ফলাফল:" : "Final Answer:",
-    clearBtn: isBengali ? "নতুন প্রশ্ন" : "New Problem",
-    sampleLabel: isBengali ? "সহজ ট্রাই করার জন্য নমুনা সমীকরণ:" : "Try these sample problems:",
-    errorLabel: isBengali ? "সমাধান তৈরি করতে ব্যর্থ হয়েছে।" : "Failed to solve the math problem.",
+      ? "আপনার সমস্যা বা প্রশ্নটি এখানে টাইপ করুন..." 
+      : "Ask your question or describe your problem...",
+    solving: isBengali ? "চিন্তা করছে..." : "Thinking...",
+    coreConceptLabel: isBengali ? "মূল ধারণা / তত্ত্ব:" : "Core Concept:",
+    stepsLabel: isBengali ? "ধাপে ধাপে সমাধান:" : "Step-by-Step Solution:",
+    finalAnswerLabel: isBengali ? "চূড়ান্ত উত্তর:" : "Final Answer:",
+    errorLabel: isBengali ? "সমাধান তৈরি করতে ব্যর্থ হয়েছে।" : "Failed to generate solution.",
     tip: isBengali 
-      ? "পরামর্শ: এটি সাধারণ বীজগণিত, ক্যালকুলাস, ত্রিকোণমিতি বা জ্যামিতির প্রশ্ন খুব সুন্দরভাবে ব্যাখ্যা করতে পারে!" 
-      : "Tip: It can thoroughly explain algebra, calculus, trigonometry, statistics, or word problems!",
-    uploadLabel: isBengali ? "প্রশ্ন বা খাতার ছবি/পিডিএফ আপলোড করুন" : "Upload problem photo or PDF",
-    uploadHint: isBengali ? "JPG, PNG বা PDF ফাইল ড্র্যাগ করে আনুন অথবা ক্লিক করে আপলোড করুন" : "Drag & drop or click to select JPG, PNG, or PDF file",
-    fileAttached: isBengali ? "সংযুক্ত ফাইল:" : "Attached File:",
-    removeFile: isBengali ? "ফাইল মুছুন" : "Remove file",
-    sizeLimitError: isBengali ? "ফাইলের আকার ৫ এমবি এর কম হতে হবে।" : "File size must be under 5MB.",
-    invalidTypeError: isBengali ? "অনুগ্রহ করে একটি ছবি (JPG/PNG) অথবা পিডিএফ ফাইল আপলোড করুন।" : "Please upload a valid image (JPG, PNG) or PDF.",
-    typeQuestionBtn: isBengali ? "টাইপ করে সমাধান" : "Get Answer by Typing Questions",
-    uploadQuestionBtn: isBengali ? "ফাইল আপলোড করে সমাধান" : "Get Answer by Uploading",
+      ? "পরামর্শ: এটি গণিত, বিজ্ঞান, ইতিহাস, বা যেকোনো বিষয়ের প্রশ্নের উত্তর সুন্দরভাবে ব্যাখ্যা করতে পারে!" 
+      : "Tip: It can thoroughly explain questions from Math, Science, History, and more!",
   };
 
-  const samples = isBengali ? [
-    "x^2 - 7x + 12 = 0 এর সমাধান কি?",
-    "y = x^3 * e^x হলে dy/dx কত?",
-    "একটি ত্রিভুজের বাহুর দৈর্ঘ্য ৩, ৪ এবং ৫ সেমি হলে ক্ষেত্রফল কত?"
-  ] : [
-    "Solve x^2 - 7x + 12 = 0",
-    "Find derivative of y = x^3 * e^x",
-    "Find the area of a triangle with sides 3, 4, and 5 cm"
-  ];
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: isBengali 
+            ? "হ্যালো! আমি এআই ৭.০। যেকোনো কঠিন প্রশ্ন, সমস্যা বা সমীকরণ টাইপ বা আপলোড করুন এবং ১০০% নির্ভুল ধাপে ধাপে সমাধান বুঝে নিন।" 
+            : "Hello! I am the AI 7.0. Type or upload any complex question or problem for 100% accurate step-by-step solutions."
+        }
+      ]);
+    }
+  }, [lang]);
 
-  const processFile = (file: File) => {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     const validTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
     if (!validTypes.includes(file.type)) {
-      setError(t.invalidTypeError);
+      alert(isBengali ? "শুধুমাত্র JPG, PNG বা PDF ফাইল আপলোড করা যাবে।" : "Only JPG, PNG, or PDF files are allowed.");
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
-      setError(t.sizeLimitError);
+      alert(isBengali ? "ফাইলের সাইজ ৫ এমবি এর চেয়ে ছোট হতে হবে।" : "File size must be less than 5MB.");
       return;
     }
 
@@ -100,400 +105,288 @@ export default function SolveWithAI({ lang, theme }: SolveWithAIProps) {
       const base64String = reader.result as string;
       const commaIndex = base64String.indexOf(",");
       const data = commaIndex > -1 ? base64String.substring(commaIndex + 1) : base64String;
-
       setAttachedFile({
         name: file.name,
         data: data,
-        mimeType: file.type
+        mimeType: file.type,
       });
-      setError(null);
-    };
-    reader.onerror = () => {
-      setError(isBengali ? "ফাইল রিড করতে সমস্যা হয়েছে" : "Error reading file.");
     };
     reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if ((!inputText.trim() && !attachedFile) || isLoading) return;
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+    const userText = inputText.trim();
+    const currentAttachment = attachedFile;
     
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
-    }
-  };
+    setInputText("");
+    setAttachedFile(null);
 
-  const handleSolve = async (textToSolve = problem) => {
-    // Only fetch based on what's active/filled in current mode
-    const query = inputMode === "text" ? textToSolve.trim() : "";
-    const activeFile = inputMode === "file" ? attachedFile : null;
-    
-    if (!query && !activeFile) return;
+    const newUserMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: userText,
+      attachment: currentAttachment || undefined
+    };
 
+    setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
-    setError(null);
-    setSolution(null);
 
     try {
       const response = await fetch("/api/solve-math", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          problem: query, 
-          file: activeFile ? { data: activeFile.data, mimeType: activeFile.mimeType } : null,
+          problem: userText,
+          file: currentAttachment,
           lang 
         }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to connect to the math solver.");
-      }
-
+      
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
+      
+      if (!response.ok) {
+        throw new Error(data.error || t.errorLabel);
       }
 
-      setSolution(data);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || t.errorLabel);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        solution: data
+      }]);
+    } catch (error: any) {
+      console.error("AI Solver Error:", error);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        error: error.message || t.errorLabel
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSampleClick = (sample: string) => {
-    setInputMode("text");
-    setProblem(sample);
-    handleSolve(sample);
-  };
+  const renderSolution = (solution: MathSolution) => (
+    <div className="space-y-4 w-full">
+      {/* Main query copy */}
+      <div className={`${theme.isDark ? "bg-slate-900/40" : "bg-slate-50"} border ${theme.borderCard} rounded-xl p-3`}>
+        <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block mb-1`}>
+          {isBengali ? "প্রশ্ন:" : "Problem Asked:"}
+        </span>
+        <p className={`text-xs font-bold ${theme.textHeading}`}>
+          {solution.problem || (isBengali ? "ছবি বা ডকুমেন্ট থেকে বিশ্লেষণ" : "Analyzed from uploaded document")}
+        </p>
+      </div>
 
-  const isSolveDisabled = inputMode === "text" ? !problem.trim() : !attachedFile;
+      {/* Core Concept Banner */}
+      <div className={`${theme.primaryBg}/20 border ${theme.borderCard} rounded-xl p-3 space-y-1.5`}>
+        <span className={`text-[10px] uppercase font-black ${theme.primaryText} tracking-wider flex items-center gap-1`}>
+          <BookOpen className="h-3.5 w-3.5" />
+          {t.coreConceptLabel}
+        </span>
+        <p className={`text-xs font-bold ${theme.textHeading} leading-relaxed font-mono`}>
+          {solution.coreConcept}
+        </p>
+      </div>
 
+      {/* Derivation Steps List */}
+      <div className="space-y-1.5">
+        <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
+          {t.stepsLabel}
+        </span>
+        <div className={`divide-y ${theme.isDark ? "divide-slate-800" : "divide-slate-100"} border ${theme.borderCard} rounded-xl overflow-hidden ${theme.bgCard}`}>
+          {solution.steps.map((step, index) => (
+            <div key={index} className={`p-3 text-xs font-medium flex gap-2.5 hover:bg-slate-100/5 dark:hover:bg-slate-900/50 transition-colors`}>
+              <span className={`h-4 w-4 rounded ${theme.isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-500"} flex items-center justify-center text-[9px] font-extrabold shrink-0 mt-0.5`}>
+                {index + 1}
+              </span>
+              <p className={`leading-relaxed whitespace-pre-line ${theme.textMain}`}>{step}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-  };
+      {/* Highlighted Final Answer */}
+      <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-3 flex items-center justify-between gap-3">
+        <div className="space-y-0.5 min-w-0">
+          <span className="text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1">
+            <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            {t.finalAnswerLabel}
+          </span>
+          <p className="text-sm font-black text-emerald-950 dark:text-emerald-100 font-mono truncate">
+            {solution.finalAnswer}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <motion.div 
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-      className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-md p-6 space-y-6 transition-all duration-300`}
-    >
-
-      
-      {/* Header section */}
-      <motion.div variants={itemVariants} className={`flex items-center justify-between border-b ${theme.borderCard} pb-4`}>
-        <div>
-          <h3 className={`font-black ${theme.textHeading} text-base flex items-center gap-2`}>
-            <BrainCircuit className={`h-5 w-5 ${theme.primaryText} animate-pulse`} />
-            <span>{t.title}</span>
-            <span className={`inline-flex items-center gap-1 rounded-full ${theme.badgeBg} px-2.5 py-0.5 text-[9px] font-bold ${theme.badgeText} uppercase tracking-wider`}>
-              <Sparkles className="h-2.5 w-2.5" /> AI Active
-            </span>
-          </h3>
-          <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>{t.subtitle}</p>
-        </div>
-      </motion.div>
-
-      {/* Mode Selector Option Buttons (Text vs File) */}
-      {!solution && !isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            id="btn-solve-type-mode"
-            onClick={() => setInputMode("text")}
-            className={`flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-              inputMode === "text"
-                ? `${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText} border-transparent shadow-xs`
-                : `${theme.isDark ? "bg-slate-900/50 hover:bg-slate-900 text-slate-300 border-slate-800" : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"}`
-            }`}
-          >
-            <span>⌨️</span>
-            <span>{t.typeQuestionBtn}</span>
-          </button>
-
-          <button
-            type="button"
-            id="btn-solve-upload-mode"
-            onClick={() => setInputMode("file")}
-            className={`flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-              inputMode === "file"
-                ? `${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText} border-transparent shadow-xs`
-                : `${theme.isDark ? "bg-slate-900/50 hover:bg-slate-900 text-slate-300 border-slate-800" : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"}`
-            }`}
-          >
-            <span>📄</span>
-            <span>{t.uploadQuestionBtn}</span>
-          </button>
-        </div>
-      )}
-
-      <AnimatePresence mode="wait">
-        {!solution && !isLoading && (
-          <motion.div
-            key="input-form"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-4"
-          >
-            {inputMode === "text" ? (
-              /* Input Area for TEXT TYPING */
-            <div className="space-y-2">
-              <textarea
-                value={problem}
-                onChange={(e) => setProblem(e.target.value)}
-                placeholder={t.placeholder}
-                rows={4}
-                className={`w-full ${
-                  theme.isDark ? "bg-slate-900/40 text-white" : "bg-slate-50/50 text-slate-800"
-                } pl-4 pr-4 py-3 rounded-xl border ${
-                  theme.borderCard
-                } text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400 resize-none leading-relaxed`}
-              />
-            </div>
-          ) : (
-            /* File Upload Area for JPG/PNG/PDF */
-            <div className="space-y-2">
-              <span className={`text-2xs uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-                {t.uploadLabel}
-              </span>
-              
-              {!attachedFile ? (
-                <label 
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                    dragActive 
-                      ? `border-emerald-500 ${theme.primaryBg}/40` 
-                      : `${theme.borderCard} ${theme.isDark ? "bg-slate-900/30 hover:bg-slate-900/60" : "bg-slate-50 hover:bg-slate-100/60"}`
-                  }`}
-                >
-                  <input 
-                    type="file" 
-                    accept="image/jpeg,image/png,image/jpg,application/pdf" 
-                    onChange={handleFileChange} 
-                    className="hidden" 
-                  />
-                  <UploadCloud className={`h-8 w-8 ${theme.primaryText} mb-2`} />
-                  <span className={`text-xs font-extrabold ${theme.textHeading} block`}>
-                    {isBengali ? "একটি ফাইল আপলোড করুন" : "Choose Image/PDF File"}
-                  </span>
-                  <span className={`text-[10px] ${theme.textMuted} font-semibold mt-1 block`}>
-                    {t.uploadHint}
-                  </span>
-                </label>
-              ) : (
-                <div className={`${theme.primaryBg}/30 border ${theme.borderCard} rounded-xl p-4 flex items-center justify-between`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`p-2 rounded-xl ${theme.isDark ? "bg-slate-900" : "bg-white"} ${theme.primaryText} shrink-0 shadow-3xs`}>
-                      {attachedFile.mimeType === "application/pdf" ? (
-                        <FileText className="h-5 w-5" />
-                      ) : (
-                        <ImageIcon className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <span className={`text-[9px] font-black ${theme.primaryText} block uppercase tracking-wider`}>{t.fileAttached}</span>
-                      <span className={`text-xs font-black ${theme.textHeading} block truncate`}>{attachedFile.name}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setAttachedFile(null)}
-                    className={`bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 border ${theme.borderCard} p-2 rounded-xl text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-all shadow-3xs`}
-                    title={t.removeFile}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Action trigger button */}
-          <div className="flex items-center gap-4 pt-1">
-            <button
-              onClick={() => handleSolve()}
-              disabled={isSolveDisabled}
-              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 disabled:pointer-events-none active:scale-98 ${
-                !isSolveDisabled
-                  ? `${theme.primaryBtn} ${theme.primaryBtnHover} ${theme.primaryBtnText}`
-                  : `${theme.isDark ? "bg-slate-800 text-slate-500 border border-slate-700" : "bg-slate-100 text-slate-400 border border-slate-200"}`
-              }`}
-            >
-              <BrainCircuit className="h-4 w-4" />
-              {t.solveBtn}
-            </button>
+    <div className={`flex flex-col h-[85vh] w-full max-w-4xl mx-auto rounded-3xl border ${theme.borderCard} overflow-hidden shadow-2xl ${theme.bgCard}`}>
+      {/* Header */}
+      <div className={`p-4 border-b ${theme.borderCard} flex items-center justify-between bg-gradient-to-r ${theme.isDark ? "from-slate-800 to-slate-900" : "from-emerald-50 to-teal-50"}`}>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
+            <Sparkles className="h-5 w-5" />
           </div>
-        </motion.div>
-        )}
-
-        {/* Loading animation state */}
-        {isLoading && (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-            className="py-12 text-center space-y-4"
-          >
-            <div className="relative inline-block">
-            <div className={`h-12 w-12 rounded-full border-4 ${theme.isDark ? "border-slate-800" : "border-slate-100"} animate-spin`} style={{ borderTopColor: "rgb(16, 185, 129)" }}></div>
-            <Sparkles className="h-5 w-5 text-emerald-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <div className="space-y-1 max-w-xs mx-auto">
-            <p className={`text-xs font-extrabold ${theme.textHeading} animate-pulse`}>{t.solving}</p>
-            <p className={`text-[10px] ${theme.textMuted} leading-relaxed font-semibold`}>
-              {lang === "bn" 
-                ? "জেমিনি এআই আপনার সমীকরণ বা ফাইলটি বিশদভাবে বিশ্লেষণ করছে..." 
-                : "Gemini is performing rigorous step-by-step mathematical derivations on your request..."}
+          <div>
+            <h2 className={`font-bold ${theme.textHeading}`}>
+              {t.title}
+            </h2>
+            <p className={`text-xs ${theme.textMuted}`}>
+              {t.subtitle}
             </p>
           </div>
-        </motion.div>
-        )}
-
-        {/* Error state */}
-        {error && !isLoading && (
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-4 flex items-start gap-3"
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${theme.textMuted}`}
           >
-            <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <p className="text-xs font-bold text-rose-800 dark:text-rose-200">{error}</p>
-              <button
-                onClick={() => setError(null)}
-                className="text-[10px] font-bold text-rose-600 dark:text-rose-400 underline hover:no-underline cursor-pointer"
-              >
-                {isBengali ? "পুনরায় চেষ্টা করুন" : "Dismiss and retry"}
-              </button>
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        {messages.map((msg) => {
+          const isUser = msg.role === 'user';
+          return (
+            <motion.div 
+              key={msg.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+            >
+              {!isUser && (
+                <div className={`h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-1`}>
+                  <Sparkles className="h-4 w-4" />
+                </div>
+              )}
+              
+              <div className={`max-w-[85%] rounded-2xl ${isUser ? 'bg-emerald-600 text-white rounded-tr-none px-4 py-3 shadow-sm' : ''}`}>
+                {isUser ? (
+                  <div className="space-y-2 text-sm leading-relaxed">
+                    {msg.attachment && (
+                      <div className="bg-white/20 rounded-lg p-2 flex items-center gap-2 text-xs w-max max-w-full truncate">
+                        {msg.attachment.mimeType.includes("image") ? <FileText className="h-4 w-4 shrink-0" /> : <FileText className="h-4 w-4 shrink-0" />}
+                        <span className="truncate">{msg.attachment.name}</span>
+                      </div>
+                    )}
+                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    {msg.content && (
+                      <div className={`px-4 py-3 rounded-2xl rounded-tl-none border shadow-sm ${theme.isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                      </div>
+                    )}
+                    {msg.solution && renderSolution(msg.solution)}
+                    {msg.error && (
+                      <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-3 flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                        <p className="text-xs font-medium text-rose-800 dark:text-rose-200">{msg.error}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {isUser && (
+                <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 mt-1">
+                  <User className="h-4 w-4 text-slate-500 dark:text-slate-300" />
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-start gap-3 justify-start"
+          >
+            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-1">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className={`px-4 py-3 rounded-2xl rounded-tl-none border shadow-sm flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+              <span className={`text-xs ${theme.textMuted}`}>{t.solving}</span>
             </div>
           </motion.div>
         )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Beautiful formatted solution card output */}
-        {solution && !isLoading && (
-          <motion.div
-            key="solution"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-5"
+      {/* Input Area */}
+      <div className={`p-3 sm:p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
+        {attachedFile && (
+          <div className="mb-3 flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 text-slate-300' : 'bg-emerald-50 text-emerald-800'} border ${theme.borderCard} px-3 py-1.5 rounded-lg text-xs font-medium max-w-xs shadow-sm`}>
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{attachedFile.name}</span>
+              <button 
+                onClick={() => setAttachedFile(null)}
+                className="ml-1 p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3 relative items-end">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/jpeg,image/png,image/jpg,application/pdf"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${theme.textMuted} shrink-0 mb-0.5 border ${theme.borderCard} shadow-sm bg-white dark:bg-slate-900`}
+            title={isBengali ? "ফাইল আপলোড করুন" : "Upload file"}
           >
+            <Upload className="h-5 w-5" />
+          </button>
           
-          {/* Main query copy */}
-          <div className={`${theme.isDark ? "bg-slate-900/60" : "bg-slate-50"} border ${theme.borderCard} rounded-xl p-4`}>
-            <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block mb-1`}>
-              {isBengali ? "প্রশ্ন:" : "Problem Asked:"}
-            </span>
-            <p className={`text-xs font-extrabold ${theme.textHeading}`}>{solution.problem || (isBengali ? "ছবি বা ডকুমেন্ট থেকে বিশ্লেষণ" : "Analyzed from uploaded document")}</p>
-          </div>
-
-          {/* Core Concept Banner */}
-          <div className={`${theme.primaryBg}/40 border ${theme.borderCard} rounded-xl p-4 space-y-2`}>
-            <span className={`text-[10px] uppercase font-black ${theme.primaryText} tracking-wider flex items-center gap-1`}>
-              <BookOpen className="h-3.5 w-3.5" />
-              {t.coreConceptLabel}
-            </span>
-            <p className={`text-xs font-bold ${theme.textHeading} leading-relaxed font-mono`}>
-              {solution.coreConcept}
-            </p>
-          </div>
-
-          {/* Derivation Steps List */}
-          <div className="space-y-2">
-            <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>
-              {t.stepsLabel}
-            </span>
-            <div className={`divide-y ${theme.isDark ? "divide-slate-800" : "divide-slate-100"} border ${theme.borderCard} rounded-xl overflow-hidden ${theme.bgCard}`}>
-              {solution.steps.map((step, index) => (
-                <div key={index} className={`p-4 text-xs font-medium flex gap-3 hover:bg-slate-100/5 dark:hover:bg-slate-900/50 transition-colors`}>
-                  <span className={`h-5 w-5 rounded ${theme.isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-500"} flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5`}>
-                    {index + 1}
-                  </span>
-                  <p className={`leading-relaxed whitespace-pre-line ${theme.textMain}`}>{step}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Highlighted Final Answer */}
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="space-y-1 min-w-0">
-              <span className="text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                {t.finalAnswerLabel}
-              </span>
-              <p className="text-sm font-black text-emerald-950 dark:text-emerald-100 font-mono truncate">
-                {solution.finalAnswer}
-              </p>
-            </div>
-            
-            <button
-              onClick={() => {
-                setSolution(null);
-                setError(null);
-                setAttachedFile(null);
+          <div className={`flex-1 relative rounded-2xl border shadow-inner overflow-hidden ${theme.isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+             <textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
               }}
-              className="shrink-0 inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200 text-2xs font-extrabold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer shadow-3xs"
-            >
-              <RefreshCw className="h-3 w-3" />
-              {t.clearBtn}
-            </button>
+              placeholder={t.placeholder}
+              rows={1}
+              className="w-full bg-transparent px-4 py-3.5 text-sm focus:outline-none resize-none max-h-32 min-h-[50px] leading-relaxed"
+              style={{ height: "auto" }}
+            />
           </div>
-
-        </motion.div>
-      )}
-      </AnimatePresence>
-
-      {/* Tip footer */}
-      {!solution && !isLoading && (
-        <div className={`flex items-start gap-2 ${theme.isDark ? "bg-slate-900/30" : "bg-slate-50/50"} rounded-xl p-3.5 text-2xs ${theme.textMuted} font-semibold leading-relaxed`}>
-          <Info className={`h-4 w-4 ${theme.primaryText} shrink-0 mt-0.5`} />
-          <span>{t.tip}</span>
+          
+          <button
+            type="submit"
+            disabled={(!inputText.trim() && !attachedFile) || isLoading}
+            className={`p-3 rounded-xl flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 mb-0.5 shadow-sm active:scale-95`}
+          >
+            <Send className="h-5 w-5 ml-0.5" />
+          </button>
+        </form>
+        <div className="mt-2 text-center">
+          <span className={`text-[10px] font-medium ${theme.textMuted}`}>{t.tip}</span>
         </div>
-      )}
-
-    </motion.div>
+      </div>
+    </div>
   );
 }

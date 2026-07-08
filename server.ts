@@ -103,7 +103,8 @@ app.use((req, res, next) => {
   res.setHeader("Surrogate-Control", "no-store");
   next();
 });
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 const PORT =
   (process.env.RENDER || !process.env.APPLET_ID) && process.env.PORT
     ? parseInt(process.env.PORT)
@@ -385,24 +386,23 @@ app.post("/api/solve-math", async (req, res) => {
       return res
         .status(400)
         .json({
-          error:
-            "Please provide a mathematical problem statement or upload an image/PDF.",
+          error: "Please provide a problem statement or upload an image/PDF.",
         });
     }
     const ai = getGeminiClient();
     const isBengali = lang === "bn";
-    const prompt = `You are an expert mathematical tutor and solver. 
-${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the math problem, and solve it." : ""}
-Please solve the mathematical problem in a step-by-step, pedagogical, and extremely clear manner.
+    const prompt = `You are an expert universal tutor and solver across all subjects (Math, Science, History, Literature, etc.). 
+${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the problem, and solve it." : ""}
+Please solve the problem or answer the question in a step-by-step, pedagogical, 100% correct, and extremely clear manner.
 
-${problem ? `Math Problem/Context provided by user: "${problem}"` : "Please extract and solve the math problem shown in the provided document."}
+${problem ? `Problem/Context provided by user: "${problem}"` : "Please extract and solve the problem shown in the provided document."}
 
 Language of explanation: ${isBengali ? "Bengali (\u09AC\u09BE\u0982\u09B2\u09BE)" : "English"}
 
 Please provide a highly detailed response. Follow this strict schema:
-- problem: The extracted or original mathematical problem statement.
-- coreConcept: The primary mathematical rule, theorem, formula, or concept involved (e.g., "Quadratic Formula: x = (-b \xB1 \u221A(b\xB2 - 4ac)) / 2a").
-- steps: A sequential array of step-by-step mathematical operations and logical explanations showing how to solve the problem. Keep the steps clear, mathematically sound, and easy to follow.
+- problem: The extracted or original problem statement/question.
+- coreConcept: The primary rule, theorem, formula, or concept involved.
+- steps: A sequential array of step-by-step operations and logical explanations showing how to solve the problem. Keep the steps clear, accurate, and easy to follow.
 - finalAnswer: The final, simplified answer (e.g., "x = 2 or x = 3").`;
     const contents: any[] = [prompt];
     if (file && file.data && file.mimeType) {
@@ -411,7 +411,7 @@ Please provide a highly detailed response. Follow this strict schema:
       });
     }
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-2.5-flash",
       contents,
       config: {
         responseMimeType: "application/json",
@@ -1006,82 +1006,29 @@ app.post("/api/chat/messages", async (req, res) => {
       } catch (notifErr) {
         console.error("Failed to trigger admin chat reply notification:", notifErr);
       }
+    } else {
+      try {
+        const allUsers = await getUsers();
+        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "mazumderdiptanshu753@gmail.com");
+        // Remove duplicates by email
+        const uniqueAdmins = Array.from(new Map(admins.map(a => [a.email.toLowerCase(), a])).values());
+        
+        for (const admin of uniqueAdmins) {
+          await createNotification({
+            title: "সহায়তা চ্যাটে নতুন বার্তা 💬",
+            message: `শিক্ষার্থী ${senderName} একটি প্রশ্ন করেছেন: "${message}"`,
+            type: "info",
+            userEmail: admin.email,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to trigger admin chat notification:", notifErr);
+      }
     }
     res.status(201).json(newMsg);
   } catch (error) {
     console.error("Error posting chat message:", error);
     res.status(500).json({ error: error.message });
-  }
-});
-app.post("/api/chat/ai-reply", async (req, res) => {
-  try {
-    const { studentName, studentEmail, lastMessage } = req.body;
-    if (!studentEmail || !lastMessage) {
-      return res
-        .status(400)
-        .json({ error: "Missing message details for AI reply." });
-    }
-    const normStudentEmail = studentEmail.trim().toLowerCase();
-    const ai = getGeminiClient();
-    const prompt = `You are Diptanshu, the Admin of STUDY HUB. You are responding to a student named ${studentName} who just sent you this message in the support chat:
-"${lastMessage}"
-
-Since you are the administrator, write a helpful, friendly, and brief response (1 to 3 sentences max) answering them, giving them guidance on Mathematics, or explaining how to use STUDY HUB features (such as making notes or summarizing). Keep it very human, conversational, and direct. Do not use AI jargon.`;
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: prompt,
-    });
-    const aiMessageText =
-      response.text?.trim() ||
-      "Let me know if you need any help with your math studies!";
-    const aiMsg = {
-      id: `ai-msg-${Date.now()}`,
-      senderName: "Admin (Diptanshu - AI)",
-      senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
-      message: aiMessageText,
-      timestamp: new Date().toISOString(),
-      studentEmail: normStudentEmail,
-      studentName,
-    };
-    await saveChatMessage(aiMsg);
-    try {
-      await createNotification({
-        title: "সহায়তা চ্যাট থেকে নতুন বার্তা 💬",
-        message: `প্রশাসক দীপ্তাংশু (AI) আপনাকে একটি বার্তা পাঠিয়েছেন: "${aiMessageText}"`,
-        type: "info",
-        userEmail: normStudentEmail,
-      });
-    } catch (notifErr) {
-      console.error("Failed to trigger AI support chat notification:", notifErr);
-    }
-    res.json(aiMsg);
-  } catch (error) {
-    console.error("Error generating Admin AI reply:", error);
-    const normStudentEmail = req.body.studentEmail?.trim().toLowerCase() || "demo@studyhub.com";
-    const fallbackMsg = {
-      id: `fallback-${Date.now()}`,
-      senderName: "Admin (Diptanshu)",
-      senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
-      message:
-        "Thanks for your message! I'll look into this and get back to you. Make sure to check out the Notes Workspace for your math studies!",
-      timestamp: new Date().toISOString(),
-      studentEmail: normStudentEmail,
-      studentName: req.body.studentName || "Student",
-    };
-    await saveChatMessage(fallbackMsg);
-    try {
-      await createNotification({
-        title: "সহায়তা চ্যাট থেকে নতুন বার্তা 💬",
-        message: `প্রশাসক দীপ্তাংশু আপনাকে একটি বার্তা পাঠিয়েছেন: "${fallbackMsg.message}"`,
-        type: "info",
-        userEmail: normStudentEmail,
-      });
-    } catch (notifErr) {
-      console.error("Failed to trigger fallback support chat notification:", notifErr);
-    }
-    res.json(fallbackMsg);
   }
 });
 app.get("/api/forum/posts", async (req, res) => {

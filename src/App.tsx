@@ -108,7 +108,7 @@ export default function App() {
 
   // App Update states
   const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
-    return localStorage.getItem("client_app_version") || "7.5.1";
+    return localStorage.getItem("client_app_version") || "2.6.1";
   });
   const [serverVersionInfo, setServerVersionInfo] = useState<{
     latestVersion: string;
@@ -179,7 +179,7 @@ export default function App() {
         clearInterval(interval);
         
         // Persist the updated version code in localStorage
-        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "7.5.1";
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.1";
         localStorage.setItem("client_app_version", versionToSave);
         localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
@@ -868,7 +868,7 @@ export default function App() {
           </div>
 
       {/* Main Content Area Container */}
-      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-20 md:pt-24 pb-32 sm:px-6" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
+      <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-20 md:pt-24 pb-32 sm:px-6 md:pl-28" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
@@ -1007,7 +1007,7 @@ export default function App() {
             onClick={() => setCurrentTab("profile")}
             whileHover={{ scale: 1.1, rotate: 10 }}
             whileTap={{ scale: 0.9 }}
-            className={`fixed bottom-24 right-6 z-40 p-4 rounded-full shadow-2xl border ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+            className={`md:hidden fixed bottom-24 right-6 z-40 p-4 rounded-full shadow-2xl border ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
           >
             <User className={`h-6 w-6 ${theme.textHeading}`} />
           </motion.button>
@@ -1019,6 +1019,83 @@ export default function App() {
           </div>
         </footer>
       </main>
+
+      {/* Desktop Floating Sidebar Navigation */}
+      {profile && (
+        <div className={`hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 flex-col items-center gap-4 py-6 px-3 rounded-[2rem] shadow-[0_15px_35px_rgba(0,0,0,0.12)] backdrop-blur-xl border ${theme.isDark ? 'bg-slate-900/80 border-white/10' : 'bg-white/90 border-black/5'}`}>
+          <button
+            onClick={() => setCurrentTab("dashboard")}
+            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+              currentTab === "dashboard"
+                ? `${theme.primaryText} bg-black/5 dark:bg-white/5 font-bold shadow-sm scale-110`
+                : `${theme.textMuted} font-medium hover:bg-black/5 dark:hover:bg-white/5 hover:scale-105`
+            }`}
+            title={lang === "bn" ? "ড্যাশবোর্ড" : "Dashboard"}
+          >
+            <GraduationCap className="h-6 w-6" style={{ color: currentTab === "dashboard" ? "currentColor" : "#94a3b8" }} />
+          </button>
+           <button
+            onClick={() => {
+              setCurrentTab("notes");
+              setSelectedNote(null);
+            }}
+            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+              currentTab === "notes"
+                ? `${theme.primaryText} bg-black/5 dark:bg-white/5 font-bold shadow-sm scale-110`
+                : `${theme.textMuted} font-medium hover:bg-black/5 dark:hover:bg-white/5 hover:scale-105`
+            }`}
+            title={lang === "bn" ? "নোটস" : "Notes"}
+          >
+            <BookOpen className="h-6 w-6" style={{ color: currentTab === "notes" ? "currentColor" : "#94a3b8" }} />
+          </button>
+           <button
+            onClick={() => {
+              setCurrentTab("chat");
+              setSelectedNote(null);
+            }}
+            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+              currentTab === "chat"
+                ? `${theme.primaryText} bg-black/5 dark:bg-white/5 font-bold shadow-sm scale-110`
+                : `${theme.textMuted} font-medium hover:bg-black/5 dark:hover:bg-white/5 hover:scale-105`
+            }`}
+            title={lang === "bn" ? "চ্যাট" : "Chat"}
+          >
+            <MessageSquare className="h-6 w-6" style={{ color: currentTab === "chat" ? "currentColor" : "#94a3b8" }} />
+          </button>
+          
+           <button
+            onClick={() => {
+              setCurrentTab("liveClasses");
+              setSelectedNote(null);
+            }}
+            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+              currentTab === "liveClasses"
+                ? `${theme.primaryText} bg-black/5 dark:bg-white/5 font-bold shadow-sm scale-110`
+                : `${theme.textMuted} font-medium hover:bg-black/5 dark:hover:bg-white/5 hover:scale-105`
+            }`}
+            title={lang === "bn" ? "লাইভ ক্লাস" : "Live"}
+          >
+            <Radio className="h-6 w-6" style={{ color: currentTab === "liveClasses" ? "currentColor" : "#94a3b8" }} />
+          </button>
+          
+          {profile.role === "Admin" && (
+            <button
+              onClick={() => {
+                setCurrentTab("admin");
+                setSelectedNote(null);
+              }}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all ${
+                currentTab === "admin"
+                  ? "text-amber-500 bg-amber-500/10 dark:bg-amber-500/20 font-bold shadow-sm scale-110"
+                  : `${theme.textMuted} font-medium hover:bg-amber-500/10 dark:hover:bg-amber-500/20 hover:text-amber-500 hover:scale-105`
+              }`}
+              title={lang === "bn" ? "অ্যাডমিন" : "Admin"}
+            >
+              <Shield className="h-6 w-6" style={{ color: currentTab === "admin" ? "#d97706" : "#94a3b8" }} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (

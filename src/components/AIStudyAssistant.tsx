@@ -132,7 +132,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
             {isBengali ? "এআই স্টাডি অ্যাসিস্ট্যান্ট" : "AI Study Assistant"}
           </h2>
           <p className={`text-xs ${theme.textMuted}`}>
-            {isBengali ? "Google Gemini AI দ্বারা পরিচালিত" : "Powered by Google Gemini AI"}
+            {isBengali ? "Google দ্বারা পরিচালিত, দীপ্তাংশু মজুমদার দ্বারা তৈরি" : "Powered by Google , Created by Diptanshu Mazumder"}
           </p>
         </div>
       </div>

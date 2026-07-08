@@ -198,12 +198,12 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
 
     // Support Chat Page
     chatHeaderTitle: "Academic Support Center",
-    chatActiveAgent: "Connected with Support Bot & Admins",
+    chatActiveAgent: "Connected with Admins",
     chatAssistantHint: "Ask the administrators for assistance, feature support, or custom study feedback.",
     chatAdminActiveBadge: "Admin Active",
     chatInputPlaceholder: "Type a study doubt or support request here...",
     chatSendBtn: "Send",
-    chatWelcomeMessage: "Hello! Welcome to the STUDY HUB Support Portal. Ask any academic questions or request help, and our support assistant and system administrators will help you immediately."
+    chatWelcomeMessage: "Hello! Welcome to the STUDY HUB Support Portal. Ask any academic questions or request help, and our system administrators will help you."
   },
   bn: {
     brandName: "স্টাডি হাব",
@@ -298,11 +298,11 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
 
     // Support Chat Page
     chatHeaderTitle: "শিক্ষায়তনিক সহায়তা কেন্দ্র",
-    chatActiveAgent: "সহায়তা বট এবং প্রশাসকদের সাথে সংযুক্ত",
+    chatActiveAgent: "প্রশাসকদের সাথে সংযুক্ত",
     chatAssistantHint: "সহায়তা, নতুন বৈশিষ্ট্য বা কাস্টম অধ্যয়নের মতামতের জন্য প্রশাসকদের জিজ্ঞাসা করুন।",
     chatAdminActiveBadge: "প্রশাসক সক্রিয়",
     chatInputPlaceholder: "আপনার প্রশ্ন বা সহায়তার অনুরোধ এখানে লিখুন...",
     chatSendBtn: "পাঠান",
-    chatWelcomeMessage: "হ্যালো! স্টাডি হাব সহায়তা পোর্টালে আপনাকে স্বাগতম। যেকোনো শিক্ষাগত প্রশ্ন জিজ্ঞাসা করুন বা সাহায্যের অনুরোধ করুন, এবং আমাদের সহকারী বট এবং সিস্টেম প্রশাসকেরা আপনাকে অবিলম্বে সহায়তা করবে।"
+    chatWelcomeMessage: "হ্যালো! স্টাডি হাব সহায়তা পোর্টালে আপনাকে স্বাগতম। যেকোনো শিক্ষাগত প্রশ্ন জিজ্ঞাসা করুন বা সাহায্যের অনুরোধ করুন, এবং আমাদের সিস্টেম প্রশাসকেরা আপনাকে সহায়তা করবে।"
   }
 };
