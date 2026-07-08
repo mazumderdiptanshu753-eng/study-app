@@ -69,6 +69,7 @@ export interface StudentProfile {
   registeredAt: string;
   avatarUrl?: string;
   role: "Admin" | "Student";
+  isSuspended?: boolean;
 }
 
 export interface UserStats {

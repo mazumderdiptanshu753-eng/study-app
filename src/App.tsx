@@ -250,6 +250,12 @@ export default function App() {
         if (profile) {
           const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
           if (matched) {
+            if (matched.isSuspended) {
+              setProfile(null);
+              localStorage.removeItem("student_profile");
+              alert(lang === "bn" ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাসপেন্ড করা হয়েছে।" : "Your account has been suspended by the admin.");
+              return;
+            }
             if (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl) {
               const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
               setProfile(updatedProfile);
@@ -570,6 +576,11 @@ export default function App() {
   const handleRegister = async (newProfile: StudentProfile) => {
     // If we have existing user records, make sure roles are preserved correctly
     const existingUser = users.find(u => (u?.email || "").trim().toLowerCase() === (newProfile?.email || "").trim().toLowerCase());
+    if (existingUser?.isSuspended) {
+      alert(lang === "bn" ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাসপেন্ড করা হয়েছে।" : "Your account has been suspended by the admin.");
+      return;
+    }
+    
     if (existingUser && existingUser.role === "Admin") {
       newProfile.role = "Admin";
       newProfile.avatarUrl = "👑";
@@ -636,6 +647,35 @@ export default function App() {
       }
     } catch (e) {
       console.error("Failed to toggle admin role on backend:", e);
+    }
+  };
+
+  const handleToggleSuspendUser = async (email: string) => {
+    const targetUser = users.find(user => (user?.email || "").trim().toLowerCase() === (email || "").trim().toLowerCase());
+    if (!targetUser) return;
+    if (targetUser.role === "Admin") {
+      alert(lang === "bn" ? "অ্যাডমিনকে সাসপেন্ড করা যাবে না।" : "Cannot suspend an admin.");
+      return;
+    }
+
+    const updatedUser = {
+      ...targetUser,
+      isSuspended: !targetUser.isSuspended
+    };
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+        localStorage.setItem("registered_users", JSON.stringify(data));
+      }
+    } catch (e) {
+      console.error("Failed to toggle suspend on backend:", e);
     }
   };
 
@@ -948,6 +988,7 @@ export default function App() {
                   lang={lang}
                   users={users}
                   onToggleAdminRole={handleToggleAdminRole}
+                  onToggleSuspendUser={handleToggleSuspendUser}
                   onDeleteUser={handleDeleteUser}
                   currentUserEmail={profile?.email || ""}
                   theme={theme}

@@ -24,18 +24,20 @@
   ],
   "activityLogs": [
     {
+      "id": "log-1783474442528-t9ol8khwn",
       "userEmail": "mazumderdiptanshu753@gmail.com",
       "userName": "dip",
       "action": "Login",
       "timestamp": "2026-07-08T01:33:59.546Z",
-      "id": "log-1783474442528-t9ol8khwn"
+      "details": ""
     },
     {
+      "id": "log-1783474093622-yo1ww0685",
       "userEmail": "mazumderdiptanshu753@gmail.com",
       "userName": "CREATER ADMIN DIPTANSHU MAZUMDER",
       "action": "Logout",
       "timestamp": "2026-07-08T01:28:10.642Z",
-      "id": "log-1783474093622-yo1ww0685"
+      "details": ""
     },
     {
       "id": "log-1783355797083-qlunphofj",

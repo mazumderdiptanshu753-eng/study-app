@@ -144,8 +144,8 @@ export async function migrateLocalDataToPostgres(): Promise<void> {
       for (const user of localDB.users) {
         if (!user.email) continue;
         await pool.query(`
-          INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role, "isSuspended")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           ON CONFLICT (email) DO NOTHING
         `, [
           user.email.trim().toLowerCase(),
@@ -154,7 +154,8 @@ export async function migrateLocalDataToPostgres(): Promise<void> {
           user.preferredSubject || '',
           user.registeredAt || new Date().toISOString(),
           user.avatarUrl || '',
-          user.role || 'Student'
+          user.role || 'Student',
+          user.isSuspended || false
         ]);
       }
     }
@@ -382,7 +383,8 @@ export async function saveUser(user: any): Promise<any[]> {
           "preferredSubject" = EXCLUDED."preferredSubject",
           "registeredAt" = EXCLUDED."registeredAt",
           "avatarUrl" = EXCLUDED."avatarUrl",
-          role = EXCLUDED.role
+          role = EXCLUDED.role,
+          "isSuspended" = EXCLUDED."isSuspended"
       `, [
         user.email.trim().toLowerCase(),
         user.fullName || '',
@@ -390,7 +392,8 @@ export async function saveUser(user: any): Promise<any[]> {
         user.preferredSubject || '',
         user.registeredAt || new Date().toISOString(),
         user.avatarUrl || '',
-        user.role || 'Student'
+        user.role || 'Student',
+        user.isSuspended || false
       ]);
     } catch (e) {
       console.error("Error saving user to PG, but local backup saved:", e);

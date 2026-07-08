@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, ArrowUpCircle, RefreshCcw } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, Star, Ban, ArrowUpCircle, RefreshCcw, CheckCircle } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -9,6 +9,7 @@ interface AdminPanelProps {
   lang: Language;
   users: StudentProfile[];
   onToggleAdminRole: (email: string) => void;
+  onToggleSuspendUser?: (email: string) => void;
   onDeleteUser: (email: string) => void;
   currentUserEmail: string;
   theme: ThemeConfig;
@@ -23,11 +24,12 @@ interface ActivityLog {
   timestamp: string;
 }
 
-export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
+export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSuspendUser, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs" | "settings" | "analytics" | "moderation">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // App Release Update states
   const [newVersion, setNewVersion] = useState("");
@@ -212,10 +214,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
       </motion.div>
 
       {/* Tabs */}
-      <motion.div variants={itemVariants} className={`flex p-1 ${theme.bgPage} rounded-xl mb-6 w-full sm:w-fit`}>
+      <motion.div variants={itemVariants} className={`flex flex-wrap p-1 ${theme.bgPage} rounded-xl mb-6 w-full sm:w-fit gap-1`}>
         <button
           onClick={() => setActiveTab("users")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
             activeTab === "users" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -224,12 +226,39 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
         </button>
         <button
           onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
             activeTab === "logs" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
           <Activity className="h-4 w-4" />
           {isBengali ? "অ্যাক্টিভিটি লগ" : "Logs"}
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+            activeTab === "settings" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
+          }`}
+        >
+          <Settings className="h-4 w-4" />
+          {isBengali ? "সেটিংস" : "Settings"}
+        </button>
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+            activeTab === "analytics" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
+          }`}
+        >
+          <BarChart2 className="h-4 w-4" />
+          {isBengali ? "অ্যানালিটিক্স" : "Analytics"}
+        </button>
+        <button
+          onClick={() => setActiveTab("moderation")}
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+            activeTab === "moderation" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
+          }`}
+        >
+          <ShieldAlert className="h-4 w-4" />
+          {isBengali ? "মডারেশন" : "Moderation"}
         </button>
       </motion.div>
 
@@ -272,6 +301,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                 <tbody className={`divide-y ${theme.borderCard}`}>
                   {filteredUsers.map((user) => {
                     const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+                const isSuspended = user.isSuspended;
                     const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
 
                     return (
@@ -281,8 +311,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
                             <div className="min-w-0">
-                              <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
-                              <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px] sm:max-w-xs`}>{user.email}</span>
+                              <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                              <span className={`text-[10px] ${theme.textMuted} font-medium block break-all sm:max-w-xs`}>{user.email}</span>
                             </div>
                           </div>
                         </td>
@@ -343,6 +373,17 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                               </button>
                               <button
                                 onClick={() => {
+                                  if (window.confirm(isBengali ? (isSuspended ? "সাসপেন্ড তুলে নিতে চান?" : "আপনি কি নিশ্চিত যে আপনি এই ব্যবহারকারীকে সাসপেন্ড করতে চান?") : (isSuspended ? "Unsuspend user?" : "Suspend this user?"))) {
+                                    if (onToggleSuspendUser) onToggleSuspendUser(user.email);
+                                  }
+                                }}
+                                className={`inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors cursor-pointer ${isSuspended ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`}
+                                title={isBengali ? (isSuspended ? "সাসপেন্ড বাতিল করুন" : "সাসপেন্ড করুন") : (isSuspended ? "Unsuspend" : "Suspend")}
+                              >
+                                {isSuspended ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                              </button>
+                              <button
+                                onClick={() => {
                                   if (window.confirm(isBengali ? "আপনি কি নিশ্চিত যে আপনি এই ব্যবহারকারীকে মুছে ফেলতে চান?" : "Are you sure you want to delete this user?")) {
                                     onDeleteUser(user.email);
                                   }
@@ -367,14 +408,15 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
             <div className="block sm:hidden divide-y divide-slate-500/10">
               {filteredUsers.map((user) => {
                 const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+                const isSuspended = user.isSuspended;
                 const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
                 return (
                   <div key={user?.email || Math.random().toString()} className="p-4 space-y-3">
                     {/* User basic info */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <span className={`font-bold text-xs ${theme.textHeading} block truncate`}>{user.fullName}</span>
-                        <span className={`text-[10px] ${theme.textMuted} font-medium block truncate max-w-[180px]`}>{user.email}</span>
+                        <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                        <span className={`text-[10px] ${theme.textMuted} font-medium block break-all`}>{user.email}</span>
                       </div>
                       <div className="shrink-0">
                         {user.role === "Admin" ? (
@@ -426,6 +468,17 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                                   {isBengali ? "অ্যাডমিন" : "Admin"}
                                 </>
                               )}
+                            </button>
+                            <button
+                              title={isBengali ? (isSuspended ? "সাসপেন্ড বাতিল করুন" : "সাসপেন্ড করুন") : (isSuspended ? "Unsuspend" : "Suspend")}
+                              onClick={() => {
+                                if (window.confirm(isBengali ? (isSuspended ? "সাসপেন্ড তুলে নিতে চান?" : "আপনি কি নিশ্চিত যে আপনি এই ব্যবহারকারীকে সাসপেন্ড করতে চান?") : (isSuspended ? "Unsuspend user?" : "Suspend this user?"))) {
+                                  if (onToggleSuspendUser) onToggleSuspendUser(user.email);
+                                }
+                              }}
+                              className={`inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors cursor-pointer ${isSuspended ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'border-amber-500/20 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`}
+                            >
+                              {isSuspended ? <CheckCircle className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
                             </button>
                             <button
                               onClick={() => {
@@ -527,8 +580,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
                           {log.userName.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <div className={`font-bold text-xs ${theme.textHeading} truncate`}>{log.userName}</div>
-                          <div className={`text-[10px] ${theme.textMuted} truncate max-w-[150px]`}>{log.userEmail}</div>
+                          <div className={`font-bold text-xs ${theme.textHeading} break-words`}>{log.userName}</div>
+                          <div className={`text-[10px] ${theme.textMuted} break-all`}>{log.userEmail}</div>
                         </div>
                       </div>
                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold rounded-md border shrink-0 ${
@@ -551,7 +604,119 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onDeleteUse
           )}
         </motion.div>
       )}
+      {activeTab === "analytics" && (
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-sm overflow-hidden p-4 sm:p-6 space-y-6`}>
+          <h2 className={`text-lg font-bold ${theme.textHeading}`}>
+            {isBengali ? "অ্যানালিটিক্স এবং রিপোর্ট" : "Analytics & Dashboard"}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-slate-500/5 rounded-xl border border-slate-500/10">
+              <h3 className={`font-bold ${theme.textHeading} mb-4 flex items-center gap-2`}>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                {isBengali ? "অ্যাক্টিভ ইউজার চার্ট" : "Active Users"}
+              </h3>
+              <div className="h-32 flex items-end gap-2 justify-between">
+                {[40, 60, 45, 80, 55, 90, 75].map((h, i) => (
+                  <div key={i} className="w-full bg-teal-500/20 rounded-t-sm" style={{ height: `${h}%` }}></div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-500/5 rounded-xl border border-slate-500/10">
+              <h3 className={`font-bold ${theme.textHeading} mb-4 flex items-center gap-2`}>
+                <Star className="h-4 w-4 text-amber-500" />
+                {isBengali ? "পপুলার কন্টেন্ট" : "Popular Content"}
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className={`${theme.textMain}`}>Math Masterclass (Video)</span>
+                  <span className="font-bold text-teal-600">1.2k views</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className={`${theme.textMain}`}>History PDF Notes</span>
+                  <span className="font-bold text-teal-600">850 dl</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className={`${theme.textMain}`}>Live Doubt Session</span>
+                  <span className="font-bold text-teal-600">500 joined</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {activeTab === "moderation" && (
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-sm overflow-hidden p-4 sm:p-6`}>
+          <h2 className={`text-lg font-bold ${theme.textHeading} mb-4`}>
+            {isBengali ? "কন্টেন্ট মডারেশন" : "Content Moderation"}
+          </h2>
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-500/5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className={`font-bold ${theme.textHeading}`}>
+                  {isBengali ? "কমিউনিটি ফোরাম স্প্যাম কন্ট্রোল" : "Community Forum Spam Control"}
+                </h3>
+                <p className={`text-xs ${theme.textMuted} mt-1`}>
+                  {isBengali ? "স্প্যাম বা খারাপ কিছু পোস্ট হলে অটোমেটিক ফিল্টার করুন।" : "Automatically filter spam or inappropriate posts."}
+                </p>
+              </div>
+              <button className="w-full sm:w-auto px-4 py-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-lg font-bold text-sm transition-all text-center">
+                {isBengali ? "ম্যানেজ করুন" : "Manage"}
+              </button>
+            </div>
+            <div className="p-4 bg-slate-500/5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className={`font-bold ${theme.textHeading}`}>
+                  {isBengali ? "নোটস অ্যাপ্রুভাল সিস্টেম" : "Notes Approval System"}
+                </h3>
+                <p className={`text-xs ${theme.textMuted} mt-1`}>
+                  {isBengali ? "ছাত্রদের শেয়ার করা নোটস অ্যাপ্রুভ করার জন্য পেন্ডিং লিস্ট দেখুন।" : "View pending notes shared by students for approval."}
+                </p>
+              </div>
+              <button className="w-full sm:w-auto px-4 py-2 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                3 {isBengali ? "পেন্ডিং" : "Pending"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {activeTab === "settings" && (
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-sm overflow-hidden p-4 sm:p-6`}>
+          <h2 className={`text-lg font-bold ${theme.textHeading} mb-4`}>
+            {isBengali ? "সিস্টেম কনফিগারেশন" : "System Configuration"}
+          </h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-500/5 rounded-xl gap-4">
+            <div>
+              <h3 className={`font-bold ${theme.textHeading}`}>
+                {isBengali ? "মেইনটেন্যান্স মোড" : "Maintenance Mode"}
+              </h3>
+              <p className={`text-xs ${theme.textMuted} mt-1`}>
+                {isBengali ? "অ্যাপে কোনো আপডেট চলার সময় ইউজারদের জন্য অ্যাপটি বন্ধ রাখুন।" : "Disable access for users during updates."}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setMaintenanceMode(!maintenanceMode);
+                alert(isBengali ? (maintenanceMode ? "মেইনটেন্যান্স মোড বন্ধ করা হয়েছে।" : "মেইনটেন্যান্স মোড চালু করা হয়েছে।") : (maintenanceMode ? "Maintenance Mode Disabled." : "Maintenance Mode Enabled."));
+              }}
+              className={`w-full sm:w-auto px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                maintenanceMode
+                  ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+                  : "bg-teal-500/10 text-teal-600 hover:bg-teal-500/20"
+              }`}
+            >
+              {maintenanceMode ? (isBengali ? "বন্ধ করুন" : "Disable") : (isBengali ? "চালু করুন" : "Enable")}
+            </button>
+          </div>
+        </motion.div>
+      )}
 
     </motion.div>
   );
 }
+

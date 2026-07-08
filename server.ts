@@ -137,7 +137,7 @@ app.post("/api/solve-doubt", async (req, res) => {
       return res.status(400).json({ error: "Question is required." });
     }
     const ai = getGeminiClient();
-    const prompt = `You are a warm, extremely clear, and engaging academic tutor. 
+    const prompt = `You are a warm, extremely clear, and engaging academic tutor. Provide prominent and direct answers, without babbling or talking nonsense. Keep it concise. ALWAYS explain your answers step-by-step, no matter what the subject is. 
 Subject: ${subject || "General Science & Arts"}
 Target Grade Level: ${grade || "High School"}
 
@@ -306,7 +306,7 @@ app.post("/api/study-assistant/chat", async (req, res) => {
     const ai = getGeminiClient();
     const isBengali = lang === "bn";
     let chatHistory =
-      "You are a helpful and intelligent AI Study Assistant designed to help students understand their academic subjects. Be encouraging, clear, and educational.\n\n";
+      "You are a helpful and intelligent AI Study Assistant designed to help students understand their academic subjects. Be encouraging, clear, and educational. Be concise, direct, and to the point. Do not talk nonsense or babble (vat bokbe na). Provide prominent and accurate answers directly. ALWAYS explain your answers step-by-step, no matter what the subject is.\n\n";
     chatHistory +=
       "Language of explanation: " +
       (isBengali ? "Bengali (\u09AC\u09BE\u0982\u09B2\u09BE)" : "English") +
@@ -393,7 +393,7 @@ app.post("/api/solve-math", async (req, res) => {
     const isBengali = lang === "bn";
     const prompt = `You are an expert universal tutor and solver across all subjects (Math, Science, History, Literature, etc.). 
 ${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the problem, and solve it." : ""}
-Please solve the problem or answer the question in a step-by-step, pedagogical, 100% correct, and extremely clear manner.
+Please solve the problem or answer the question in a step-by-step, pedagogical, 100% correct, and extremely clear manner. Provide prominent and direct answers without unnecessary fluff or babble. ALWAYS explain your answers step-by-step, no matter what the subject is.
 
 ${problem ? `Problem/Context provided by user: "${problem}"` : "Please extract and solve the problem shown in the provided document."}
 
