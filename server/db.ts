@@ -81,6 +81,10 @@ if (sqlHost) {
     database: process.env.SQL_DB_NAME,
     connectionTimeoutMillis: 15000,
   });
+
+  pool.on("error", (err) => {
+    console.error("Unexpected error on idle client", err);
+  });
 }
  else {
   console.log("No DATABASE_URL found. Running with local db.json file database.");

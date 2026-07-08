@@ -1099,7 +1099,7 @@ export default function App() {
 
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
+        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
           <div className={`flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl pointer-events-auto ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
           <button
             onClick={() => setCurrentTab("dashboard")}
