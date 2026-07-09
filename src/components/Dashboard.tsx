@@ -23,6 +23,11 @@ import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import ScientificCalculator from "./ScientificCalculator";
 import SolveWithAI from "./SolveWithAI";
+import PerformanceAnalytics from "./PerformanceAnalytics";
+import CurrentAffairsTicker from "./CurrentAffairsTicker";
+import DailyQuiz from "./DailyQuiz";
+
+
 
 interface DashboardProps {
   stats: UserStats;
@@ -252,9 +257,9 @@ export default function Dashboard({
                   <MessageSquare className="h-4 w-4 text-blue-300" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-blue-200/80 mb-0.5 truncate">AI Assistant</span>
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-blue-200/80 mb-0.5 truncate">Chat</span>
                   <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
-                    {lang === "bn" ? "চ্যাট সাহায্য" : "AI Chat"}
+                    {lang === "bn" ? "শিক্ষক/অ্যাডমিন চ্যাট" : "Chat with Admin / Teacher"}
                   </span>
                 </div>
               </motion.button>
@@ -303,6 +308,10 @@ export default function Dashboard({
           </div>
         </div>
       </motion.div>
+
+      {/* Current Affairs Ticker */}
+      <CurrentAffairsTicker theme={theme} lang={lang} />
+      <DailyQuiz theme={theme} lang={lang} />
 
       {/* Govt Job Subjects Section with Glowing Cards & Enhanced Graphics */}
       <motion.div variants={itemVariants} className="w-full mb-8">

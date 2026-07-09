@@ -47,13 +47,44 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
-} from "./server/db.js";
+  getSettings, updateSettings } from "./server/db.js";
 const DATA_DIR = path.join(process.cwd(), "data");
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 let firestore = null;
+
+class AsyncQueue {
+  private concurrency: number;
+  private running: number;
+  private queue: ((value: void | PromiseLike<void>) => void)[];
+
+  constructor(concurrency = 1) {
+    this.concurrency = concurrency;
+    this.running = 0;
+    this.queue = [];
+  }
+  async add<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.running >= this.concurrency) {
+      await new Promise<void>(resolve => this.queue.push(resolve));
+    }
+    this.running++;
+    try {
+      return await fn();
+    } finally {
+      this.running--;
+      if (this.queue.length > 0) {
+        const next = this.queue.shift();
+        if (next) next();
+      }
+    }
+  }
+}
+const geminiQueue = new AsyncQueue(1);
+
 async function withRetry(operation, maxRetries = 10) {
+  return geminiQueue.add(async () => {
+
   let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -80,9 +111,7 @@ async function withRetry(operation, maxRetries = 10) {
       if (isTransient && i < maxRetries - 1) {
         // Exponential backoff with jitter
         const delay = Math.pow(2, i) * 2000 + Math.random() * 2000;
-        console.warn(
-          `Gemini API transient error (${status || errorMessage}). Retrying ${i + 1}/${maxRetries} in ${Math.round(delay)}ms...`,
-        );
+        console.log(`Gemini API rate limit. Retrying ${i + 1}/${maxRetries}...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         throw error;
@@ -90,8 +119,29 @@ async function withRetry(operation, maxRetries = 10) {
     }
   }
   throw lastError;
+  });
 }
 __name(withRetry, "withRetry");
+
+const CACHE_FILE = path.join(DATA_DIR, "ai-cache.json");
+let aiCacheData = {};
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    aiCacheData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+  }
+} catch (e) {
+  console.error("Error reading ai-cache.json:", e);
+}
+
+const aiCache = {
+  has: (key) => aiCacheData.hasOwnProperty(key),
+  get: (key) => aiCacheData[key],
+  set: (key, value) => {
+    aiCacheData[key] = value;
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(aiCacheData, null, 2));
+  }
+};
+
 const app = express();
 app.use((req, res, next) => {
   res.setHeader(
@@ -155,7 +205,7 @@ Explain the answer thoroughly. Follow this strict schema:
   - correctOptionIndex: The 0-based index of the correct option (0 to 3).
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -217,7 +267,7 @@ Provide a structured response:
 - summaryPoints: An array of key summary bullet points (clear, informative, and concise).
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -257,7 +307,7 @@ Note Content:
 
 Return a list of flashcards.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -317,7 +367,7 @@ app.post("/api/study-assistant/chat", async (req, res) => {
     }
     chatHistory += "Assistant:";
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: chatHistory,
     });
     if (response.text) {
@@ -347,7 +397,7 @@ app.post("/api/summarize-note", async (req, res) => {
     """
     `;
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       contents: prompt,
     });
     if (response.text) {
@@ -368,7 +418,7 @@ app.post("/api/generate-flashcards", async (req, res) => {
     Notes Title: ${title}
     Notes content: ${noteContent}`;
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       contents: prompt,
     });
     let text = response.text;
@@ -411,7 +461,7 @@ Please provide a highly detailed response. Follow this strict schema:
       });
     }
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       contents,
       config: {
         responseMimeType: "application/json",
@@ -493,22 +543,26 @@ app.post("/api/app-version", async (req, res) => {
 });
 app.get("/api/gk-questions", async (req, res) => {
   try {
-    const ai = getGeminiClient();
     const now = new Date();
     const oneJan = new Date(now.getFullYear(), 0, 1);
-    const numberOfDays = Math.floor(
-      (now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3),
-    );
+    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3));
     const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
+    const cacheKey = "gk-" + now.getFullYear() + "-W" + weekNumber;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+
+    const ai = getGeminiClient();
     const seed = `${now.getFullYear()}-W${weekNumber}`;
     const prompt = `Generate 5 multiple-choice General Knowledge questions suitable for government exam preparation.
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Make sure the topics are relevant for competitive government exams (History, Geography, Polity, Science, Current Events).
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -537,6 +591,7 @@ Format the output strictly as JSON following this schema.`;
       },
     });
     const data = JSON.parse(response.text || '{"questions": []}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.warn("Using fallback for GK questions due to API limit.");
@@ -595,20 +650,23 @@ Format the output strictly as JSON following this schema.`;
 });
 app.get("/api/important-questions", async (req, res) => {
   try {
-    const ai = getGeminiClient();
     const now = new Date();
     const oneJan = new Date(now.getFullYear(), 0, 1);
-    const numberOfDays = Math.floor(
-      (now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3),
-    );
+    const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1e3));
     const weekNumber = Math.ceil((now.getDay() + 1 + numberOfDays) / 7);
+    const cacheKey = "imp-" + now.getFullYear() + "-W" + weekNumber;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+
+    const ai = getGeminiClient();
     const seed = `${now.getFullYear()}-W${weekNumber}-Important`;
     const prompt = `Generate 100 important, frequently asked one-liner questions and their direct answers for Indian government competitive exams (like UPSC, SSC, Railways, State PSC). 
 Make sure to include a good mix of subjects, including some Mathematics/Quantitative Aptitude questions.
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -633,6 +691,7 @@ Format the output strictly as JSON following this schema.`;
       },
     });
     const data = JSON.parse(response.text || '{"qnaList": []}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.warn("Using fallback for important questions due to API limit.");
@@ -676,19 +735,74 @@ Format the output strictly as JSON following this schema.`;
     res.json(fallbackData);
   }
 });
-app.get("/api/current-affairs", async (req, res) => {
+
+app.get("/api/daily-quiz", async (req, res) => {
   try {
     const ai = getGeminiClient();
     const now = new Date();
     const dateString = now.toISOString().split("T")[0];
+    const seed = `DailyQuiz-${dateString}`;
+    const cacheKey = "quiz-" + dateString;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+    const prompt = `Generate 1 important multiple-choice question (MCQ) for Indian government competitive exams (like UPSC, SSC, Railways, State PSC) for today's daily quiz.
+Use the following seed to ensure variety but consistency for today: ${seed}.
+Format the output strictly as JSON following this schema.`;
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["question", "options", "correctAnswer", "explanation"],
+          properties: {
+            question: { type: Type.STRING },
+            options: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            correctAnswer: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+          },
+        },
+      },
+    });
+
+    const data = JSON.parse(response.text || '{}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
+    res.json(data);
+  } catch (error) {
+    console.error("Error generating daily quiz:", error);
+    res.json({
+      question: "Which organelle is known as the powerhouse of the cell?",
+      options: ["Nucleus", "Mitochondria", "Ribosome", "Endoplasmic Reticulum"],
+      correctAnswer: "Mitochondria",
+      explanation: "Mitochondria generate most of the chemical energy needed to power the cell's biochemical reactions."
+    });
+  }
+});
+
+app.get("/api/current-affairs", async (req, res) => {
+  try {
+    const now = new Date();
+    const dateString = now.toISOString().split("T")[0];
+    const cacheKey = "ca-" + dateString;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+
+    const ai = getGeminiClient();
     const seed = `CurrentAffairs-${dateString}`;
     const prompt = `Generate 5 important daily current affairs headlines and brief descriptions for Indian government competitive exams (like UPSC, SSC, Railways, State PSC) for today.
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -712,6 +826,7 @@ Format the output strictly as JSON following this schema.`;
       },
     });
     const data = JSON.parse(response.text || '{"news": []}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.warn("Using fallback for current affairs due to API limit.");
@@ -762,17 +877,23 @@ Format the output strictly as JSON following this schema.`;
 });
 app.get("/api/job-alerts", async (req, res) => {
   try {
-    const ai = getGeminiClient();
     const now = new Date();
     const dateString = now.toISOString().split("T")[0];
+    const cacheKey = "ja-" + dateString;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+
+    const ai = getGeminiClient();
     const seed = `JobAlerts-${dateString}`;
     const prompt = `Generate 5 latest Indian government job alerts, admit card releases, or exam result announcements for the current year ${now.getFullYear()} (e.g., SSC, UPSC, Railway, State PSC, Police).
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -820,6 +941,7 @@ Format the output strictly as JSON following this schema.`;
       },
     });
     const data = JSON.parse(response.text || '{"alerts": []}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.warn("Using fallback for job alerts due to API limit.");
@@ -853,14 +975,19 @@ Format the output strictly as JSON following this schema.`;
 });
 app.get("/api/pyq", async (req, res) => {
   try {
-    const ai = getGeminiClient();
     const exam = req.query.exam || "SSC CGL";
+    const cacheKey = "pyq-" + exam;
+    if (aiCache.has(cacheKey)) {
+      return res.json(aiCache.get(cacheKey));
+    }
+
+    const ai = getGeminiClient();
     const seed = `PYQ-${exam}`;
     const prompt = `Generate 5 authentic-looking Previous Year Questions (PYQ) for the ${exam} exam.
 Include the year it was asked. Make sure the questions are relevant to the exam.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-3.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -893,6 +1020,7 @@ Format the output strictly as JSON following this schema.`;
       },
     });
     const data = JSON.parse(response.text || '{"questions": []}');
+    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
     res.json(data);
   } catch (error) {
     console.warn("Using fallback for PYQ due to API limit.");
@@ -956,7 +1084,7 @@ app.get("/api/chat/messages", async (req, res) => {
         senderName: "Admin (Diptanshu)",
         senderEmail: "mazumderdiptanshu753@gmail.com",
         senderRole: "Admin",
-        message: `Hello ${name}! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?`,
+        message: `Hello ${name}! Welcome to the Direct Chat Portal. I am the Admin/Teacher of this workspace. How can I assist you with your studies today?`,
         timestamp: new Date().toISOString(),
         studentEmail,
         studentName: name,
@@ -970,6 +1098,17 @@ app.get("/api/chat/messages", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.get('/api/_clean', async (req, res) => {
+  try {
+    const { cleanDemoMessages } = await import('./server/db.js');
+    const count = await cleanDemoMessages();
+    res.json({ success: true, count });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 app.post("/api/chat/messages", async (req, res) => {
   const {
     senderName,
@@ -2089,6 +2228,27 @@ app.delete("/api/notifications/:id", async (req, res) => {
   }
 });
 async function startServer() {
+
+app.get("/api/settings", async (req, res) => {
+  try {
+    const settings = await getSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/settings", async (req, res) => {
+  try {
+    await updateSettings(req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
   if (process.env.NODE_ENV !== "production") {
     app.use((req, res, next) => {
       res.setHeader(
@@ -2130,7 +2290,10 @@ async function startServer() {
         }, "setHeaders"),
       }),
     );
-    app.get("*", (req, res) => {
+    
+
+
+app.get("*", (req, res) => {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
@@ -2142,280 +2305,7 @@ async function startServer() {
   } catch (err) {
     console.error("Database initialization failed:", err);
   }
-  try {
-    const count = await getAiPdfNotesCount();
-    if (count === 0) {
-      const seedData = [
-        {
-          id: "pdfn-seed-math",
-          subject: "math",
-          title:
-            "July 2026 - Quantitative Aptitude: Magic Shortcut Tricks for Percentage & Ratio",
-          introduction:
-            "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B6\u09A4\u0995\u09B0\u09BE \u0993 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u09C7\u09B0 \u099C\u099F\u09BF\u09B2 \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09AE\u09BE\u09A4\u09CD\u09B0 \u09EB-\u09E7\u09E6 \u09B8\u09C7\u0995\u09C7\u09A8\u09CD\u09A1\u09C7 \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8 \u0995\u09B0\u09BE\u09B0 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09C7\u0995\u09A8\u09BF\u0995 \u0993 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0986\u09B2\u09CB\u099A\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
-          keyTopics: [
-            "Percentage Rules",
-            "Ratio & Proportion",
-            "BCS Prep Hacks",
-          ],
-          theoryContent:
-            "### \u09E7. \u09B6\u09A4\u0995\u09B0\u09BE \u09A8\u09BF\u09B0\u09CD\u09A8\u09DF\u09C7\u09B0 \u09AE\u09CD\u09AF\u09BE\u099C\u09BF\u0995 \u099F\u09CD\u09B0\u09BF\u0995 (Percentage Shortcuts):\n\u09B6\u09A4\u0995\u09B0\u09BE \u0985\u0982\u0995\u0997\u09C1\u09B2\u09CB \u09B8\u09B9\u099C\u09C7 \u0995\u09B0\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF \u09AD\u0997\u09CD\u09A8\u09BE\u0982\u09B6\u09C7 \u09B0\u09C2\u09AA\u09BE\u09A8\u09CD\u09A4\u09B0 \u0995\u09B0\u09BE \u09B6\u09BF\u0996\u09A4\u09C7 \u09B9\u09AC\u09C7\u0964\n* \u09E8\u09E6% = \u09E7/\u09EB\n* \u09E8\u09EB% = \u09E7/\u09EA\n* \u09EB\u09E6% = \u09E7/\u09E8\n\n** can_be_applied:** \u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09E6% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A\u09C7\u09B0 \u0995\u09CB\u09A8\u09CB \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B9\u09AC\u09C7 \u09A8\u09BE?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u09B8\u09C2\u09A4\u09CD\u09B0:** (R / (100 + R)) * 100\n* \u09B8\u09AE\u09BE\u09A7\u09BE\u09A8: (\u09E8\u09E6 / \u09E7\u09E8\u09E6) * \u09E7\u09E6\u09E6 = \u09E7\u09EC.\u09EC\u09ED%\n\n### \u09E8. \u0985\u09A8\u09C1\u09AA\u09BE\u09A4 \u0993 \u0985\u0982\u09B6\u09C0\u09A6\u09BE\u09B0\u09BF\u09A4\u09CD\u09AC (Ratio & Proportion Hacks):\n\u09AF\u09A6\u09BF A:B = 2:3 \u098F\u09AC\u0982 B:C = 4:5 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C = ?\n* **\u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F '\u09A6' \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF:**\n  * A = 2 * 4 = 8\n  * B = 3 * 4 = 12\n  * C = 3 * 5 = 15\n  * \u0989\u09A4\u09CD\u09A4\u09B0: 8:12:15",
-          mcqs: [
-            {
-              question:
-                "\u099A\u09BE\u09B2\u09C7\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF \u09E8\u09EB% \u09AC\u09C3\u09A6\u09CD\u09A7\u09BF \u09AA\u09C7\u09B2\u09C7 \u099A\u09BE\u09B2\u09C7\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u09B6\u09A4\u0995\u09B0\u09BE \u0995\u09A4 \u0995\u09AE\u09BE\u09B2\u09C7 \u0996\u09B0\u099A \u0985\u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09A5\u09BE\u0995\u09AC\u09C7?",
-              options: [
-                "\u09E8\u09E6%",
-                "\u09E8\u09EB%",
-                "\u09E7\u09EC.\u09EC\u09ED%",
-                "\u09E7\u09EB%",
-              ],
-              correctAnswer: "\u09E8\u09E6%",
-              explanation:
-                "\u09B8\u09C2\u09A4\u09CD\u09B0: (R / (100+R)) * 100 => (25/125)*100 = 20%.",
-            },
-            {
-              question:
-                "\u09AF\u09A6\u09BF A:B = 3:4 \u098F\u09AC\u0982 B:C = 5:6 \u09B9\u09DF, \u09A4\u09AC\u09C7 A:B:C \u0995\u09A4?",
-              options: ["15:20:24", "15:24:20", "3:5:6", "9:12:16"],
-              correctAnswer: "15:20:24",
-              explanation:
-                "A = 3*5 = 15, B = 4*5 = 20, C = 4*6 = 24. \u09B8\u09C1\u09A4\u09B0\u09BE\u0982 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4\u099F\u09BF \u09E7\u09EB:\u09E8\u09E6:\u09E8\u09EA\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-reasoning",
-          subject: "reasoning",
-          title:
-            "July 2026 - Mental Ability: Master Coding-Decoding & Direction Sense",
-          introduction:
-            "\u098F\u0987 \u0997\u09BE\u0987\u09A1\u099F\u09BF\u09A4\u09C7 \u09B0\u09BF\u099C\u09A8\u09BF\u0982 \u09AC\u09BE \u09AE\u09BE\u09A8\u09B8\u09BF\u0995 \u09A6\u0995\u09CD\u09B7\u09A4\u09BE\u09B0 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u099F\u09AA\u09BF\u0995 \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u098F\u09AC\u0982 \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u09B6\u09B0\u09CD\u099F\u0995\u09BE\u099F \u099F\u09CD\u09B0\u09BF\u0995\u09CD\u09B8 \u09A6\u09C7\u0993\u09DF\u09BE \u09B9\u09B2\u09CB\u0964",
-          keyTopics: [
-            "Alphabet Series Codes",
-            "Direction & Distances",
-            "Visual Analogy",
-          ],
-          theoryContent:
-            "### \u09E7. \u0995\u09CB\u09A1\u09BF\u0982-\u09A1\u09BF\u0995\u09CB\u09A1\u09BF\u0982 \u09B8\u09B9\u099C \u0995\u09B0\u09BE\u09B0 \u09A8\u09BF\u09DF\u09AE:\n\u0987\u0982\u09B0\u09C7\u099C\u09BF \u09AC\u09B0\u09CD\u09A3\u09AE\u09BE\u09B2\u09BE\u09B0 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u09B8\u09B9\u099C\u09C7 \u09AE\u09A8\u09C7 \u09B0\u09BE\u0996\u09BE\u09B0 \u099C\u09A8\u09CD\u09AF **EJOTY** \u09B8\u09C2\u09A4\u09CD\u09B0 \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C1\u09A8:\n* E = 5, J = 10, O = 15, T = 20, Y = 25\n\n** can_be_applied:** \u09AF\u09A6\u09BF CAT \u0995\u09C7 \u09E8\u09EB \u09B2\u09C7\u0996\u09BE \u09B9\u09DF, \u09A4\u09AC\u09C7 DOG \u0995\u09C7 \u0995\u09A4 \u09B2\u09C7\u0996\u09BE \u09B9\u09AC\u09C7?\n* CAT = C(3) + A(1) + T(20) + 1 = 25\n* DOG = D(4) + O(15) + G(7) + 1 = 27\n\n### \u09E8. \u09A6\u09BF\u0995 \u09A8\u09BF\u09B0\u09CD\u09A3\u09DF (Direction Sense):\n\u09B8\u09AC \u09B8\u09AE\u09DF \u09A8\u09BF\u099C\u09C7\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09C2\u09B0\u09CD\u09AC (East),\u09AC\u09BE\u09AE\u09A6\u09BF\u0995\u0995\u09C7 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE (West), \u09B8\u09BE\u09AE\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u0989\u09A4\u09CD\u09A4\u09B0 (North), \u098F\u09AC\u0982 \u09AA\u09BF\u099B\u09A8\u09C7\u09B0 \u09A6\u09BF\u0995\u0995\u09C7 \u09A6\u0995\u09CD\u09B7\u09BF\u09A3 (South) \u09B9\u09BF\u09B8\u09C7\u09AC\u09C7 \u09A7\u09B0\u09C7 \u09A8\u09BF\u09A8\u0964 \u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF ( can be applied: \u0985\u09A4\u09BF\u09AD\u09C1\u099C\xB2 = \u09B2\u09AE\u09CD\u09AC\xB2 + \u09AD\u09C2\u09AE\u09BF\xB2) \u09AC\u09CD\u09AF\u09AC\u09B9\u09BE\u09B0 \u0995\u09B0\u09C7 \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC \u09AC\u09C7\u09B0 \u0995\u09B0\u09C1\u09A8\u0964",
-          mcqs: [
-            {
-              question:
-                "\u098F\u0995 \u09AC\u09CD\u09AF\u0995\u09CD\u09A4\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u09A6\u09BF\u0995\u09C7 \u09EA \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09BE\u09B0 \u09AA\u09B0 \u09A1\u09BE\u09A8\u09A6\u09BF\u0995\u09C7 \u0998\u09C1\u09B0\u09C7 \u09E9 \u0995\u09BF\u09AE\u09BF \u09B9\u09BE\u0981\u099F\u09B2\u09CB\u0964 \u09B8\u09C7 \u09B6\u09C1\u09B0\u09C1\u09B0 \u09B8\u09CD\u09A5\u09BE\u09A8 \u09A5\u09C7\u0995\u09C7 \u098F\u0996\u09A8 \u0995\u09A4 \u09A6\u09C2\u09B0\u09C7 \u0986\u099B\u09C7?",
-              options: [
-                "\u09EB \u0995\u09BF\u09AE\u09BF",
-                "\u09ED \u0995\u09BF\u09AE\u09BF",
-                "\u09E7 \u0995\u09BF\u09AE\u09BF",
-                "\u09E7\u09E8 \u0995\u09BF\u09AE\u09BF",
-              ],
-              correctAnswer: "\u09EB \u0995\u09BF\u09AE\u09BF",
-              explanation:
-                "\u09AA\u09BF\u09A5\u09BE\u0997\u09CB\u09B0\u09BE\u09B8\u09C7\u09B0 \u0989\u09AA\u09AA\u09BE\u09A6\u09CD\u09AF \u0985\u09A8\u09C1\u09B8\u09BE\u09B0\u09C7, \u09A6\u09C2\u09B0\u09A4\u09CD\u09AC = \u221A(\u09EA\xB2 + \u09E9\xB2) = \u221A(\u09E7\u09EC + \u09EF) = \u221A\u09E8\u09EB = \u09EB \u0995\u09BF\u09AE\u09BF\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-english",
-          subject: "english",
-          title:
-            "July 2026 - English Grammar: Subject-Verb Agreement Rules & Common Errors",
-          introduction:
-            "\u099A\u09BE\u0995\u09B0\u09BF\u09B0 \u09AA\u09B0\u09C0\u0995\u09CD\u09B7\u09BE\u09DF \u0987\u0982\u09B0\u09C7\u099C\u09BF\u09A4\u09C7 \u09B8\u09AC\u099A\u09C7\u09DF\u09C7 \u09AC\u09C7\u09B6\u09BF \u0986\u09B8\u09BE Subject-Verb Agreement \u098F\u09B0 \u099C\u099F\u09BF\u09B2 \u09A8\u09BF\u09DF\u09AE\u0997\u09C1\u09B2\u09CB \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09B8\u09B9\u099C \u09AC\u09CD\u09AF\u09BE\u0996\u09CD\u09AF\u09BE\u09B8\u09B9 \u09B6\u09BF\u0996\u09C1\u09A8\u0964",
-          keyTopics: [
-            "Collective Noun Rules",
-            "Either/Or, Neither/Nor Cases",
-            "Prepositional Phrases",
-          ],
-          theoryContent:
-            "### Rule 1: Collective Nouns\nCollective Noun \u09B8\u09BE\u09A7\u09BE\u09B0\u09A3\u09A4 singular verb \u0997\u09CD\u09B0\u09B9\u09A3 \u0995\u09B0\u09C7\u0964 \u0995\u09BF\u09A8\u09CD\u09A4\u09C1 \u09A4\u09BE\u09B0\u09BE \u09AF\u09A6\u09BF \u09AC\u09BF\u09AD\u0995\u09CD\u09A4 \u09AE\u09A4\u09AC\u09BE\u09A6 \u09AA\u09CD\u09B0\u0995\u09BE\u09B6 \u0995\u09B0\u09C7, \u09A4\u09AC\u09C7 plural verb \u09B9\u09DF\u0964\n* *Example:* The jury **is** unanimous in its decision. (Singular)\n* *Example:* The jury **are** divided in their opinions. (Plural)\n\n### Rule 2: Either/Or & Neither/Nor\nEither... or \u09AC\u09BE Neither... nor \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE \u09A6\u09C1\u099F\u09BF Subject \u09AF\u09C1\u0995\u09CD\u09A4 \u09A5\u09BE\u0995\u09B2\u09C7, verb \u09B8\u09B0\u09CD\u09AC\u09A6\u09BE \u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF/\u09A8\u09BF\u0995\u099F\u09AC\u09B0\u09CD\u09A4\u09C0 Subject \u0985\u09A8\u09C1\u09DF\u09BE\u09DF\u09C0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09BF\u09A4 \u09B9\u09DF\u0964\n* *Example:* Neither the teacher nor the **students** **are** present. (students plural, \u09A4\u09BE\u0987 are \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)\n* *Example:* Either the students or the **teacher** **is** present. (teacher singular, \u09A4\u09BE\u0987 is \u09B9\u09AF\u09BC\u09C7\u099B\u09C7)",
-          mcqs: [
-            {
-              question: "Identify the correct sentence:",
-              options: [
-                "Many a boy has done his homework.",
-                "Many a boy have done their homework.",
-                "Many a boys have done his homework.",
-                "Many boys has done their homework.",
-              ],
-              correctAnswer: "Many a boy has done his homework.",
-              explanation:
-                "'Many a' \u098F\u09B0 \u09AA\u09B0 singular noun \u098F\u09AC\u0982 singular verb \u09AC\u09B8\u09C7\u0964 \u09A4\u09BE\u0987 'Many a boy has' \u09B8\u09A0\u09BF\u0995\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-science",
-          subject: "science",
-          title:
-            "July 2026 - General Science: Physics Laws & Human Physiology Basics",
-          introduction:
-            "\u09AA\u09A6\u09BE\u09B0\u09CD\u09A5\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09B8\u09C2\u09A4\u09CD\u09B0\u09BE\u09AC\u09B2\u09C0 \u098F\u09AC\u0982 \u099C\u09C0\u09AC\u09AC\u09BF\u099C\u09CD\u099E\u09BE\u09A8\u09C7\u09B0 \u09AE\u09BE\u09A8\u09AC\u09A6\u09C7\u09B9 \u09B8\u09AE\u09CD\u09AA\u09B0\u09CD\u0995\u09BF\u09A4 \u0985\u09A4\u09BF \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09AA\u09CD\u09B0\u09B6\u09CD\u09A8 \u0993 \u0989\u09A4\u09CD\u09A4\u09B0\u0964",
-          keyTopics: [
-            "Newton's Laws of Motion",
-            "Human Blood & Circulation",
-            "Optical Instruments",
-          ],
-          theoryContent:
-            "### \u09E7. \u09A8\u09BF\u0989\u099F\u09A8\u09C7\u09B0 \u0997\u09A4\u09BF\u09B8\u09C2\u09A4\u09CD\u09B0 (Newton's Laws of Motion):\n* **\u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09C2\u09A4\u09CD\u09B0:** \u09AC\u09BE\u09B9\u09CD\u09AF\u09BF\u0995 \u09AC\u09B2 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u09A8\u09BE \u0995\u09B0\u09B2\u09C7 \u09B8\u09CD\u09A5\u09BF\u09B0 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09CD\u09A5\u09BF\u09B0 \u098F\u09AC\u0982 \u0997\u09A4\u09BF\u09B6\u09C0\u09B2 \u09AC\u09B8\u09CD\u09A4\u09C1 \u099A\u09BF\u09B0\u0995\u09BE\u09B2 \u09B8\u09C1\u09B7\u09AE \u0997\u09A4\u09BF\u09A4\u09C7 \u099A\u09B2\u09A4\u09C7 \u09A5\u09BE\u0995\u09AC\u09C7 (\u099C\u09DC\u09A4\u09BE\u09B0 \u09A7\u09BE\u09B0\u09A3\u09BE)\u0964\n* **\u09A6\u09CD\u09AC\u09BF\u09A4\u09C0\u09DF \u09B8\u09C2\u09A4\u09CD\u09B0:** gymnast-\u098F\u09B0 \u09AD\u09B0\u09AC\u09C7\u0997\u09C7\u09B0 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8\u09C7\u09B0 \u09B9\u09BE\u09B0 \u09A4\u09BE\u09B0 \u0989\u09AA\u09B0 \u09AA\u09CD\u09B0\u09AF\u09C1\u0995\u09CD\u09A4 \u09AC\u09B2\u09C7\u09B0 \u09B8\u09AE\u09BE\u09A8\u09C1\u09AA\u09BE\u09A4\u09BF\u0995 (F = ma)\u0964\n* ** can_be_applied:** \u09AA\u09CD\u09B0\u09A4\u09CD\u09AF\u09C7\u0995 \u0995\u09CD\u09B0\u09BF\u09DF\u09BE\u09B0\u0987 \u098F\u0995\u099F\u09BF \u09B8\u09AE\u09BE\u09A8 \u0993 \u09AC\u09BF\u09AA\u09B0\u09C0\u09A4 \u09AA\u09CD\u09B0\u09A4\u09BF\u0995\u09CD\u09B0\u09BF\u09DF\u09BE \u0986\u099B\u09C7\u0964\n\n### \u09E8. \u09AE\u09BE\u09A8\u09AC \u09B0\u0995\u09CD\u09A4 \u09B8\u0982\u09AC\u09B9\u09A8 (Human Blood Group):\n* **\u0938\u0930\u094D\u0935\u091C\u0928\u09C0\u09A8 \u0926\u0924\u093E (Universal Donor):** O Negative (O-)\n* **\u0938\u0930\u094D\u0935\u091C\u0928\u09C0\u09A8 \u0917\u094D\u0930\u0939\u0940\u09A4\u09BE (Universal Recipient):** AB Positive (AB+)",
-          mcqs: [
-            {
-              question:
-                "\u0995\u09CB\u09A8 \u09B0\u0995\u09CD\u09A4 \u0997\u09CD\u09B0\u09C1\u09AA\u0995\u09C7 \u09B8\u09B0\u09CD\u09AC\u099C\u09A8\u09C0\u09A8 \u09A6\u09BE\u09A4\u09BE \u09AC\u09B2\u09BE \u09B9\u09DF?",
-              options: ["O-", "O+", "AB+", "A-"],
-              correctAnswer: "O-",
-              explanation:
-                "O Negative \u09B0\u0995\u09CD\u09A4\u09C7\u09B0 \u0997\u09CD\u09B0\u09C1\u09AA\u09C7 \u0995\u09CB\u09A8\u09CB \u0985\u09CD\u09AF\u09BE\u09A8\u09CD\u099F\u09BF\u099C\u09C7\u09A8 \u09A5\u09BE\u0995\u09C7 \u09A8\u09BE, \u09A4\u09BE\u0987 \u098F\u099F\u09BF \u09AF\u09C7\u0995\u09CB\u09A8\u09CB \u09B0\u09CB\u0997\u09C0\u0995\u09C7 \u09A6\u09C7\u0993\u09DF\u09BE \u09AF\u09BE\u09DF\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-history",
-          subject: "history",
-          title:
-            "July 2026 - History: Ancient Bengal & Indian Freedom Movement Guide",
-          introduction:
-            "\u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09B6\u09BE\u09B8\u09A8 \u09AC\u09CD\u09AF\u09AC\u09B8\u09CD\u09A5\u09BE \u098F\u09AC\u0982 \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 \u09A5\u09C7\u0995\u09C7 \u09B6\u09C1\u09B0\u09C1 \u0995\u09B0\u09C7 \u09E7\u09EF\u09EA\u09ED \u09B8\u09BE\u09B2 \u09AA\u09B0\u09CD\u09AF\u09A8\u09CD\u09A4 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE\u09C7\u09B0 \u09B8\u09BE\u09B2\u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u09B8\u09BE\u09B0\u09B8\u0982\u0995\u09CD\u09B7\u09C7\u09AA\u0964",
-          keyTopics: [
-            "Mauryan & Gupta Rule",
-            "Mughal Bengal",
-            "Indian Independence Movement",
-          ],
-          theoryContent:
-            "### \u09E7. \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0987\u09A4\u09BF\u09B9\u09BE\u09B8:\n* \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u09A8\u09B0\u09AA\u09A4\u09BF \u09AC\u09BE \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u09B6\u09B6\u09BE\u0999\u09CD\u0995** (\u09AF\u09BE\u09B0 \u09B0\u09BE\u099C\u09A7\u09BE\u09A8\u09C0 \u099B\u09BF\u09B2 \u0995\u09B0\u09CD\u09A3\u09B8\u09C1\u09AC\u09B0\u09CD\u09A3)\u0964\n* \u09AA\u09BE\u09B2 \u09AC\u0982\u09B6\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A4\u09BF\u09B7\u09CD\u09A0\u09BE\u09A4\u09BE \u099B\u09BF\u09B2\u09C7\u09A8 **\u0997\u09CB\u09AA\u09BE\u09B2**, \u09AF\u09BF\u09A8\u09BF \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u09AA\u09CD\u09B0\u09A5\u09AE \u0997\u09A3\u09A4\u09BE\u09A8\u09CD\u09A4\u09CD\u09B0\u09BF\u0995 \u09AA\u09A6\u09CD\u09A7\u09A4\u09BF\u09A4\u09C7 \u09A8\u09BF\u09B0\u09CD\u09AC\u09BE\u099A\u09BF\u09A4 \u09B0\u09BE\u099C\u09BE \u099B\u09BF\u09B2\u09C7\u09A8\u0964\n\n### \u09E8. \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B8\u0982\u0997\u09CD\u09B0\u09BE\u09AE (\u09E7\u09EE\u09EB\u09ED - \u09E7\u09EF\u09EA\u09ED):\n* **\u09E7\u09EE\u09EB\u09ED:** \u09B8\u09BF\u09AA\u09BE\u09B9\u09C0 \u09AC\u09BF\u09A6\u09CD\u09B0\u09CB\u09B9 (\u09AE\u0999\u09CD\u0997\u09B2 \u09AA\u09BE\u09A8\u09CD\u09A1\u09C7 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B6\u09B9\u09C0\u09A6 \u09B9\u09A8)\u0964\n* **\u09E7\u09EF\u09E6\u09EB:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 (\u09B2\u09B0\u09CD\u09A1 \u0995\u09BE\u09B0\u09CD\u099C\u09A8 \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09E7\u09E7:** \u09AC\u0999\u09CD\u0997\u09AD\u0999\u09CD\u0997 \u09B0\u09A6 (\u09B2\u09B0\u09CD\u09A1 \u09B9\u09BE\u09B0\u09CD\u09A1\u09BF\u099E\u09CD\u099C \u09A6\u09CD\u09AC\u09BE\u09B0\u09BE)\u0964\n* **\u09E7\u09EF\u09EA\u09E8:** \u09AD\u09BE\u09B0\u09A4 \u099B\u09BE\u09DC\u09CB \u0986\u09A8\u09CD\u09A6\u09CB\u09B2\u09A8\u0964\n* **\u09E7\u09EF\u09EA\u09ED:** \u09AD\u09BE\u09B0\u09A4 \u0993 \u09AA\u09BE\u0995\u09BF\u09B8\u09CD\u09A4\u09BE\u09A8\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8\u09A4\u09BE \u09B2\u09BE\u09AD\u0964",
-          mcqs: [
-            {
-              question:
-                "\u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B0\u09BE\u099C\u09BE \u0995\u09C7 \u099B\u09BF\u09B2\u09C7\u09A8?",
-              options: [
-                "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
-                "\u0997\u09CB\u09AA\u09BE\u09B2",
-                "\u09A7\u09B0\u09CD\u09AE\u09AA\u09BE\u09B2",
-                "\u09B2\u0995\u09CD\u09B7\u09A3 \u09B8\u09C7\u09A8",
-              ],
-              correctAnswer: "\u09B6\u09B6\u09BE\u0999\u09CD\u0995",
-              explanation:
-                "\u09B0\u09BE\u099C\u09BE \u09B6\u09B6\u09BE\u0999\u09CD\u0995 \u09B8\u09AA\u09CD\u09A4\u09AE \u09B6\u09A4\u09BE\u09AC\u09CD\u09A6\u09C0\u09B0 \u09B6\u09C1\u09B0\u09C1\u09A4\u09C7 \u09AA\u09CD\u09B0\u09BE\u099A\u09C0\u09A8 \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0997\u09CC\u09A1\u09BC \u09B0\u09BE\u099C\u09CD\u09AF\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A5\u09AE \u09B8\u09CD\u09AC\u09BE\u09A7\u09C0\u09A8 \u0993 \u09B8\u09BE\u09B0\u09CD\u09AC\u09AD\u09CC\u09AE \u09B6\u09BE\u09B8\u0995 \u099B\u09BF\u09B2\u09C7\u09A8\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-geography",
-          subject: "geography",
-          title:
-            "July 2026 - Geography: Physical Geography of Bengal & River Systems",
-          introduction:
-            "\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AD\u09BE\u09B0\u09A4\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8, \u09AD\u09C2\u09AA\u09CD\u09B0\u0995\u09C3\u09A4\u09BF, \u09A8\u09A6\u09A8\u09A6\u09C0 \u098F\u09AC\u0982 \u099C\u09B2\u09AC\u09BE\u09AF\u09BC\u09C1 \u09AA\u09B0\u09BF\u09AC\u09B0\u09CD\u09A4\u09A8 \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0997\u09C1\u09B0\u09C1\u09A4\u09CD\u09AC\u09AA\u09C2\u09B0\u09CD\u09A3 \u09A4\u09A5\u09CD\u09AF\u09BE\u09AC\u09B2\u09C0\u0964",
-          keyTopics: [
-            "Geographical Boundaries",
-            "River Systems of Bengal",
-            "Natural Disasters",
-          ],
-          theoryContent:
-            "### \u09E7. \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09A8 \u0993 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE:\n* \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 **\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE (Tropic of Cancer)** \u0985\u09A4\u09BF\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964\n* \u09AA\u09C3\u09A5\u09BF\u09AC\u09C0\u09B0 \u09A6\u09C0\u09B0\u09CD\u0998\u09A4\u09AE \u09B8\u09AE\u09C1\u09A6\u09CD\u09B0 \u09B8\u09C8\u0995\u09A4 **\u0995\u0995\u09CD\u09B8\u09AC\u09BE\u099C\u09BE\u09B0** \u098F\u09AC\u0982 \u09AC\u09C3\u09B9\u09A4\u09CD\u09A4\u09AE \u09AE\u09CD\u09AF\u09BE\u09A8\u0997\u09CD\u09B0\u09CB\u09AD \u09AC\u09A8 **\u09B8\u09C1\u09A8\u09CD\u09A6\u09B0\u09AC\u09A8** \u09AC\u09BE\u0982\u09B2\u09BE\u09DF \u0985\u09AC\u09B8\u09CD\u09A5\u09BF\u09A4\u0964\n\n### \u09E8. \u09A8\u09A6\u09A8\u09A6\u09C0 \u0993 \u0989\u09AA\u09A8\u09A6\u09C0:\n* \u09AA\u09A6\u09CD\u09AE\u09BE \u09A8\u09A6\u09C0 \u09AD\u09BE\u09B0\u09A4\u09C7 **\u0997\u0999\u09CD\u0997\u09BE** \u09A8\u09BE\u09AE\u09C7 \u09AA\u09B0\u09BF\u099A\u09BF\u09A4\u0964 \u098F\u099F\u09BF \u099A\u09BE\u0981\u09AA\u09BE\u0987\u09A8\u09AC\u09BE\u09AC\u0997\u099E\u09CD\u099C \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7\u099B\u09C7\u0964\n* \u09AC\u09CD\u09B0\u09B9\u09CD\u09AE\u09AA\u09C1\u09A4\u09CD\u09B0 \u09A8\u09A6 \u0995\u09C1\u09DC\u09BF\u0997\u09CD\u09B0\u09BE\u09AE \u099C\u09C7\u09B2\u09BE\u09B0 \u09AE\u09A7\u09CD\u09AF \u09A6\u09BF\u09DF\u09C7 \u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6\u09C7 \u09AA\u09CD\u09B0\u09AC\u09C7\u09B6 \u0995\u09B0\u09C7 \u09AA\u09B0\u09AC\u09B0\u09CD\u09A4\u09C0\u09A4\u09C7 \u09AF\u09AE\u09C1\u09A8\u09BE \u09A8\u09BE\u09AE\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
-          mcqs: [
-            {
-              question:
-                "\u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 \u0995\u09CB\u09A8 \u0985\u0982\u09B6\u09C7\u09B0 \u0989\u09AA\u09B0 \u09A6\u09BF\u09DF\u09C7 \u0997\u09BF\u09DF\u09C7\u099B\u09C7?",
-              options: [
-                "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
-                "\u0989\u09A4\u09CD\u09A4\u09B0\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
-                "\u09A6\u0995\u09CD\u09B7\u09BF\u09A3\u09BE\u099E\u09CD\u099A\u09B2 \u09A6\u09BF\u09DF\u09C7",
-                "\u09B8\u09C0\u09AE\u09BE\u09A8\u09CD\u09A4\u09AC\u09B0\u09CD\u09A4\u09C0 \u098F\u09B2\u09BE\u0995\u09BE \u09A6\u09BF\u09DF\u09C7",
-              ],
-              correctAnswer:
-                "\u09A0\u09BF\u0995 \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7",
-              explanation:
-                "\u09E8\u09E9.\u09EB \u09A1\u09BF\u0997\u09CD\u09B0\u09BF \u0989\u09A4\u09CD\u09A4\u09B0 \u0985\u0995\u09CD\u09B7\u09BE\u0982\u09B6 \u09AC\u09BE \u0995\u09B0\u09CD\u0995\u099F\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4\u09BF \u09B0\u09C7\u0996\u09BE \u09AC\u09BE\u0982\u09B2\u09BE\u09B0 (\u09AC\u09BE\u0982\u09B2\u09BE\u09A6\u09C7\u09B6 \u0993 \u09AA\u09B6\u09CD\u099A\u09BF\u09AE\u09AC\u0999\u09CD\u0997) \u09AA\u09CD\u09B0\u09BE\u09DF \u09AE\u09BE\u099D\u0996\u09BE\u09A8 \u09A6\u09BF\u09DF\u09C7 \u09AA\u09CD\u09B0\u09AC\u09BE\u09B9\u09BF\u09A4 \u09B9\u09DF\u09C7\u099B\u09C7\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-polity",
-          subject: "polity",
-          title:
-            "July 2026 - Constitution & Polity: Fundamental Rights & Judicial Review",
-          introduction:
-            "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AC\u09C8\u09B6\u09BF\u09B7\u09CD\u099F\u09CD\u09AF\u09B8\u09AE\u09C2\u09B9, \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0, \u098F\u09AC\u0982 \u09B8\u09B0\u0995\u09BE\u09B0\u09BF \u09A8\u09C0\u09A4\u09BF \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3\u09C7\u09B0 \u09AE\u09C2\u09B2 \u0989\u09CE\u09B8\u09B8\u09AE\u09C2\u09B9 \u09B8\u09B9\u099C \u09AD\u09BE\u09B7\u09BE\u09DF \u0986\u09B2\u09CB\u099A\u09A8\u09BE\u0964",
-          keyTopics: [
-            "Preamble & Structure",
-            "Fundamental Rights",
-            "Directive Principles",
-          ],
-          theoryContent:
-            "### \u09E7. \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB:\n* \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B9\u09B2\u09CB \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09B8\u09B0\u09CD\u09AC\u09CB\u099A\u09CD\u099A \u0986\u0987\u09A8\u0964\n* \u09AE\u09C2\u09B2 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u0997\u09C1\u09B2\u09CB \u09B8\u09C1\u09A8\u09BF\u09B0\u09CD\u09A6\u09BF\u09B7\u09CD\u099F\u09AD\u09BE\u09AC\u09C7 \u09AC\u09B0\u09CD\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09A5\u09BE\u0995\u09C7\u0964\n\n### \u09E8. \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09B8\u09AE\u09C2\u09B9 (Fundamental Rights):\n* \u0986\u0987\u09A8 \u09AC\u09BE \u0986\u09A6\u09BE\u09B2\u09A4\u09C7\u09B0 \u09AE\u09BE\u09A7\u09CD\u09AF\u09AE\u09C7 \u09AE\u09CC\u09B2\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09AA\u09CD\u09B0\u09DF\u09CB\u0997 \u0995\u09B0\u09BE \u09AF\u09BE\u09DF\u0964\n* \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u099C\u09B0\u09C1\u09B0\u09BF \u0985\u09AC\u09B8\u09CD\u09A5\u09BE\u09DF \u09A8\u09BE\u0997\u09B0\u09BF\u0995 \u0985\u09A7\u09BF\u0995\u09BE\u09B0 \u09B8\u09BE\u09AE\u09DF\u09BF\u0995\u09AD\u09BE\u09AC\u09C7 \u09B8\u09CD\u09A5\u0997\u09BF\u09A4 \u0995\u09B0\u09BE \u09B9\u09A4\u09C7 \u09AA\u09BE\u09B0\u09C7\u0964",
-          mcqs: [
-            {
-              question:
-                "\u0995\u09CB\u09A8\u09CB \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8\u09C7\u09B0 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u0995\u09BE\u099C \u0995\u09C0?",
-              options: [
-                "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
-                " his/her basic tax",
-                " can_be_applied",
-                "\u09AC\u09BF\u099A\u09BE\u09B0\u0995\u09A6\u09C7\u09B0 \u09AC\u09C7\u09A4\u09A8 \u09A8\u09BF\u09B0\u09CD\u09A7\u09BE\u09B0\u09A3 \u0995\u09B0\u09BE",
-              ],
-              correctAnswer:
-                "\u09B8\u09B0\u0995\u09BE\u09B0 \u0993 \u099C\u09A8\u0997\u09A3\u09C7\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u0995\u09CD\u09B7\u09AE\u09A4\u09BE\u09B0 \u09AD\u09BE\u09B0\u09B8\u09BE\u09AE\u09CD\u09AF \u09AC\u099C\u09BE\u09DF \u09B0\u09BE\u0996\u09BE \u0993 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0 \u09AA\u09B0\u09BF\u099A\u09BE\u09B2\u09A8\u09BE \u0995\u09B0\u09BE",
-              explanation:
-                "\u09B8\u0982\u09AC\u09BF\u09A7\u09BE\u09A8 \u09B0\u09BE\u09B7\u09CD\u099F\u09CD\u09B0\u09C7\u09B0 \u09AE\u09CC\u09B2\u09BF\u0995 \u0986\u0987\u09A8 \u09AF\u09BE \u09B8\u09B0\u0995\u09BE\u09B0\u09C7\u09B0 \u0995\u09BE\u09A0\u09BE\u09AE\u09CB \u0993 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0985\u09A7\u09BF\u0995\u09BE\u09B0\u09C7\u09B0 \u0997\u09CD\u09AF\u09BE\u09B0\u09BE\u09A8\u09CD\u099F\u09BF \u09A6\u09C7\u09DF\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: "pdfn-seed-economics",
-          subject: "economics",
-          title:
-            "July 2026 - Economics: National Income & Five-Year Planning Analysis",
-          introduction:
-            "\u099C\u09BF\u09A1\u09BF\u09AA\u09BF, \u099C\u09BF\u098F\u09A8\u09AA\u09BF \u098F\u09AC\u0982 \u09AA\u099E\u09CD\u099A\u09AC\u09BE\u09B0\u09CD\u09B7\u09BF\u0995 \u09AA\u09B0\u09BF\u0995\u09B2\u09CD\u09AA\u09A8\u09BE \u0993 \u09AC\u09BE\u099C\u09C7\u099F \u09B8\u0982\u0995\u09CD\u09B0\u09BE\u09A8\u09CD\u09A4 \u0985\u09B0\u09CD\u09A5\u09A8\u09C8\u09A4\u09BF\u0995 \u099C\u099F\u09BF\u09B2 \u09B6\u09AC\u09CD\u09A6\u09B8\u09AE\u09C2\u09B9\u09C7\u09B0 \u09B8\u09B9\u099C \u09AC\u09BF\u09B6\u09CD\u09B2\u09C7\u09B7\u09A3\u0964",
-          keyTopics: [
-            "National Income (GDP, GNP)",
-            "Inflation & Banking",
-            "Five-Year Plans",
-          ],
-          theoryContent:
-            "### \u09E7. \u099C\u09BE\u09A4\u09C0\u09DF \u0986\u09DF \u09AA\u09B0\u09BF\u09AE\u09BE\u09AA\u09C7\u09B0 \u0989\u09AA\u09BE\u09A6\u09BE\u09A8:\n* **GDP (Gross Domestic Product):** \u098F\u0995\u099F\u09BF \u09A6\u09C7\u09B6\u09C7\u09B0 \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09BF\u09A4\u09B0\u09C7 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE\u09B0 \u09AE\u09C2\u09B2\u09CD\u09AF\u0964\n* **GNP (Gross National Product):** \u09A6\u09C7\u09B6\u09C7\u09B0 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A6\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09BF\u09A4 \u09AE\u09CB\u099F \u09AA\u09A3\u09CD\u09AF \u0993 \u09B8\u09C7\u09AC\u09BE (\u09A6\u09C7\u09B6 \u098F\u09AC\u0982 \u09AC\u09BF\u09A6\u09C7\u09B6\u09C7)\u0964\n\n### \u09E8. \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF (Inflation):\n* \u09AC\u09BE\u099C\u09BE\u09B0\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B0 \u09B8\u09B0\u09AC\u09B0\u09BE\u09B9 \u09AC\u09C7\u09DC\u09C7 \u0997\u09C7\u09B2\u09C7 \u09AA\u09A3\u09CD\u09AF\u09C7\u09B0 \u09A6\u09BE\u09AE \u09AC\u09BE\u09DC\u09C7 \u098F\u09AC\u0982 \u099F\u09BE\u0995\u09BE\u09B0 \u09AE\u09BE\u09A8 \u0995\u09AE\u09C7 \u09AF\u09BE\u09DF, \u098F\u0995\u09C7 \u09AE\u09C1\u09A6\u09CD\u09B0\u09BE\u09B8\u09CD\u09AB\u09C0\u09A4\u09BF \u09AC\u09B2\u09C7\u0964",
-          mcqs: [
-            {
-              question:
-                "GDP \u098F\u09AC\u0982 GNP \u098F\u09B0 \u09AE\u09A7\u09CD\u09AF\u09C7 \u09AA\u09CD\u09B0\u09A7\u09BE\u09A8 \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u0995\u09C0?",
-              options: [
-                "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
-                " can_be_applied",
-                "\u0986\u09AE\u09A6\u09BE\u09A8\u09BF \u0993 \u09B0\u09AA\u09CD\u09A4\u09BE\u09A8\u09BF\u09B0 \u0985\u09A8\u09C1\u09AA\u09BE\u09A4",
-                "\u0995\u09CB\u09A8\u09CB \u09AA\u09BE\u09B0\u09CD\u09A5\u0995\u09CD\u09AF \u09A8\u09C7\u0987",
-              ],
-              correctAnswer:
-                "\u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE \u09AC\u09A8\u09BE\u09AE \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09A4\u09CD\u09AC \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF\u0995 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8",
-              explanation:
-                "GDP \u0997\u09A3\u09A8\u09BE \u0995\u09B0\u09BE \u09B9\u09DF \u09AD\u09CC\u0997\u09CB\u09B2\u09BF\u0995 \u09B8\u09C0\u09AE\u09BE\u09A8\u09BE\u09B0 \u09AD\u09C7\u09A4\u09B0\u09C7\u09B0 \u0989\u09CE\u09AA\u09BE\u09A6\u09A8\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7, \u0986\u09B0 GNP \u09A6\u09C7\u09B6\u09C7\u09B0 \u09B8\u0995\u09B2 \u09A8\u09BE\u0997\u09B0\u09BF\u0995\u09C7\u09B0 \u09AE\u09CB\u099F \u0986\u09DF\u09C7\u09B0 \u0993\u09AA\u09B0 \u09AD\u09BF\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09C7\u0964",
-            },
-          ],
-          month: "July 2026",
-          timestamp: new Date().toISOString(),
-        },
-      ];
-      await seedAiPdfNotes(seedData);
-      console.log("Successfully seeded AI PDF notes in Database!");
-    } else {
-      console.log("AI PDF notes already exist in Database.");
-    }
-  } catch (err) {
-    console.error("Failed to seed AI PDF notes:", err);
-  }
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running at http://0.0.0.0:${PORT}`);
   });

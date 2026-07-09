@@ -31,6 +31,17 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.maintenanceMode === 'boolean') {
+          setMaintenanceMode(data.maintenanceMode);
+        }
+      })
+      .catch(e => console.error("Failed to fetch settings", e));
+  }, []);
+
   // App Release Update states
   const [newVersion, setNewVersion] = useState("");
   const [changelogEn, setChangelogEn] = useState("");
@@ -701,8 +712,24 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
             </div>
             <button
               onClick={() => {
-                setMaintenanceMode(!maintenanceMode);
-                alert(isBengali ? (maintenanceMode ? "মেইনটেন্যান্স মোড বন্ধ করা হয়েছে।" : "মেইনটেন্যান্স মোড চালু করা হয়েছে।") : (maintenanceMode ? "Maintenance Mode Disabled." : "Maintenance Mode Enabled."));
+                const newValue = !maintenanceMode;
+                fetch("/api/settings", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ maintenanceMode: newValue })
+                })
+                .then(res => {
+                  if (res.ok) {
+                    setMaintenanceMode(newValue);
+                    alert(isBengali ? (newValue ? "মেইনটেন্যান্স মোড চালু করা হয়েছে।" : "মেইনটেন্যান্স মোড বন্ধ করা হয়েছে।") : (newValue ? "Maintenance Mode Enabled." : "Maintenance Mode Disabled."));
+                  } else {
+                    alert("Failed to update settings");
+                  }
+                })
+                .catch(e => {
+                  console.error(e);
+                  alert("Failed to update settings");
+                });
               }}
               className={`w-full sm:w-auto px-4 py-2 rounded-lg font-bold text-sm transition-all ${
                 maintenanceMode

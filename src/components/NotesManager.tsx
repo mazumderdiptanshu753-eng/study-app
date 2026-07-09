@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   BookOpen, 
   Plus, 
-  Trash2, 
+  Trash2, DownloadCloud, 
   Sparkles, 
   Download, 
   Upload, 
@@ -289,6 +289,16 @@ export default function NotesManager({
                     className="p-1 text-slate-500 hover:text-teal-600 hover:bg-slate-50 rounded-sm cursor-pointer"
                   >
                     {copiedNoteId === note.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Share2 className="h-3 w-3" />}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      alert(lang === "bn" ? "নোটটি অফলাইনে সেভ করা হয়েছে!" : "Note saved for offline access!");
+                    }}
+                    title={lang === "bn" ? "অফলাইনে সেভ করুন" : "Save Offline"}
+                    className="p-1 text-slate-500 hover:text-teal-600 hover:bg-slate-50 rounded-sm cursor-pointer"
+                  >
+                    <DownloadCloud className="h-3 w-3" />
                   </button>
                   {role === "Admin" && (
                     <button

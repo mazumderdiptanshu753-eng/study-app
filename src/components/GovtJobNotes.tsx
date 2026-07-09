@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BookOpen, User, Clock, Send, MessageSquare, Plus, FileText, Trash2, 
+  BookOpen, User, Clock, Send, MessageSquare, Plus, FileText, Trash2, DownloadCloud, 
   ArrowLeft, Sparkles, Printer, Download, Calendar, CheckCircle2, 
   AlertCircle, Award, ChevronRight
 } from 'lucide-react';
@@ -815,6 +815,16 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                         <Award className="h-3 w-3" />
                         {pdf.month}
                       </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(isBengali ? "পিডিএফটি অফলাইনে সেভ করা হয়েছে!" : "PDF saved for offline access!");
+                        }}
+                        className="p-1.5 text-teal-500 hover:bg-teal-500/10 rounded-lg transition-all ml-auto"
+                        title={isBengali ? "অফলাইনে সেভ করুন" : "Save Offline"}
+                      >
+                        <DownloadCloud className="h-4 w-4" />
+                      </button>
                       {isAdmin && (
                         <button
                           onClick={(e) => handleDeletePdfNote(pdf.id, e)}

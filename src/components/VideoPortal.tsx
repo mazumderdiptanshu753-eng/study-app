@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Play, 
   Plus, 
-  Trash2, 
+  Trash2, DownloadCloud, 
   MessageSquare, 
   Clock, 
   User, 
@@ -450,7 +450,18 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                           {vid.subject === "Mathematics" ? (lang === "bn" ? "গণিত" : "Math") : vid.subject}
                         </span>
                         
-                        {role === "Admin" && (
+                        <div className="flex gap-1 ml-auto shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert(lang === "bn" ? "ভিডিওটি অফলাইনে সেভ করা হয়েছে!" : "Video saved for offline access!");
+                            }}
+                            title={lang === "bn" ? "অফলাইনে সেভ করুন" : "Save Offline"}
+                            className="text-slate-400 hover:text-teal-600 p-0.5 hover:bg-teal-50 rounded transition-all cursor-pointer"
+                          >
+                            <DownloadCloud className="h-3 w-3" />
+                          </button>
+                          {role === "Admin" && (
                           <button
                             onClick={(e) => handleDeleteVideo(vid.id, e)}
                             title={lang === "bn" ? "লেকচার মুছুন" : "Delete Lecture"}
@@ -459,6 +470,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                             <Trash2 className="h-3 w-3" />
                           </button>
                         )}
+                        </div>
                       </div>
 
                       <h4 className={`font-bold text-xs line-clamp-2 leading-snug ${

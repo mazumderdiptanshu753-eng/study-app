@@ -13,18 +13,7 @@ const DB_FILE = path.join(DATA_DIR, "db.json");
 // Default Local DB state
 let localDB: any = {
   users: [],
-  chatMessages: [
-    {
-      id: "welcome-demo",
-      senderName: "Admin (Diptanshu)",
-      senderEmail: "mazumderdiptanshu753@gmail.com",
-      senderRole: "Admin",
-      message: "Welcome to STUDY HUB Support! Feel free to ask any questions about your Mathematics study notes, or platform features.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      studentEmail: "demo@studyhub.com",
-      studentName: "Demo Student"
-    }
-  ],
+  chatMessages: [],
   activityLogs: [],
   forumPosts: [],
   liveClasses: [],
@@ -33,9 +22,10 @@ let localDB: any = {
   studyNotes: [],
   videoLectures: [],
   notifications: [],
+  settings: { maintenanceMode: false },
   systemSettings: {
     app_version: {
-      latestVersion: "2.6.1",
+      latestVersion: "2.6.2",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     }
@@ -374,8 +364,8 @@ export async function saveUser(user: any): Promise<any[]> {
   if (pool) {
     try {
       await pool.query(`
-        INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO users (email, "fullName", grade, "preferredSubject", "registeredAt", "avatarUrl", role, "isSuspended")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (email) 
         DO UPDATE SET 
           "fullName" = EXCLUDED."fullName",
@@ -1091,7 +1081,7 @@ export async function getAppVersion(): Promise<any> {
   }
   if (!localDB.systemSettings.app_version) {
     localDB.systemSettings.app_version = {
-      latestVersion: "2.6.1",
+      latestVersion: "2.6.2",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     };
@@ -1233,7 +1223,7 @@ export async function createNotification(notification: any): Promise<any> {
     try {
       await pool.query(`
         INSERT INTO notifications (id, title, message, type, timestamp, "isRead", "userEmail")
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           message = EXCLUDED.message,
@@ -1327,3 +1317,47 @@ export async function deleteNotification(id: string): Promise<boolean> {
   return (localDB.notifications || []).length < len;
 }
 
+
+
+export async function getSettings(): Promise<any> {
+  if (pool) {
+    try {
+      const res = await pool.query("SELECT value FROM system_settings WHERE key = 'maintenanceMode'");
+      if (res.rows.length > 0) {
+        return { maintenanceMode: res.rows[0].value === true || res.rows[0].value === 'true' };
+      }
+      return { maintenanceMode: false };
+    } catch (e) {
+      console.error("Error fetching settings from PG", e);
+    }
+  }
+  return localDB.settings || { maintenanceMode: false };
+}
+
+export async function updateSettings(newSettings: any): Promise<void> {
+  localDB.settings = { ...(localDB.settings || {}), ...newSettings };
+  saveLocalDB();
+  if (pool) {
+    try {
+      if (newSettings.maintenanceMode !== undefined) {
+         await pool.query(
+           "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+           ["maintenanceMode", JSON.stringify(newSettings.maintenanceMode)]
+         );
+      }
+    } catch (e) {
+      console.error("Error updating settings in PG", e);
+    }
+  }
+}
+
+export async function cleanDemoMessages() {
+  localDB.chatMessages = localDB.chatMessages.filter(m => m.studentEmail !== 'demo@studyhub.com');
+  saveLocalDB();
+  if (pool) {
+    try {
+      await pool.query("DELETE FROM chat_messages WHERE \"studentEmail\" = 'demo@studyhub.com'");
+    } catch(e) {}
+  }
+  return localDB.chatMessages.length;
+}

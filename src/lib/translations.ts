@@ -197,13 +197,13 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
     quizRetry: "Restart Quiz",
 
     // Support Chat Page
-    chatHeaderTitle: "Academic Support Center",
+    chatHeaderTitle: "Direct Admin / Teacher Chat",
     chatActiveAgent: "Connected with Admins",
-    chatAssistantHint: "Ask the administrators for assistance, feature support, or custom study feedback.",
+    chatAssistantHint: "Message directly to the Admin or Teacher for any study help or queries.",
     chatAdminActiveBadge: "Admin Active",
     chatInputPlaceholder: "Type a study doubt or support request here...",
     chatSendBtn: "Send",
-    chatWelcomeMessage: "Hello! Welcome to the STUDY HUB Support Portal. Ask any academic questions or request help, and our system administrators will help you."
+    chatWelcomeMessage: "Hello! Welcome to the Direct Chat Portal. Send a message to the Admin or Teacher and they will reply to you as soon as possible."
   },
   bn: {
     brandName: "স্টাডি হাব",
@@ -297,12 +297,12 @@ export const TRANSLATIONS: Record<Language, TranslationSchema> = {
     quizRetry: "কুইজ পুনরায় শুরু করুন",
 
     // Support Chat Page
-    chatHeaderTitle: "শিক্ষায়তনিক সহায়তা কেন্দ্র",
+    chatHeaderTitle: "সরাসরি অ্যাডমিন / শিক্ষকের সাথে চ্যাট",
     chatActiveAgent: "প্রশাসকদের সাথে সংযুক্ত",
-    chatAssistantHint: "সহায়তা, নতুন বৈশিষ্ট্য বা কাস্টম অধ্যয়নের মতামতের জন্য প্রশাসকদের জিজ্ঞাসা করুন।",
+    chatAssistantHint: "যেকোনো পড়াশোনার সাহায্য বা প্রশ্নের জন্য সরাসরি অ্যাডমিন বা শিক্ষককে মেসেজ করুন।",
     chatAdminActiveBadge: "প্রশাসক সক্রিয়",
     chatInputPlaceholder: "আপনার প্রশ্ন বা সহায়তার অনুরোধ এখানে লিখুন...",
     chatSendBtn: "পাঠান",
-    chatWelcomeMessage: "হ্যালো! স্টাডি হাব সহায়তা পোর্টালে আপনাকে স্বাগতম। যেকোনো শিক্ষাগত প্রশ্ন জিজ্ঞাসা করুন বা সাহায্যের অনুরোধ করুন, এবং আমাদের সিস্টেম প্রশাসকেরা আপনাকে সহায়তা করবে।"
+    chatWelcomeMessage: "হ্যালো! ডাইরেক্ট চ্যাট পোর্টালে আপনাকে স্বাগতম। অ্যাডমিন বা শিক্ষককে মেসেজ পাঠান এবং তারা যত তাড়াতাড়ি সম্ভব আপনাকে উত্তর দেবে।"
   }
 };

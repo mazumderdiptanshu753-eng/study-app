@@ -100,15 +100,20 @@ export default function App() {
     }
   });
 
-  const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(false);
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile">("dashboard");
+  const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(() => {
+    return localStorage.getItem("has_started_welcome") === "true";
+  });
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile">(() => {
+    return (localStorage.getItem("current_tab") as any) || "dashboard";
+  });
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
 
   // App Update states
   const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
-    return localStorage.getItem("client_app_version") || "2.6.1";
+    return localStorage.getItem("client_app_version") || "2.6.2";
   });
   const [serverVersionInfo, setServerVersionInfo] = useState<{
     latestVersion: string;
@@ -179,7 +184,7 @@ export default function App() {
         clearInterval(interval);
         
         // Persist the updated version code in localStorage
-        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.1";
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.2";
         localStorage.setItem("client_app_version", versionToSave);
         localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
@@ -238,6 +243,31 @@ export default function App() {
   }, []);
 
   // Load users from central backend API
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        const isMaint = data.maintenanceMode === true;
+        setMaintenanceMode(isMaint);
+        
+        // Auto-logout non-admins if maintenance mode is enabled
+        if (isMaint) {
+          const currentProfileStr = localStorage.getItem("student_profile");
+          if (currentProfileStr) {
+             try {
+                const currentProfile = JSON.parse(currentProfileStr);
+                if (currentProfile && currentProfile.role !== "Admin") {
+                   localStorage.removeItem("student_profile");
+                   window.location.reload();
+                }
+             } catch(e) {}
+          }
+        }
+      }
+    } catch(e) {}
+  };
+
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/users");
@@ -262,6 +292,12 @@ export default function App() {
               localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
             }
           } else {
+            if (maintenanceMode && (profile.role !== "Admin")) {
+               setProfile(null);
+               localStorage.removeItem("student_profile");
+               alert(lang === "bn" ? "অ্যাপটিতে বর্তমানে কিছু আপডেট বা রক্ষণাবেক্ষণ চলছে।" : "The app is currently undergoing maintenance or updates.");
+               return;
+            }
             console.log("Recovering/Syncing existing user profile to PostgreSQL database...");
             try {
               const regRes = await fetch("/api/users", {
@@ -288,7 +324,11 @@ export default function App() {
   useEffect(() => {
     fetchUsers();
     // Poll every 5 seconds for real-time registration visibility
-    const interval = setInterval(fetchUsers, 5000);
+    const interval = setInterval(() => {
+      fetchUsers();
+      fetchSettings();
+    }, 5000);
+    fetchSettings();
     return () => clearInterval(interval);
   }, [profile?.email]);
 
@@ -307,8 +347,9 @@ export default function App() {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
+      localStorage.setItem("current_tab", tab);
       setIsPageLoading(false);
-    }, 300);
+    }, 3000);
   };
 
   const handleUpdateProfile = async (updated: StudentProfile) => {
@@ -581,6 +622,16 @@ export default function App() {
       return;
     }
     
+    // Check maintenance mode on login attempt
+    if (maintenanceMode) {
+      if (!existingUser || existingUser.role !== "Admin") {
+        if (newProfile.email.trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com") {
+          alert(lang === "bn" ? "অ্যাপটিতে বর্তমানে রক্ষণাবেক্ষণ চলছে। শুধুমাত্র অ্যাডমিনরা এখন লগইন করতে পারবেন।" : "The app is currently under maintenance. Only Admins can login right now.");
+          return;
+        }
+      }
+    }
+    
     if (existingUser && existingUser.role === "Admin") {
       newProfile.role = "Admin";
       newProfile.avatarUrl = "👑";
@@ -736,6 +787,7 @@ export default function App() {
             onLanguageChange={handleLanguageChange}
             onStart={() => {
               setHasStartedWelcome(true);
+              localStorage.setItem("has_started_welcome", "true");
             }} 
           />
         </motion.div>
