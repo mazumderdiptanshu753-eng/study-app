@@ -80,9 +80,9 @@ class AsyncQueue {
     }
   }
 }
-const geminiQueue = new AsyncQueue(1);
+const geminiQueue = new AsyncQueue(4);
 
-async function withRetry(operation, maxRetries = 10) {
+async function withRetry(operation, maxRetries = 3) {
   return geminiQueue.add(async () => {
 
   let lastError;
@@ -173,7 +173,23 @@ function getGeminiClient() {
       rawClient.models,
     );
     rawClient.models.generateContent = async function (...args) {
-      return withRetry(() => originalGenerateContent(...args));
+      const result = await withRetry(() => originalGenerateContent(...args));
+      if (result && typeof result.text === "string") {
+        let cleaned = result.text.trim();
+        if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, "");
+          cleaned = cleaned.replace(/\s*```$/, "");
+          cleaned = cleaned.trim();
+        }
+        Object.defineProperty(result, "text", {
+          get() {
+            return cleaned;
+          },
+          configurable: true,
+          enumerable: true
+        });
+      }
+      return result;
     };
     aiInstance = rawClient;
   }

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion } from "motion/react";
-import { User, Camera, Save, X, Calendar, Building, Loader2 } from "lucide-react";
+import { User, Camera, Save, X, Calendar, Building, Loader2, LogOut } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../lib/firebase";
 import { StudentProfile } from "../types";
@@ -11,10 +11,11 @@ interface ProfileSettingsProps {
   onUpdate: (updatedProfile: StudentProfile) => void;
   onClose: () => void;
   theme: any;
+  onLogout: () => void;
   lang: Language;
 }
 
-export default function ProfileSettings({ profile, onUpdate, onClose, theme, lang }: ProfileSettingsProps) {
+export default function ProfileSettings({ profile, onUpdate, onClose, theme, onLogout, lang }: ProfileSettingsProps) {
   const t = TRANSLATIONS[lang];
   const [fullName, setFullName] = useState(profile.fullName);
   const [age, setAge] = useState(profile.age || "");
@@ -63,7 +64,7 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
         <h2 className={`text-xl font-black ${theme.textHeading}`}>
           {lang === "bn" ? "প্রোফাইল সেটিংস" : "Profile Settings"}
         </h2>
-        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-800">
+        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-800 cursor-pointer">
           <X className={`h-5 w-5 ${theme.textMain}`} />
         </button>
       </div>
@@ -77,7 +78,7 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
           )}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
+            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
           >
             {isUploading ? <Loader2 className="animate-spin" /> : <Camera />}
           </button>
@@ -87,7 +88,9 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
 
       <div className="space-y-4">
         <div className="space-y-1">
-          <label className={`text-xs font-bold ${theme.textHeading}`}>Full Name</label>
+          <label className={`text-xs font-bold ${theme.textHeading}`}>
+            {lang === "bn" ? "সম্পূর্ণ নাম" : "Full Name"}
+          </label>
           <input 
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -95,7 +98,9 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
           />
         </div>
         <div className="space-y-1">
-          <label className={`text-xs font-bold ${theme.textHeading}`}>Age</label>
+          <label className={`text-xs font-bold ${theme.textHeading}`}>
+            {lang === "bn" ? "বয়স" : "Age"}
+          </label>
           <input 
             value={age}
             onChange={(e) => setAge(e.target.value)}
@@ -103,7 +108,9 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
           />
         </div>
         <div className="space-y-1">
-          <label className={`text-xs font-bold ${theme.textHeading}`}>Institution</label>
+          <label className={`text-xs font-bold ${theme.textHeading}`}>
+            {lang === "bn" ? "শিক্ষা প্রতিষ্ঠান" : "Institution"}
+          </label>
           <input 
             value={institution}
             onChange={(e) => setInstitution(e.target.value)}
@@ -115,10 +122,21 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, lan
       <button
         onClick={handleSave}
         disabled={isSaving}
-        className={`mt-6 w-full py-3 rounded-xl flex items-center justify-center gap-2 font-black ${theme.primaryBg} ${theme.primaryText}`}
+        className={`mt-6 w-full py-3 rounded-xl flex items-center justify-center gap-2 font-black cursor-pointer ${theme.primaryBg} ${theme.primaryText}`}
       >
         {isSaving ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />}
         {lang === "bn" ? "সংরক্ষণ করুন" : "Save Changes"}
+      </button>
+
+      <button
+        onClick={() => {
+          onLogout();
+          onClose();
+        }}
+        className="mt-3 w-full py-3 rounded-xl flex items-center justify-center gap-2 font-black border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-all cursor-pointer"
+      >
+        <LogOut className="h-4 w-4" />
+        {lang === "bn" ? "লগ আউট করুন" : "Log Out"}
       </button>
     </motion.div>
   );
