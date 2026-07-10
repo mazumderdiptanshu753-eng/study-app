@@ -20,7 +20,8 @@ import {
   User,
   ArrowLeft,
   Users,
-  Award
+  Award,
+  ChevronUp
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -109,6 +110,8 @@ export default function App() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [selectedGovtJobSubject, setSelectedGovtJobSubject] = useState<string>("math");
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const mainScrollRef = React.useRef<HTMLDivElement>(null);
 
   // App Update states
   const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
@@ -342,12 +345,26 @@ export default function App() {
     return () => clearTimeout(splashTimer);
   }, []);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    setShowScrollTop(scrollTop > 200);
+  };
+
+  const scrollToTop = () => {
+    mainScrollRef.current?.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+
   const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile") => {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
       localStorage.setItem("current_tab", tab);
       setIsPageLoading(false);
+      // Automatically scroll to the top of our main scroll container on tab switches
+      mainScrollRef.current?.scrollTo({ top: 0, behavior: "instant" as any });
     }, 150);
   };
 
@@ -796,7 +813,7 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`min-h-[100dvh] flex ${profile ? "flex-row" : "flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`h-[100dvh] w-screen overflow-hidden flex ${profile ? "flex-row" : "flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Unbelievably Elegant Desktop Left Sidebar Workspace Navigation */}
           {profile && (
@@ -958,7 +975,7 @@ export default function App() {
             </aside>
           )}
 
-          <div className="flex-1 flex flex-col min-w-0 relative h-screen overflow-y-auto">
+          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-[100dvh] overflow-y-auto scroll-smooth">
             {/* Mobile-only compact floating header */}
             {profile && (
               <header className={`md:hidden flex items-center justify-between px-4 h-16 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-3xs`}>
@@ -1256,6 +1273,22 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Elegant Scroll to Top Floating Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            onClick={scrollToTop}
+            className="fixed bottom-24 md:bottom-10 right-6 z-40 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500/20 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            title={lang === "bn" ? "উপরে যান" : "Scroll to Top"}
+          >
+            <ChevronUp className="h-6 w-6 stroke-[2.5]" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Full-screen sleek updating overlay */}
       {isUpdatingApp && (

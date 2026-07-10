@@ -1,0 +1,77 @@
+{
+  "quiz-2026-07-09": {
+    "question": "With reference to the Finance Commission of India, consider the following statements: 1. It is a quasi-judicial body constituted by the President of India every five years or earlier. 2. The recommendations made by the Finance Commission are binding on the Government. Which of the statements given above is/are correct?",
+    "options": [
+      "1 only",
+      "2 only",
+      "Both 1 and 2",
+      "Neither 1 nor 2"
+    ],
+    "correctAnswer": "1 only",
+    "explanation": "Under Article 280 of the Constitution of India, the Finance Commission is established by the President of India as a quasi-judicial body every five years or earlier. Its recommendations are advisory in nature and are not binding on the government."
+  },
+  "pyq-SSC CGL": {
+    "questions": [
+      {
+        "question": "Who was the founder of the Maurya Dynasty?",
+        "options": [
+          "Ashoka",
+          "Chandragupta Maurya",
+          "Bindusara",
+          "Samudragupta"
+        ],
+        "correctAnswer": "Chandragupta Maurya",
+        "year": "2018",
+        "subject": "General Awareness"
+      },
+      {
+        "question": "Which of the following is the largest gland in the human body?",
+        "options": [
+          "Pancreas",
+          "Thyroid Gland",
+          "Liver",
+          "Pituitary Gland"
+        ],
+        "correctAnswer": "Liver",
+        "year": "2019",
+        "subject": "General Awareness"
+      },
+      {
+        "question": "Select the most appropriate synonym of the given word: \"CAPRICIOUS\"",
+        "options": [
+          "Consistent",
+          "Fickle",
+          "Stable",
+          "Reliable"
+        ],
+        "correctAnswer": "Fickle",
+        "year": "2020",
+        "subject": "English Comprehension"
+      },
+      {
+        "question": "If 15 men can do a piece of work in 20 days, then in how many days will 20 men do the same work?",
+        "options": [
+          "10 days",
+          "15 days",
+          "12 days",
+          "18 days"
+        ],
+        "correctAnswer": "15 days",
+        "year": "2021",
+        "subject": "Quantitative Aptitude"
+      },
+      {
+        "question": "In a certain code language, \"CAT\" is written as \"3120\". How will \"DOG\" be written in that language?",
+        "options": [
+          "4157",
+          "4158",
+          "4147",
+          "4156"
+        ],
+        "correctAnswer": "4157",
+        "year": "2022",
+        "subject": "Reasoning"
+      }
+    ]
+  }
+}
