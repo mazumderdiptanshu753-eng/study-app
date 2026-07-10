@@ -15,7 +15,11 @@ import {
   User,
   X,
   Loader2,
-  FileText
+  FileText,
+  Zap,
+  Lightbulb,
+  HelpCircle,
+  Check
 } from "lucide-react";
 
 interface SolveWithAIProps {
@@ -24,11 +28,20 @@ interface SolveWithAIProps {
   theme: ThemeConfig;
 }
 
+interface MathChallenge {
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+  explanation: string;
+}
+
 interface MathSolution {
   problem: string;
   coreConcept: string;
   steps: string[];
   finalAnswer: string;
+  analogy?: string;
+  challenge?: MathChallenge;
 }
 
 interface Message {
@@ -45,6 +58,8 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: string; mimeType: string } | null>(null);
+  const [fastMode, setFastMode] = useState(false);
+  const [quizSelections, setQuizSelections] = useState<Record<string, number>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -142,7 +157,8 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
         body: JSON.stringify({ 
           problem: userText,
           file: currentAttachment,
-          lang 
+          lang,
+          fastMode
         }),
       });
       
@@ -169,7 +185,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
     }
   };
 
-  const renderSolution = (solution: MathSolution) => (
+  const renderSolution = (solution: MathSolution, msgId: string) => (
     <div className="space-y-4 w-full">
       {/* Main query copy */}
       <div className={`${theme.isDark ? "bg-slate-900/40" : "bg-slate-50"} border ${theme.borderCard} rounded-xl p-3`}>
@@ -221,6 +237,92 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
           </p>
         </div>
       </div>
+
+      {/* Everyday Analogy */}
+      {solution.analogy && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 space-y-2">
+          <span className="text-[10px] uppercase font-black text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1">
+            <Lightbulb className="h-4 w-4 animate-pulse text-amber-500" />
+            {isBengali ? "সহজ তুলনা / উপমা (Everyday Analogy):" : "Everyday Analogy:"}
+          </span>
+          <p className={`text-xs font-medium leading-relaxed ${theme.textMain}`}>
+            {solution.analogy}
+          </p>
+        </div>
+      )}
+
+      {/* Review Quiz Challenge */}
+      {solution.challenge && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 space-y-3">
+          <span className="text-[10px] uppercase font-black text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1">
+            <HelpCircle className="h-4 w-4 text-blue-500" />
+            {isBengali ? "রিভিউ চ্যালেঞ্জ কুইজ (Review Quiz):" : "Review Challenge Quiz:"}
+          </span>
+          <p className={`text-xs font-bold leading-relaxed ${theme.textHeading}`}>
+            {solution.challenge.question}
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {solution.challenge.options.map((option, idx) => {
+              const selectedIdx = quizSelections[msgId];
+              const isSelected = selectedIdx !== undefined && selectedIdx === idx;
+              const hasAnswered = selectedIdx !== undefined;
+              const isCorrect = idx === solution.challenge?.correctOptionIndex;
+              
+              let btnClass = `${theme.isDark ? 'bg-slate-800/80 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50'} text-xs font-semibold py-2 px-3.5 rounded-xl border transition-all text-left flex items-center justify-between gap-2 active:scale-98 cursor-pointer`;
+              if (hasAnswered) {
+                if (isCorrect) {
+                  btnClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full";
+                } else if (isSelected) {
+                  btnClass = "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full";
+                } else {
+                  btnClass = `${theme.isDark ? 'bg-slate-800/40 border-slate-700/20 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'} text-xs font-medium py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full disabled:cursor-not-allowed`;
+                }
+              }
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={hasAnswered}
+                  onClick={() => setQuizSelections(prev => ({ ...prev, [msgId]: idx }))}
+                  className={btnClass}
+                >
+                  <span className="flex-1 truncate">{option}</span>
+                  {hasAnswered && isCorrect && <Check className="h-4 w-4 shrink-0 text-emerald-500" />}
+                  {hasAnswered && isSelected && !isCorrect && <X className="h-4 w-4 shrink-0 text-rose-500" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {quizSelections[msgId] !== undefined && (
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-3 rounded-xl text-xs font-medium border ${
+                quizSelections[msgId] === solution.challenge.correctOptionIndex
+                  ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-rose-500/5 border-rose-500/10 text-rose-800 dark:text-rose-300'
+              }`}
+            >
+              <div className="flex items-center gap-1 font-black mb-1">
+                {quizSelections[msgId] === solution.challenge.correctOptionIndex ? (
+                  <>
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    <span>{isBengali ? "সদোত্তর সঠিক!" : "Correct Answer!"}</span>
+                  </>
+                ) : (
+                  <>
+                    <X className="h-4 w-4 text-rose-500" />
+                    <span>{isBengali ? "ভুল উত্তর। সঠিক উত্তরটি দেখে নিন।" : "Wrong Answer. Check the correct option."}</span>
+                  </>
+                )}
+              </div>
+              <p className="leading-relaxed whitespace-pre-wrap">{solution.challenge.explanation}</p>
+            </motion.div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -286,7 +388,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                       </div>
                     )}
-                    {msg.solution && renderSolution(msg.solution)}
+                    {msg.solution && renderSolution(msg.solution, msg.id)}
                     {msg.error && (
                       <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-3 flex items-start gap-2">
                         <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
@@ -326,20 +428,35 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
 
       {/* Input Area */}
       <div className={`p-3 sm:p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
-        {attachedFile && (
-          <div className="mb-3 flex items-center gap-2">
-            <div className={`flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 text-slate-300' : 'bg-emerald-50 text-emerald-800'} border ${theme.borderCard} px-3 py-1.5 rounded-lg text-xs font-medium max-w-xs shadow-sm`}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+          {/* Fast Mode Toggle */}
+          <button
+            type="button"
+            onClick={() => setFastMode(!fastMode)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold border transition-all cursor-pointer shadow-3xs active:scale-95 ${
+              fastMode 
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                : "bg-slate-100 dark:bg-slate-800/60 border-slate-200/50 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700"
+            }`}
+          >
+            <Zap className={`h-3.5 w-3.5 ${fastMode ? 'text-amber-500 animate-pulse' : ''}`} />
+            <span>{isBengali ? "দ্রুত উত্তর (Fast Mode)" : "Fast Mode"}</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${fastMode ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
+          </button>
+
+          {attachedFile && (
+            <div className={`flex items-center gap-1.5 ${theme.isDark ? 'bg-slate-800 text-slate-300' : 'bg-emerald-50 text-emerald-800'} border ${theme.borderCard} px-2.5 py-1 rounded-full text-[10px] font-bold max-w-xs shadow-3xs`}>
               <FileText className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{attachedFile.name}</span>
+              <span className="truncate max-w-[120px]">{attachedFile.name}</span>
               <button 
                 onClick={() => setAttachedFile(null)}
-                className="ml-1 p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
+                className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors shrink-0 cursor-pointer"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         
         <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3 relative items-end">
           <input

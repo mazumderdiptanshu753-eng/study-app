@@ -1,13 +1,13 @@
 {
   "users": [
     {
-      "email": "mazumderdiptanshu753@gmail.com",
-      "fullName": "dip",
-      "grade": "High School",
-      "preferredSubject": "Mathematics",
-      "registeredAt": "2026-07-08T01:33:59.546Z",
-      "avatarUrl": "👑",
-      "role": "Admin",
+      "email": "test2@example.com",
+      "fullName": "Test",
+      "grade": "Grade 10",
+      "preferredSubject": "Math",
+      "registeredAt": "2023-01-01",
+      "avatarUrl": "",
+      "role": "Student",
       "isSuspended": false
     },
     {
@@ -17,16 +17,6 @@
       "preferredSubject": "Mathematics",
       "registeredAt": "2026-07-09T03:02:30.435Z",
       "avatarUrl": "🎓",
-      "role": "Student",
-      "isSuspended": false
-    },
-    {
-      "email": "test5@example.com",
-      "fullName": "Test 5",
-      "grade": "Grade 10",
-      "preferredSubject": "Math",
-      "registeredAt": "2026-07-09T03:23:13.408Z",
-      "avatarUrl": "",
       "role": "Student",
       "isSuspended": false
     }
@@ -872,6 +862,15 @@
       "userEmail": "test5@example.com",
       "id": "notif-1783567393454-gpla35t5j",
       "timestamp": "2026-07-09T03:23:13.454Z",
+      "isRead": false
+    },
+    {
+      "title": "স্টাডি হাবে স্বাগতম! 🎉",
+      "message": "প্রিয় শিক্ষার্থী, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!",
+      "type": "info",
+      "userEmail": "rajudas@gmail.com",
+      "id": "notif-1783619544625-5mp7xo2w4",
+      "timestamp": "2026-07-09T17:52:24.625Z",
       "isRead": false
     }
   ],

@@ -26,11 +26,16 @@ export default function CurrentAffairsTicker({ theme, lang }: CurrentAffairsTick
       try {
         const response = await fetch("/api/current-affairs");
         if (response.ok) {
-          const data = await response.json();
-          setNews(data.news || []);
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            setNews(data.news || []);
+          } else {
+            console.warn("Expected JSON for current affairs ticker, but received:", contentType);
+          }
         }
       } catch (error) {
-        console.error("Error fetching current affairs for ticker:", error);
+        console.warn("Network error or issue fetching current affairs ticker:", error);
       } finally {
         setLoading(false);
       }

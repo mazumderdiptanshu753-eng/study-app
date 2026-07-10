@@ -17,7 +17,8 @@ import {
   RefreshCcw,
   Download,
   Radio,
-  User
+  User,
+  ArrowLeft
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -983,6 +984,26 @@ export default function App() {
                 </div>
               ) : (
               <>
+              {currentTab !== "dashboard" && (
+                <motion.button
+                  onClick={() => {
+                    setCurrentTab("dashboard");
+                    setSelectedNote(null);
+                  }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`mb-5 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-3xs backdrop-blur-sm transition-all duration-250 cursor-pointer ${
+                    theme.isDark 
+                      ? "bg-slate-950/60 border-white/[0.08] text-slate-300 hover:text-white hover:bg-slate-900/60" 
+                      : "bg-white/60 border-black/[0.06] text-slate-600 hover:text-slate-900 hover:bg-slate-50/60"
+                  }`}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>{lang === "bn" ? "ড্যাশবোর্ড-এ ফিরুন" : "Back to Dashboard"}</span>
+                </motion.button>
+              )}
               {currentTab === "dashboard" && (
                 <Dashboard 
                   stats={stats} 

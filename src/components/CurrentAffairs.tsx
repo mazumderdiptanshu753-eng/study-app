@@ -30,8 +30,13 @@ export default function CurrentAffairs({ theme, lang }: CurrentAffairsProps) {
       if (!response.ok) {
         throw new Error("Failed to fetch current affairs");
       }
-      const data = await response.json();
-      setNews(data.news || []);
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        setNews(data.news || []);
+      } else {
+        throw new Error("Expected JSON response but received different format.");
+      }
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
     } finally {

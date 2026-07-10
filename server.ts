@@ -5,7 +5,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
 dotenv.config();
 import {
@@ -187,8 +187,16 @@ app.post("/api/solve-doubt", async (req, res) => {
       return res.status(400).json({ error: "Question is required." });
     }
     const ai = getGeminiClient();
-    const prompt = `You are a warm, extremely clear, and engaging academic tutor. Provide prominent and direct answers, without babbling or talking nonsense. Keep it concise. ALWAYS explain your answers step-by-step, no matter what the subject is. 
-Subject: ${subject || "General Science & Arts"}
+    const systemInstruction = `You are a highly efficient, warm, extremely clear, and engaging academic tutor.
+The user expects a thorough and 100% correct answer, but it MUST be generated and returned in under 3 seconds.
+To achieve ultra-high speed and latency optimization:
+1. NEVER write polite conversational fluff, introductions, or conclusions (e.g., do NOT write "Sure! Here is the answer..." or "Hope this helps!").
+2. Get straight to the explanation, steps, core concept, analogy, and challenge.
+3. Keep sentences structured, concise, and dense with academic value. Use bullet points where appropriate.
+4. Explanations must be rich in content and complete (boro uttor), but written in a concise, punchy style to minimize token overhead.
+5. Absolute 100% pedagogical correctness is mandatory.`;
+
+    const prompt = `Subject: ${subject || "General Science & Arts"}
 Target Grade Level: ${grade || "High School"}
 
 Doubt/Question:
@@ -204,10 +212,14 @@ Explain the answer thoroughly. Follow this strict schema:
   - options: Four distinct multiple-choice options (A, B, C, D).
   - correctOptionIndex: The 0-based index of the correct option (0 to 3).
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
+
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
+        systemInstruction,
+        temperature: 0.1,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -267,7 +279,7 @@ Provide a structured response:
 - summaryPoints: An array of key summary bullet points (clear, informative, and concise).
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -307,7 +319,7 @@ Note Content:
 
 Return a list of flashcards.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -397,7 +409,7 @@ app.post("/api/summarize-note", async (req, res) => {
     """
     `;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
     if (response.text) {
@@ -418,7 +430,7 @@ app.post("/api/generate-flashcards", async (req, res) => {
     Notes Title: ${title}
     Notes content: ${noteContent}`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
     let text = response.text;
@@ -431,7 +443,7 @@ app.post("/api/generate-flashcards", async (req, res) => {
 });
 app.post("/api/solve-math", async (req, res) => {
   try {
-    const { problem, file, lang } = req.body;
+    const { problem, file, lang, fastMode } = req.body;
     if (!problem && !file) {
       return res
         .status(400)
@@ -441,39 +453,79 @@ app.post("/api/solve-math", async (req, res) => {
     }
     const ai = getGeminiClient();
     const isBengali = lang === "bn";
-    const prompt = `You are an expert universal tutor and solver across all subjects (Math, Science, History, Literature, etc.). 
-${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the problem, and solve it." : ""}
-Please solve the problem or answer the question in a step-by-step, pedagogical, 100% correct, and extremely clear manner. Provide prominent and direct answers without unnecessary fluff or babble. ALWAYS explain your answers step-by-step, no matter what the subject is.
+
+    const systemInstruction = `You are a highly efficient, expert universal academic tutor and solver across all subjects.
+The student expects a highly detailed, comprehensive, and complete answer (boro uttor), but it MUST be generated and returned in under 3 seconds.
+To achieve ultra-high speed and latency optimization:
+1. NEVER write polite conversational fluff, introductions, or conclusions (e.g., do NOT write "Certainly! Here is the step-by-step solution..." or "I hope this helps!").
+2. Get straight to the problem, concept, steps, and final answer.
+3. Keep sentences structured, highly informative, and dense with facts. Use bullet points and clean math notation.
+4. Explanations must be rich in content and complete (boro uttor), but written in a concise, punchy style to minimize token overhead.
+5. Absolute 100% pedagogical correctness is mandatory.`;
+
+    const requiredFields = ["problem", "coreConcept", "steps", "finalAnswer"];
+    const schemaProperties: any = {
+      problem: { type: Type.STRING },
+      coreConcept: { type: Type.STRING },
+      steps: { type: Type.ARRAY, items: { type: Type.STRING } },
+      finalAnswer: { type: Type.STRING },
+    };
+
+    let prompt = `${file ? "We have provided a document or image containing the problem. Please analyze the file carefully, extract the problem, and solve it." : ""}
+Please solve the problem or answer the question in a step-by-step, pedagogical, 100% correct, and extremely clear manner. ALWAYS explain your answers step-by-step, no matter what the subject is.
 
 ${problem ? `Problem/Context provided by user: "${problem}"` : "Please extract and solve the problem shown in the provided document."}
 
-Language of explanation: ${isBengali ? "Bengali (\u09AC\u09BE\u0982\u09B2\u09BE)" : "English"}
+Language of explanation: ${isBengali ? "Bengali (বাংলা)" : "English"}`;
 
-Please provide a highly detailed response. Follow this strict schema:
+    if (!fastMode) {
+      requiredFields.push("analogy", "challenge");
+      schemaProperties.analogy = { type: Type.STRING };
+      schemaProperties.challenge = {
+        type: Type.OBJECT,
+        required: ["question", "options", "correctOptionIndex", "explanation"],
+        properties: {
+          question: { type: Type.STRING },
+          options: { type: Type.ARRAY, items: { type: Type.STRING } },
+          correctOptionIndex: { type: Type.INTEGER },
+          explanation: { type: Type.STRING },
+        },
+      };
+
+      prompt += `\n\nPlease provide a response matching this strict schema:
+- problem: The extracted or original problem statement/question.
+- coreConcept: The primary rule, theorem, formula, or concept involved.
+- steps: A sequential array of step-by-step operations and logical explanations showing how to solve the problem. Keep the steps clear, accurate, and easy to follow.
+- finalAnswer: The final, simplified answer (e.g., "x = 2 or x = 3").
+- analogy: A creative and memorable everyday analogy/metaphor to help the student visualize and remember the concept.
+- challenge: A multiple-choice review question related to this concept so the student can test their knowledge. It must contain 'question', 'options' (array of 4 choices), 'correctOptionIndex' (0-3), and 'explanation' explaining why the answer is correct.`;
+    } else {
+      prompt += `\n\nPlease provide a response matching this strict schema:
 - problem: The extracted or original problem statement/question.
 - coreConcept: The primary rule, theorem, formula, or concept involved.
 - steps: A sequential array of step-by-step operations and logical explanations showing how to solve the problem. Keep the steps clear, accurate, and easy to follow.
 - finalAnswer: The final, simplified answer (e.g., "x = 2 or x = 3").`;
+    }
+
     const contents: any[] = [prompt];
     if (file && file.data && file.mimeType) {
       contents.push({
         inlineData: { data: file.data, mimeType: file.mimeType },
       });
     }
+
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents,
       config: {
+        systemInstruction,
+        temperature: 0.1,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          required: ["problem", "coreConcept", "steps", "finalAnswer"],
-          properties: {
-            problem: { type: Type.STRING },
-            coreConcept: { type: Type.STRING },
-            steps: { type: Type.ARRAY, items: { type: Type.STRING } },
-            finalAnswer: { type: Type.STRING },
-          },
+          required: requiredFields,
+          properties: schemaProperties,
         },
       },
     });
@@ -559,7 +611,7 @@ Use the following seed to ensure variety but consistency for this week: ${seed}.
 Make sure the topics are relevant for competitive government exams (History, Geography, Polity, Science, Current Events).
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -666,7 +718,7 @@ Make sure to include a good mix of subjects, including some Mathematics/Quantita
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -750,7 +802,7 @@ app.get("/api/daily-quiz", async (req, res) => {
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -799,7 +851,7 @@ app.get("/api/current-affairs", async (req, res) => {
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -890,7 +942,7 @@ app.get("/api/job-alerts", async (req, res) => {
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -987,7 +1039,7 @@ app.get("/api/pyq", async (req, res) => {
 Include the year it was asked. Make sure the questions are relevant to the exam.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1709,7 +1761,7 @@ Write primarily in Bengali, with English translations/terms where appropriate (e
 
 The response MUST match the JSON schema exactly and be comprehensive. Make the 'theoryContent' long and thorough (around 500-1000 words). Include at least 5 high-yield multiple choice questions (MCQs) in the 'mcqs' section with proper explanation of the answers.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

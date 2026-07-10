@@ -59,10 +59,21 @@ function saveLocalDB() {
 // Pool initialization
 let pool: pg.Pool | null = null;
 
+const databaseUrl = process.env.DATABASE_URL;
 const sqlHost = process.env.SQL_HOST;
-const isPostgresActive = !!sqlHost;
+const isPostgresActive = !!databaseUrl || !!sqlHost;
 
-if (sqlHost) {
+if (databaseUrl) {
+  console.log("Found DATABASE_URL. Initializing database pool...");
+  pool = new Pool({
+    connectionString: databaseUrl,
+    connectionTimeoutMillis: 15000,
+  });
+
+  pool.on("error", (err) => {
+    console.error("Unexpected error on idle client", err);
+  });
+} else if (sqlHost) {
   console.log("Found Cloud SQL credentials. Initializing database pool...");
   pool = new Pool({
     host: process.env.SQL_HOST,
@@ -75,9 +86,8 @@ if (sqlHost) {
   pool.on("error", (err) => {
     console.error("Unexpected error on idle client", err);
   });
-}
- else {
-  console.log("No DATABASE_URL found. Running with local db.json file database.");
+} else {
+  console.log("No PostgreSQL credentials found. Running with local db.json file database.");
 }
 
 export async function initDatabase(): Promise<boolean> {
@@ -1223,7 +1233,7 @@ export async function createNotification(notification: any): Promise<any> {
     try {
       await pool.query(`
         INSERT INTO notifications (id, title, message, type, timestamp, "isRead", "userEmail")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           message = EXCLUDED.message,

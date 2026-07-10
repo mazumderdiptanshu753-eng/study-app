@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   registeredAt: varchar("registeredAt", { length: 100 }),
   avatarUrl: varchar("avatarUrl", { length: 255 }),
   role: varchar("role", { length: 50 }).default("Student"),
+  isSuspended: boolean("isSuspended").default(false),
 });
 
 export const chat_messages = pgTable("chat_messages", {
@@ -86,6 +87,8 @@ export const study_notes = pgTable("study_notes", {
   flashcards: jsonb("flashcards").default([]),
   timestamp: varchar("timestamp", { length: 100 }),
   attachmentUrl: text("attachmentUrl"),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  attachmentType: varchar("attachmentType", { length: 100 }).default("none"),
 });
 
 export const system_settings = pgTable("system_settings", {
