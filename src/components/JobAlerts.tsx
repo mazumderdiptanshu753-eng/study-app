@@ -53,10 +53,16 @@ export default function JobAlerts({ theme, lang }: JobAlertsProps) {
 
   const getTypeColor = (type: string) => {
     const t = type.toLowerCase();
-    if (t.includes('job') || t.includes('vacancy')) return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400';
-    if (t.includes('admit') || t.includes('card')) return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400';
-    if (t.includes('result')) return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400';
-    return 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400';
+    if (t.includes('job') || t.includes('vacancy')) {
+      return 'bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60';
+    }
+    if (t.includes('admit') || t.includes('card')) {
+      return 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60';
+    }
+    if (t.includes('result')) {
+      return 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60';
+    }
+    return 'bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60';
   };
 
   return (
@@ -107,7 +113,7 @@ export default function JobAlerts({ theme, lang }: JobAlertsProps) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`p-4 rounded-xl border ${theme.borderCard} bg-slate-50/50 dark:bg-slate-800/30 hover:border-blue-500/30 transition-all group`}
+                className={`p-4 rounded-2xl border-2 ${theme.borderCard} bg-white dark:bg-slate-800/30 hover:border-blue-500/50 transition-all group shadow-2xs`}
               >
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
@@ -116,7 +122,7 @@ export default function JobAlerts({ theme, lang }: JobAlertsProps) {
                         {getTypeIcon(item.type)}
                         {item.type}
                       </span>
-                      <span className={`text-[10px] font-bold ${theme.textMuted} bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border ${theme.borderCard}`}>
+                      <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100/95 dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shadow-3xs">
                         {item.organization}
                       </span>
                     </div>
@@ -131,7 +137,7 @@ export default function JobAlerts({ theme, lang }: JobAlertsProps) {
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-2 rounded-lg bg-white dark:bg-slate-900 border ${theme.borderCard} ${theme.textMuted} hover:text-blue-500 hover:border-blue-500/50 transition-all cursor-pointer`}
+                    className="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:hover:bg-indigo-900/40 border border-indigo-200/60 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-100 shadow-3xs transition-all cursor-pointer"
                     title={lang === "bn" ? "বিস্তারিত দেখুন" : "View Details"}
                   >
                     <ExternalLink className="h-4 w-4" />

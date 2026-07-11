@@ -49,7 +49,7 @@ export default function App() {
     return (saved as Language) || "en";
   });
 
-  const themeId: ThemeId = "emerald";
+  const themeId: ThemeId = "cosmic";
   const theme = THEMES[themeId];
 
   const t = TRANSLATIONS[lang];
@@ -335,8 +335,8 @@ export default function App() {
   }, [profile?.email]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme.isDark);
-  }, [theme.isDark]);
+    document.documentElement.classList.toggle("dark", false);
+  }, []);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -346,8 +346,7 @@ export default function App() {
   }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    setShowScrollTop(scrollTop > 200);
+    setShowScrollTop(e.currentTarget.scrollTop > 200);
   };
 
   const scrollToTop = () => {
@@ -813,14 +812,14 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`h-[100dvh] w-screen overflow-hidden flex ${profile ? "flex-row" : "flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`w-full flex ${profile ? "h-[100dvh] overflow-hidden flex-row" : "min-h-screen flex-col overflow-y-auto"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Unbelievably Elegant Desktop Left Sidebar Workspace Navigation */}
           {profile && (
             <aside className={`hidden md:flex flex-col w-72 shrink-0 border-r ${theme.borderCard} ${theme.bgCard} h-[100vh] sticky top-0 z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden p-5`}>
               {/* Top Brand Area */}
               <div className={`flex items-center gap-3 pb-6 mb-6 border-b ${theme.borderCard}`}>
-                <div className={`relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr ${theme.heroGradient} text-white shadow-md`}>
+                <div className="relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md">
                   <GraduationCap className="h-5 w-5 drop-shadow-md" />
                   <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                   <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-white" />
@@ -975,7 +974,7 @@ export default function App() {
             </aside>
           )}
 
-          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-[100dvh] overflow-y-auto scroll-smooth">
+          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-full overflow-y-auto scroll-smooth">
             {/* Mobile-only compact floating header */}
             {profile && (
               <header className={`md:hidden flex items-center justify-between px-4 h-16 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-3xs`}>
@@ -983,14 +982,14 @@ export default function App() {
                   onClick={() => setCurrentTab("dashboard")}
                   className="flex items-center gap-2 text-left"
                 >
-                  <div className={`flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-tr ${theme.heroGradient} text-white shadow-xs`}>
+                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xs">
                     <GraduationCap className="h-5 w-5" />
                   </div>
                   <div>
                     <span className="font-black text-xs block tracking-tight text-slate-900">
                       STUDY HUB
                     </span>
-                    <span className="text-[8px] font-extrabold text-slate-450 block tracking-wider uppercase">
+                    <span className="text-[8px] font-extrabold text-slate-500 block tracking-wider uppercase">
                       {lang === "bn" ? "অধ্যয়ন ও এআই" : "LEARN & AI"}
                     </span>
                   </div>
@@ -1055,7 +1054,7 @@ export default function App() {
                   className={`mb-5 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-3xs backdrop-blur-sm transition-all duration-250 cursor-pointer ${
                     theme.isDark 
                       ? "bg-slate-950/60 border-white/[0.08] text-slate-300 hover:text-white hover:bg-slate-900/60" 
-                      : "bg-white/60 border-black/[0.06] text-slate-600 hover:text-slate-900 hover:bg-slate-50/60"
+                      : "bg-white/80 border-black/[0.08] text-black hover:bg-slate-50 font-bold"
                   }`}
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />

@@ -94,7 +94,7 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
         )}
       </div>
 
-      <div className={`text-base sm:text-lg font-semibold mb-5 ${theme.textHeading} leading-relaxed pl-1 whitespace-normal break-words`}>
+      <div className={`text-base sm:text-lg font-black mb-5 ${theme.textHeading} leading-relaxed pl-1 whitespace-normal break-words`}>
         {quiz.question}
       </div>
 
@@ -104,19 +104,30 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
           const isCorrect = option === quiz.correctAnswer;
           const showStatus = selectedAnswer !== null;
 
-          let optionStyle = `border ${theme.borderCard} hover:bg-slate-50 dark:hover:bg-slate-800 ${theme.textMain}`;
+          let optionStyle = `border ${theme.borderCard} bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-black dark:text-slate-300 font-semibold`;
           let icon = null;
 
           if (showStatus) {
             if (isCorrect) {
-              optionStyle = "bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400 text-green-700 dark:text-green-300 shadow-sm";
-              icon = <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400 shrink-0 ml-2" />;
+              optionStyle = "bg-green-50 dark:bg-green-950/30 border border-green-500 text-green-800 dark:text-green-300 shadow-sm font-bold";
+              icon = <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 ml-2" />;
             } else if (isSelected && !isCorrect) {
-              optionStyle = "bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-400 text-red-700 dark:text-red-300";
-              icon = <XCircle className="w-5 h-5 text-red-500 dark:text-red-400 shrink-0 ml-2" />;
+              optionStyle = "bg-red-50 dark:bg-red-950/30 border border-red-500 text-red-800 dark:text-red-300 font-bold";
+              icon = <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 ml-2" />;
             } else {
-              optionStyle = `opacity-60 border ${theme.borderCard} ${theme.textMain}`;
+              optionStyle = `opacity-60 border ${theme.borderCard} text-slate-500 dark:text-slate-400 font-medium`;
             }
+          } else if (isSelected) {
+            optionStyle = `border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 font-bold shadow-3xs`;
+          }
+
+          // Dynamic badge style for A, B, C, D circles
+          let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+          if (showStatus) {
+            if (isCorrect) badgeStyle = "bg-green-600 text-white";
+            else if (isSelected && !isCorrect) badgeStyle = "bg-red-600 text-white";
+          } else if (isSelected) {
+            badgeStyle = "bg-emerald-600 text-white";
           }
 
           return (
@@ -124,10 +135,10 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
               key={idx}
               onClick={() => handleSelect(option)}
               disabled={selectedAnswer !== null}
-              className={`w-full text-left p-3.5 sm:p-4 rounded-xl transition-all duration-300 flex items-start justify-between ${optionStyle}`}
+              className={`w-full text-left p-3.5 sm:p-4 rounded-xl transition-all duration-300 flex items-start justify-between ${optionStyle} cursor-pointer`}
             >
               <div className="flex items-start gap-3 flex-1 min-w-0">
-                <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5 ${showStatus && (isCorrect || isSelected) ? 'bg-current text-white mix-blend-overlay opacity-30' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-black shrink-0 mt-0.5 ${badgeStyle}`}>
                   {String.fromCharCode(65 + idx)}
                 </span>
                 <span className="font-medium whitespace-normal break-words flex-1 mt-0.5 leading-snug">{option}</span>
@@ -153,11 +164,11 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
                }
             </div>
 
-            <h4 className={`font-bold mb-2 flex items-center gap-2 ${theme.isDark ? "text-slate-200" : "text-slate-800"}`}>
+            <h4 className={`font-bold mb-2 flex items-center gap-2 ${theme.isDark ? "text-slate-200" : "text-black font-extrabold"}`}>
               <ArrowRight className="w-4 h-4 text-amber-500" />
               {lang === "bn" ? "ব্যাখ্যা:" : "Explanation:"}
             </h4>
-            <p className={`whitespace-normal break-words leading-relaxed ${theme.isDark ? "text-slate-300" : "text-slate-600"}`}>
+            <p className={`whitespace-normal break-words leading-relaxed ${theme.isDark ? "text-slate-300" : "text-black font-semibold"}`}>
               {quiz.explanation}
             </p>
           </motion.div>

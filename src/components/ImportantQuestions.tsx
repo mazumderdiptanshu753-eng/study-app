@@ -97,11 +97,11 @@ export default function ImportantQuestions({ theme, lang }: ImportantQuestionsPr
             <div key={idx} className={`rounded-xl border ${theme.borderCard} overflow-hidden transition-all duration-200`}>
               <button
                 onClick={() => toggleExpand(idx)}
-                className={`w-full text-left p-4 flex items-center justify-between cursor-pointer ${isExpanded ? 'bg-slate-50 dark:bg-slate-800/50' : theme.bgCard} hover:bg-slate-50 dark:hover:bg-slate-800/50`}
+                className={`w-full text-left p-4 flex items-center justify-between cursor-pointer ${isExpanded ? 'bg-amber-50/60 dark:bg-slate-800/50' : theme.bgCard} hover:bg-amber-50/80 dark:hover:bg-slate-800/50`}
               >
                 <div className="flex flex-col pr-4">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted} mb-1`}>{qna.subject}</span>
-                  <span className={`font-semibold text-sm ${theme.textHeading}`}>{qna.question}</span>
+                   <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted} mb-1`}>{qna.subject}</span>
+                   <span className={`font-semibold text-sm ${theme.textHeading}`}>{qna.question}</span>
                 </div>
                 {isExpanded ? (
                   <ChevronUp className={`h-5 w-5 ${theme.textMuted} shrink-0`} />
@@ -111,9 +111,9 @@ export default function ImportantQuestions({ theme, lang }: ImportantQuestionsPr
               </button>
               
               {isExpanded && (
-                <div className={`p-4 pt-0 bg-slate-50 dark:bg-slate-800/50`}>
-                  <div className={`p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30`}>
-                    <p className={`text-sm font-bold text-emerald-800 dark:text-emerald-300`}>
+                <div className={`p-4 pt-0 bg-amber-50/60 dark:bg-slate-800/50`}>
+                  <div className={`p-3 rounded-lg ${theme.accentBg}`}>
+                    <p className={`text-sm ${theme.accentText}`}>
                       <span className="opacity-75 mr-2">{lang === "bn" ? "উত্তর:" : "Ans:"}</span>
                       {qna.answer}
                     </p>

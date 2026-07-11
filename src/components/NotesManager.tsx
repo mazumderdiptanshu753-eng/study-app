@@ -219,7 +219,7 @@ export default function NotesManager({
                 </button>
               </div>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-slate-50 px-2.5 py-0.5 text-5xs font-bold text-slate-600 border border-slate-100 uppercase tracking-wide">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-5xs font-black text-black border border-slate-200 uppercase tracking-wide">
                 {lang === "bn" ? "শুধুমাত্র প্রদর্শন" : "View Only"}
               </span>
             )}
@@ -263,7 +263,7 @@ export default function NotesManager({
                 <h4 className="font-semibold text-slate-800 text-xs line-clamp-1 group-hover:text-teal-600 pr-4">
                   {note.title}
                 </h4>
-                <p className="mt-1 text-4xs text-slate-500 line-clamp-2 leading-normal">
+                <p className="mt-1 text-4xs text-black font-semibold line-clamp-2 leading-normal">
                   {note.content}
                 </p>
 
@@ -271,7 +271,7 @@ export default function NotesManager({
                 {note.tags && note.tags.length > 0 && (
                   <div className="mt-2.5 flex flex-wrap gap-1">
                     {note.tags.slice(0, 2).map((tg) => (
-                      <span key={tg} className="text-5xs bg-white text-slate-600 px-1 py-0.5 rounded-sm border border-slate-100">
+                      <span key={tg} className="text-5xs bg-white text-black font-semibold px-1 py-0.5 rounded-sm border border-slate-150">
                         #{tg}
                       </span>
                     ))}
@@ -340,7 +340,7 @@ export default function NotesManager({
           <div className="space-y-4">
             <button
               onClick={() => setIsCreating(false)}
-              className="md:hidden flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer"
+              className="md:hidden flex items-center gap-1.5 text-xs font-bold text-black hover:text-black bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />
               {lang === "bn" ? "লাইব্রেরিতে ফিরে যান" : "Back to Library"}
@@ -545,7 +545,7 @@ export default function NotesManager({
               {/* Note Share code widget */}
               <button
                 onClick={() => handleShareNote(selectedNote)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-2xs font-semibold text-slate-700 transition-all hover:bg-slate-50 cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-2xs font-semibold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
                 {copiedNoteId === selectedNote.id ? (
                   <>
@@ -571,14 +571,14 @@ export default function NotesManager({
                 >
                   {/* TAB CONTENT: 1. Core Note Text */}
                   {activeStudyTab === "content" && (
-                    <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h2 className="font-bold text-slate-900 text-base">{selectedNote.title}</h2>
-                  <span className="rounded-md bg-teal-50 px-2 py-0.5 text-2xs font-bold text-teal-700">
+                    <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-850 pb-2">
+                  <h2 className="font-bold text-slate-900 dark:text-white text-base">{selectedNote.title}</h2>
+                  <span className="rounded-md bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 text-2xs font-bold text-teal-700 dark:text-teal-300">
                     {selectedNote.subject === "Mathematics" ? t.mathSubject : selectedNote.subject}
                   </span>
                 </div>
-                <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                <div className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-medium">
                   {selectedNote.content}
                 </div>
 
@@ -589,7 +589,7 @@ export default function NotesManager({
                         <FileText className="h-4 w-4" />
                       </div>
                       <h4 className="font-bold text-slate-800 text-xs">
-                        {lang === "bn" ? "সংযুক্ত স্টাডি ফাইল" : "Attached Study File"}: <span className="font-medium text-slate-600">{selectedNote.attachmentName || (selectedNote.attachmentType === "pdf" ? "Document.pdf" : "Image.jpg")}</span>
+                        {lang === "bn" ? "সংযুক্ত স্টাডি ফাইল" : "Attached Study File"}: <span className="font-bold text-black">{selectedNote.attachmentName || (selectedNote.attachmentType === "pdf" ? "Document.pdf" : "Image.jpg")}</span>
                       </h4>
                     </div>
 
@@ -618,9 +618,9 @@ export default function NotesManager({
 
             {/* TAB CONTENT: 2. AI Summary */}
             {activeStudyTab === "summary" && (
-              <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-xs space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-850 pb-2">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-amber-500" />
                     {lang === "bn" ? "জেমিনি এআই সারাংশ ইঞ্জিন" : "Gemini AI Summary Engine"}
                   </h3>
@@ -653,14 +653,14 @@ export default function NotesManager({
 
                     {/* Bullet summary */}
                     <div className="space-y-2">
-                      <h4 className="font-bold text-xs text-slate-800">
+                      <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100">
                         {lang === "bn" ? "মূল বক্তব্যসমূহ" : "Key Takeaways"}
                       </h4>
                       <div className="space-y-2">
                         {selectedNote.summaryPoints.map((pt, idx) => (
-                          <div key={idx} className="flex gap-2.5 items-start p-2 rounded-lg hover:bg-slate-50">
+                          <div key={idx} className="flex gap-2.5 items-start p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50">
                             <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"></span>
-                            <p className="text-xs text-slate-600 leading-relaxed font-semibold">{pt}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-semibold">{pt}</p>
                           </div>
                         ))}
                       </div>
@@ -695,7 +695,7 @@ export default function NotesManager({
             {activeStudyTab === "flashcards" && (
               <div className="space-y-4">
                 {isLoadingAI ? (
-                  <div className="rounded-xl border border-slate-100 bg-white p-12 text-center space-y-3">
+                  <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center space-y-3">
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
                     <p className="text-xs text-slate-500 font-semibold animate-pulse">
                       {lang === "bn" ? "ধারণাগুলো বের করা হচ্ছে এবং ফ্ল্যাশকার্ড তৈরি করা হচ্ছে..." : "Extracting concepts & building flashcards..."}
@@ -716,12 +716,12 @@ export default function NotesManager({
                       className={`relative min-h-[180px] w-full rounded-2xl border cursor-pointer p-6 flex flex-col justify-between transition-all duration-300 ${
                         isFlipped 
                           ? "bg-indigo-600 border-indigo-700 text-white shadow-md transform rotate-1"
-                          : "bg-white border-slate-200 text-slate-800 shadow-xs hover:border-indigo-300 hover:shadow-sm"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 shadow-xs hover:border-indigo-300 hover:shadow-sm"
                       }`}
                     >
                       {/* Side indicator badge */}
                       <span className={`inline-block self-start rounded-md px-1.5 py-0.5 text-5xs font-extrabold uppercase tracking-widest ${
-                        isFlipped ? "bg-white/20 text-indigo-100" : "bg-indigo-50 text-indigo-700"
+                        isFlipped ? "bg-white/20 text-indigo-100" : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
                       }`}>
                         {isFlipped 
                           ? (lang === "bn" ? "পেছন (উত্তর)" : "Back (Answer)") 
@@ -730,7 +730,7 @@ export default function NotesManager({
 
                       {/* Card Content text */}
                       <div className="my-auto py-4 text-center">
-                        <p className={`font-bold transition-all text-sm md:text-base leading-relaxed ${isFlipped ? "text-indigo-50" : "text-slate-800"}`}>
+                        <p className={`font-bold transition-all text-sm md:text-base leading-relaxed ${isFlipped ? "text-indigo-50" : "text-slate-800 dark:text-slate-200"}`}>
                           {isFlipped 
                             ? selectedNote.flashcards[currentFlashcardIndex].back 
                             : selectedNote.flashcards[currentFlashcardIndex].front
@@ -760,7 +760,7 @@ export default function NotesManager({
                             setCurrentFlashcardIndex(prev => prev - 1);
                             setIsFlipped(false);
                           }}
-                          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
                         >
                           {lang === "bn" ? "পূর্ববর্তী" : "Prev"}
                         </button>
@@ -770,7 +770,7 @@ export default function NotesManager({
                             setCurrentFlashcardIndex(prev => prev + 1);
                             setIsFlipped(false);
                           }}
-                          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
                         >
                           {lang === "bn" ? "পরবর্তী" : "Next"}
                         </button>
@@ -778,7 +778,7 @@ export default function NotesManager({
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-slate-100 bg-white p-10 text-center space-y-4">
+                  <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center space-y-4">
                     <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
                       {lang === "bn" ? "এই নোটের জন্য কোনো ফ্ল্যাশকার্ড নেই।" : "No flashcards generated for this note."}
                     </p>
@@ -799,12 +799,12 @@ export default function NotesManager({
         </div>
         ) : (
           /* NO NOTE SELECTED FALLBACK DISPLAY */
-          <div className="hidden md:block rounded-xl border border-dashed border-slate-200 p-12 text-center bg-white space-y-4">
-            <div className="mx-auto rounded-full bg-teal-50 p-3 text-teal-600 h-12 w-12 flex items-center justify-center">
+          <div className="hidden md:block rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center bg-white dark:bg-slate-900/40 space-y-4">
+            <div className="mx-auto rounded-full bg-teal-50 dark:bg-teal-950/40 p-3 text-teal-600 dark:text-teal-400 h-12 w-12 flex items-center justify-center">
               <BookOpen className="h-6 w-6" />
             </div>
             <div className="max-w-xs mx-auto space-y-1.5">
-              <h3 className="font-bold text-slate-800 text-sm">
+              <h3 className="font-bold text-slate-800 dark:text-white text-sm">
                 {lang === "bn" ? "স্টাডি নোট ওয়ার্কস্টেশন" : "Study Note Workstation"}
               </h3>
               <p className="text-xs text-slate-500">

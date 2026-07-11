@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --variant-dark: class;
   --animate-shine: shine 4.5s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -79,6 +80,8 @@
   /* Hide scrollbars globally */
   ::-webkit-scrollbar {
     display: none;
+    width: 0px;
+    background: transparent;
   }
   * {
     -ms-overflow-style: none; /* IE and Edge */
@@ -184,21 +187,21 @@
 }
 
 .premium-scroll {
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 .premium-scroll::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-  display: block;
+  display: none;
+  width: 0px;
 }
-.premium-scroll::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Custom Text Selection Highlight (Ash color/gray-300 with black text) */
+::selection {
+  background-color: #d1d5db !important;
+  color: #000000 !important;
 }
-.premium-scroll::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.25);
-  border-radius: 99px;
-}
-.premium-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.45);
+
+::-moz-selection {
+  background-color: #d1d5db !important;
+  color: #000000 !important;
 }
 

@@ -109,25 +109,37 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
           const isCorrect = selectedAnswers[qIndex] === q.correctOptionIndex;
 
           return (
-            <div key={qIndex} className={`p-4 rounded-xl border ${theme.borderCard} bg-slate-50/50 dark:bg-slate-900/30`}>
-              <p className={`font-semibold ${theme.textHeading} text-sm mb-4 leading-relaxed`}>
-                {qIndex + 1}. {q.question}
+            <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-900 shadow-3xs`}>
+              <p className={`font-semibold ${theme.textHeading} text-xs sm:text-sm mb-4 leading-relaxed`}>
+                <span className="text-amber-500 mr-1.5">{qIndex + 1}.</span> {q.question}
               </p>
               
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {q.options.map((opt, optIndex) => {
-                  let buttonClass = `w-full text-left px-4 py-3 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${theme.borderCard} ${theme.bgCard} hover:border-slate-400 dark:hover:border-slate-500 ${theme.textMain}`;
+                  const isSelected = selectedAnswers[qIndex] === optIndex;
+                  let buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} text-xs font-semibold transition-all cursor-pointer bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 text-black dark:text-slate-300`;
                   
                   if (showResults) {
                     if (optIndex === q.correctOptionIndex) {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-lg border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-green-500 bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-300 font-semibold`;
                     } else if (selectedAnswers[qIndex] === optIndex) {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-lg border-2 border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-900 dark:text-rose-300 font-semibold`;
                     } else {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-lg border ${theme.borderCard} opacity-50 ${theme.bgCard} ${theme.textMuted}`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium`;
                     }
-                  } else if (selectedAnswers[qIndex] === optIndex) {
-                    buttonClass = `w-full text-left px-4 py-3 rounded-lg border-2 ${theme.primaryBtn} ${theme.primaryBtnText} font-bold`;
+                  } else if (isSelected) {
+                    buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 font-bold shadow-3xs`;
+                  }
+
+                  // Circular option indicators (A, B, C, D)
+                  let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+                  if (showResults) {
+                    if (optIndex === q.correctOptionIndex) badgeStyle = "bg-green-600 text-white";
+                    else if (isSelected) badgeStyle = "bg-red-600 text-white";
+                  } else {
+                    badgeStyle = isSelected 
+                      ? "bg-emerald-600 text-white" 
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/50 dark:border-slate-750";
                   }
 
                   return (
@@ -138,12 +150,17 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
                       className={buttonClass}
                     >
                       <div className="flex items-center justify-between">
-                        <span>{opt}</span>
+                        <div className="flex items-center gap-3">
+                          <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black shrink-0 ${badgeStyle}`}>
+                            {String.fromCharCode(65 + optIndex)}
+                          </span>
+                          <span className="font-medium leading-snug">{opt}</span>
+                        </div>
                         {showResults && optIndex === q.correctOptionIndex && (
-                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
                         )}
                         {showResults && selectedAnswers[qIndex] === optIndex && optIndex !== q.correctOptionIndex && (
-                          <XCircle className="h-4 w-4 text-rose-500" />
+                          <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                         )}
                       </div>
                     </button>

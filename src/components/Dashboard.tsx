@@ -125,33 +125,33 @@ export default function Dashboard({
       {/* Premium Redesigned Hero Welcome Header with Majestic Glass/Asymmetrical Layout */}
       <motion.div 
         variants={itemVariants} 
-        className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${theme.heroGradient} p-5 sm:p-8 lg:p-9 text-white shadow-2xl border ${theme.heroOuterBorder} group`}
+        className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${theme.heroGradient} p-5 sm:p-8 lg:p-9 text-slate-900 shadow-md border-2 border-emerald-500/20 group`}
       >
         {/* Animated Background Spheres & Waves */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-80 w-80 rounded-full bg-white/10 blur-3xl mix-blend-overlay animate-pulse-slow"></div>
-        <div className="absolute -bottom-10 left-1/4 h-56 w-56 rounded-full bg-teal-300/10 blur-3xl mix-blend-overlay"></div>
-        <div className="absolute top-1/2 left-5 h-2 w-2 rounded-full bg-indigo-200/40 animate-ping"></div>
-        <div className="absolute bottom-1/3 right-12 h-3 w-3 rounded-full bg-emerald-200/30 animate-pulse"></div>
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-80 w-80 rounded-full bg-white/20 blur-3xl mix-blend-overlay animate-pulse-slow"></div>
+        <div className="absolute -bottom-10 left-1/4 h-56 w-56 rounded-full bg-teal-300/20 blur-3xl mix-blend-overlay"></div>
+        <div className="absolute top-1/2 left-5 h-2 w-2 rounded-full bg-indigo-200/50 animate-ping"></div>
+        <div className="absolute bottom-1/3 right-12 h-3 w-3 rounded-full bg-emerald-200/40 animate-pulse"></div>
 
         {/* Diagonal Light Beam effect on Hover */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
           {/* Left Column: Greeting, Description and Interactive Shimmering WhatsApp CTA */}
           <div className="lg:col-span-6 space-y-3.5 sm:space-y-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[9px] sm:text-[11px] font-black tracking-wider uppercase backdrop-blur-md text-white shadow-xs border border-white/10 select-none">
-                <Sparkles className="h-3 w-3 text-amber-300 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[9px] sm:text-[11px] font-black tracking-wider uppercase backdrop-blur-md text-emerald-800 shadow-xs border border-emerald-500/20 select-none">
+                <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" />
                 {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "Interactive Study & AI Hub"}
               </span>
             </div>
 
             <div className="space-y-2">
-              <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight ${theme.isDark ? theme.textHeroTitle : "text-white"} drop-shadow-md`}>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-slate-950 drop-shadow-xs">
                 {lang === "bn" ? "স্টাডি হাবে স্বাগতম" : "Welcome to STUDY HUB"}
               </h1>
               
-              <p className={`text-[11px] sm:text-xs md:text-sm leading-relaxed ${theme.isDark ? theme.textHeroSub : "text-white/90"} font-medium max-w-lg drop-shadow-xs`}>
+              <p className="text-[11px] sm:text-xs md:text-sm leading-relaxed text-slate-800 font-semibold max-w-lg">
                 {lang === "bn"
                    ? "আমরা অধ্যয়নের নোটগুলি সংগঠিত করি, তাৎক্ষণিকভাবে এআই-চালিত সারাংশ, পিডিএফ নোট এবং ভিডিও লেকচার তৈরি করি।"
                    : "We organize study notes, instantly generated AI-powered summaries, pdf notes and video lectures"}
@@ -187,15 +187,15 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-md bg-white border-2 border-emerald-500/20 hover:border-emerald-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-emerald-400/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
-                <div className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 p-1.5 text-emerald-300 group-hover/btn:scale-105 group-hover/btn:bg-emerald-500/35 transition-all">
+                <div className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 p-1.5 text-emerald-800 group-hover/btn:scale-105 group-hover/btn:bg-emerald-500/35 transition-all">
                   <BookOpen className="h-4 w-4 animate-pulse" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-emerald-200/80 mb-0.5 truncate">Workspace</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-emerald-700 mb-0.5 truncate">Workspace</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "নোটস" : "Notes"}
                   </span>
                 </div>
@@ -207,18 +207,18 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-md bg-white border-2 border-rose-500/20 hover:border-rose-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-rose-500/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
                 <div className="flex justify-between items-center w-full">
-                  <div className="rounded-lg bg-rose-500/20 border border-rose-500/30 p-1.5 text-rose-300 group-hover/btn:scale-105 group-hover/btn:bg-rose-500/35 transition-all">
-                    <Radio className="h-4 w-4 animate-pulse text-rose-450" />
+                  <div className="rounded-lg bg-rose-500/20 border border-rose-500/30 p-1.5 text-rose-800 group-hover/btn:scale-105 group-hover/btn:bg-rose-500/35 transition-all">
+                    <Radio className="h-4 w-4 animate-pulse text-rose-600" />
                   </div>
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-550 animate-ping"></span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping"></span>
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-rose-200/80 mb-0.5 truncate">Live Portal</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-rose-700 mb-0.5 truncate">Live Portal</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "লাইভ ক্লাস" : "Live Classes"}
                   </span>
                 </div>
@@ -230,15 +230,15 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-md bg-white border-2 border-cyan-500/20 hover:border-cyan-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-cyan-400/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
-                <div className="rounded-lg bg-cyan-500/20 border border-cyan-500/30 p-1.5 text-cyan-300 group-hover/btn:scale-105 group-hover/btn:bg-cyan-500/35 transition-all">
-                  <Video className="h-4 w-4 text-cyan-300" />
+                <div className="rounded-lg bg-cyan-500/20 border border-cyan-500/30 p-1.5 text-cyan-800 group-hover/btn:scale-105 group-hover/btn:bg-cyan-500/35 transition-all">
+                  <Video className="h-4 w-4 text-cyan-600" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-cyan-200/80 mb-0.5 truncate">Library</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-cyan-700 mb-0.5 truncate">Library</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "ভিডিও" : "Videos"}
                   </span>
                 </div>
@@ -250,15 +250,15 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-md bg-white border-2 border-blue-500/20 hover:border-blue-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-blue-400/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
-                <div className="rounded-lg bg-blue-500/20 border border-blue-500/30 p-1.5 text-blue-300 group-hover/btn:scale-105 group-hover/btn:bg-blue-500/35 transition-all">
-                  <MessageSquare className="h-4 w-4 text-blue-300" />
+                <div className="rounded-lg bg-blue-500/20 border border-blue-500/30 p-1.5 text-blue-800 group-hover/btn:scale-105 group-hover/btn:bg-blue-500/35 transition-all">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-blue-200/80 mb-0.5 truncate">Chat</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-blue-700 mb-0.5 truncate">Chat</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "শিক্ষক/অ্যাডমিন চ্যাট" : "Chat with Admin / Teacher"}
                   </span>
                 </div>
@@ -270,15 +270,15 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-md bg-white border-2 border-indigo-500/20 hover:border-indigo-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-indigo-400/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
-                <div className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 p-1.5 text-indigo-300 group-hover/btn:scale-105 group-hover/btn:bg-indigo-500/35 transition-all">
-                  <Users className="h-4 w-4 text-indigo-300" />
+                <div className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 p-1.5 text-indigo-800 group-hover/btn:scale-105 group-hover/btn:bg-indigo-500/35 transition-all">
+                  <Users className="h-4 w-4 text-indigo-600" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-indigo-200/80 mb-0.5 truncate">Q&A Board</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-indigo-700 mb-0.5 truncate">Q&A Board</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "ফোরাম" : "Forum"}
                   </span>
                 </div>
@@ -290,15 +290,15 @@ export default function Dashboard({
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white/10 hover:bg-white/15 border border-white/15 hover:border-white/30 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
+                className="group/btn relative overflow-hidden inline-flex flex-col items-start justify-between rounded-2xl p-2.5 sm:p-3.5 text-left shadow-sm hover:shadow-lg bg-white border-2 border-amber-500/20 hover:border-amber-500/40 h-[85px] sm:h-[105px] select-none w-full cursor-pointer"
               >
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-amber-400/20 rounded-full blur-lg group-hover/btn:scale-125 transition-transform pointer-events-none" />
-                <div className="rounded-lg bg-amber-500/20 border border-amber-500/30 p-1.5 text-amber-300 group-hover/btn:scale-105 group-hover/btn:bg-amber-555 transition-all">
-                  <Award className="h-4 w-4 text-amber-300" />
+                <div className="rounded-lg bg-amber-500/20 border border-amber-500/30 p-1.5 text-amber-800 group-hover/btn:scale-105 group-hover/btn:bg-amber-555 transition-all">
+                  <Award className="h-4 w-4 text-amber-600" />
                 </div>
                 <div className="w-full min-w-0">
-                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-amber-200/80 mb-0.5 truncate">Job Board</span>
-                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-white leading-tight truncate">
+                  <span className="block text-[8px] sm:text-[9px] uppercase tracking-wider font-black text-amber-700 mb-0.5 truncate">Job Board</span>
+                  <span className="block text-[10px] sm:text-xs md:text-sm font-black text-slate-900 leading-tight truncate">
                     {lang === "bn" ? "চাকরি খবর" : "Job Prep"}
                   </span>
                 </div>
@@ -532,7 +532,7 @@ export default function Dashboard({
       {/* AI Math Solver Modal */}
       <AnimatePresence>
         {showSolveModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 md:p-10">
             {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
@@ -548,7 +548,7 @@ export default function Dashboard({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", duration: 0.5, bounce: 0 }}
-              className={`relative w-full max-w-2xl ${theme.bgCard} rounded-3xl shadow-2xl overflow-hidden z-10 border ${theme.borderCard} max-h-[90vh] overflow-y-auto`}
+              className={`relative w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl ${theme.bgCard} rounded-none sm:rounded-3xl shadow-2xl overflow-hidden z-10 border-0 sm:border ${theme.borderCard} flex flex-col`}
             >
               <SolveWithAI 
                 lang={lang} 

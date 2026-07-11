@@ -72,7 +72,7 @@ export default function CurrentAffairs({ theme, lang }: CurrentAffairsProps) {
         <button
           onClick={fetchNews}
           disabled={loading}
-          className={`p-2 rounded-lg border ${theme.borderCard} ${theme.bgCard} hover:bg-slate-100 dark:hover:bg-slate-800 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
+          className={`p-2 rounded-xl border-2 ${theme.borderCard} ${theme.bgCard} hover:bg-amber-100/50 hover:border-amber-500/70 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
           title={lang === "bn" ? "রিফ্রেশ করুন" : "Refresh"}
         >
           <RefreshCcw className={`h-4 w-4 ${theme.textHeading} ${loading ? 'animate-spin' : ''}`} />
@@ -106,7 +106,7 @@ export default function CurrentAffairs({ theme, lang }: CurrentAffairsProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className={`border ${theme.borderCard} rounded-xl overflow-hidden transition-all ${
-                  expandedIndex === index ? 'bg-slate-50 dark:bg-slate-800/30 ring-1 ring-emerald-500/30' : 'hover:border-emerald-500/30'
+                  expandedIndex === index ? 'bg-amber-50/60 dark:bg-slate-800/30 border-emerald-500/80 ring-2 ring-emerald-500/20 shadow-sm' : 'hover:border-emerald-500/50'
                 }`}
               >
                 <button

@@ -88,19 +88,19 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
     <div className="w-full flex items-center justify-center py-1.5 px-1 sm:py-6 sm:px-4">
       <div className={`max-w-md w-full ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-xl overflow-hidden transition-all duration-300 relative mx-auto`}>
         {/* Dynamic header brand banner */}
-        <div className={`bg-gradient-to-r ${theme.heroGradient} px-3.5 py-3 sm:px-6 sm:py-5 text-white text-center relative overflow-hidden border-b ${theme.borderCard}`}>
-          <div className="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-          <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-50/10 rounded-full blur-xl"></div>
+        <div className={`bg-gradient-to-r ${theme.heroGradient} px-3.5 py-3 sm:px-6 sm:py-5 text-slate-900 text-center relative overflow-hidden border-b ${theme.borderCard}`}>
+          <div className="absolute right-0 top-0 w-24 h-24 bg-white/30 rounded-full blur-xl"></div>
+          <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-100/40 rounded-full blur-xl"></div>
           
           <div className="relative z-10 flex flex-col items-center gap-1 sm:gap-1.5">
-            <div className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-0.5 text-[8px] sm:text-xs font-semibold backdrop-blur-md border border-white/10 select-none">
-              <AppLogo size="sm" className="bg-transparent shadow-none h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <div className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/10 px-2.5 py-0.5 text-[8px] sm:text-xs font-black text-teal-800 border border-teal-500/20 select-none">
+              <AppLogo size="sm" className="bg-transparent shadow-none h-3.5 w-3.5 sm:h-4 sm:w-4 animate-pulse" />
               <span>{isBengali ? "স্টাডি হাব পোর্টাল" : "Study Hub Portal"}</span>
             </div>
-            <h1 className="text-sm sm:text-lg font-black tracking-tight mt-0.5 leading-tight">
+            <h1 className="text-sm sm:text-lg font-black tracking-tight mt-1.5 leading-tight text-slate-950">
               {isBengali ? "জ্ঞান অর্জনের সেরা ডিজিটাল মাধ্যম" : "Unleash Your Learning Potential"}
             </h1>
-            <p className="hidden sm:block text-[9px] sm:text-[10px] text-white/80 max-w-xs mt-0.5 font-medium leading-relaxed">
+            <p className="hidden sm:block text-[9px] sm:text-[10px] text-slate-800 max-w-xs mt-0.5 font-bold leading-relaxed">
               {isBengali 
                 ? "সহজ উপায়ে প্রশ্ন সমাধান, কুইজ প্রতিযোগিতা, লেকচার এবং বিশেষজ্ঞ শিক্ষকদের সহায়তা লাভ করুন।"
                 : "Ask queries, solve equations with AI, view lectures, and get active guidance."}
@@ -272,10 +272,10 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
         </div>
 
         {/* Playful and clean footer */}
-        <div className="p-2 sm:p-3 border-t border-slate-150 dark:border-slate-800 text-center text-[8px] sm:text-[9px] font-bold tracking-wider text-slate-400 dark:text-slate-600 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 uppercase leading-relaxed">
+        <div className="p-2 sm:p-3 border-t-2 border-slate-200 dark:border-slate-800 text-center text-[8px] sm:text-[9px] font-black tracking-wider text-black dark:text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 uppercase leading-relaxed">
           <span>{isBengali ? "শিক্ষার ডিজিটাল হাব" : "Study Hub Smart Portal"}</span>
-          <div className="hidden sm:block h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700"></div>
-          <span className="flex items-center gap-1 font-semibold normal-case">
+          <div className="hidden sm:block h-1.5 w-1.5 rounded-full bg-amber-500"></div>
+          <span className="flex items-center gap-1 font-black normal-case text-black dark:text-slate-300">
             Made with <Heart className="h-2.5 w-2.5 text-rose-500 fill-rose-500 animate-pulse" /> for academic excellence
           </span>
         </div>

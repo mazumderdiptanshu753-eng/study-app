@@ -186,24 +186,24 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
   };
 
   const renderSolution = (solution: MathSolution, msgId: string) => (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full text-xs sm:text-sm">
       {/* Main query copy */}
-      <div className={`${theme.isDark ? "bg-slate-900/40" : "bg-slate-50"} border ${theme.borderCard} rounded-xl p-3`}>
+      <div className={`${theme.isDark ? "bg-slate-900/40" : "bg-white"} border-2 ${theme.borderCard} rounded-2xl p-2.5 sm:p-3 shadow-2xs`}>
         <span className={`text-[10px] uppercase font-bold ${theme.textMuted} tracking-wider block mb-1`}>
           {isBengali ? "প্রশ্ন:" : "Problem Asked:"}
         </span>
-        <p className={`text-xs font-bold ${theme.textHeading}`}>
+        <p className={`text-xs sm:text-sm font-bold ${theme.textHeading}`}>
           {solution.problem || (isBengali ? "ছবি বা ডকুমেন্ট থেকে বিশ্লেষণ" : "Analyzed from uploaded document")}
         </p>
       </div>
 
       {/* Core Concept Banner */}
-      <div className={`${theme.primaryBg}/20 border ${theme.borderCard} rounded-xl p-3 space-y-1.5`}>
+      <div className={`${theme.primaryBg}/20 border ${theme.borderCard} rounded-xl p-2.5 sm:p-3 space-y-1.5`}>
         <span className={`text-[10px] uppercase font-black ${theme.primaryText} tracking-wider flex items-center gap-1`}>
           <BookOpen className="h-3.5 w-3.5" />
           {t.coreConceptLabel}
         </span>
-        <p className={`text-xs font-bold ${theme.textHeading} leading-relaxed font-mono`}>
+        <p className={`text-xs sm:text-sm font-bold ${theme.textHeading} leading-relaxed font-mono whitespace-pre-wrap break-words`}>
           {solution.coreConcept}
         </p>
       </div>
@@ -215,11 +215,11 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
         </span>
         <div className={`divide-y ${theme.isDark ? "divide-slate-800" : "divide-slate-100"} border ${theme.borderCard} rounded-xl overflow-hidden ${theme.bgCard}`}>
           {solution.steps.map((step, index) => (
-            <div key={index} className={`p-3 text-xs font-medium flex gap-2.5 hover:bg-slate-100/5 dark:hover:bg-slate-900/50 transition-colors`}>
-              <span className={`h-4 w-4 rounded ${theme.isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-500"} flex items-center justify-center text-[9px] font-extrabold shrink-0 mt-0.5`}>
+            <div key={index} className={`p-2.5 sm:p-3 text-xs sm:text-sm font-medium flex gap-2.5 hover:bg-slate-100/5 dark:hover:bg-slate-900/50 transition-colors`}>
+              <span className={`h-4 w-4 rounded ${theme.isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold"} flex items-center justify-center text-[9px] font-extrabold shrink-0 mt-0.5`}>
                 {index + 1}
               </span>
-              <p className={`leading-relaxed whitespace-pre-line ${theme.textMain}`}>{step}</p>
+              <p className={`leading-relaxed whitespace-pre-line break-words ${theme.textMain}`}>{step}</p>
             </div>
           ))}
         </div>
@@ -227,12 +227,12 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
 
       {/* Highlighted Final Answer */}
       <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-3 flex items-center justify-between gap-3">
-        <div className="space-y-0.5 min-w-0">
+        <div className="space-y-0.5 min-w-0 w-full">
           <span className="text-[10px] uppercase font-black text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1">
             <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             {t.finalAnswerLabel}
           </span>
-          <p className="text-sm font-black text-emerald-950 dark:text-emerald-100 font-mono truncate">
+          <p className="text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-100 font-mono whitespace-pre-wrap break-words">
             {solution.finalAnswer}
           </p>
         </div>
@@ -245,7 +245,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
             <Lightbulb className="h-4 w-4 animate-pulse text-amber-500" />
             {isBengali ? "সহজ তুলনা / উপমা (Everyday Analogy):" : "Everyday Analogy:"}
           </span>
-          <p className={`text-xs font-medium leading-relaxed ${theme.textMain}`}>
+          <p className={`text-xs sm:text-sm font-medium leading-relaxed ${theme.textMain} whitespace-pre-wrap break-words`}>
             {solution.analogy}
           </p>
         </div>
@@ -268,14 +268,14 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
               const hasAnswered = selectedIdx !== undefined;
               const isCorrect = idx === solution.challenge?.correctOptionIndex;
               
-              let btnClass = `${theme.isDark ? 'bg-slate-800/80 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50'} text-xs font-semibold py-2 px-3.5 rounded-xl border transition-all text-left flex items-center justify-between gap-2 active:scale-98 cursor-pointer`;
+              let btnClass = `${theme.isDark ? 'bg-slate-800/80 border-slate-700/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'} text-xs font-semibold py-2 px-3.5 rounded-xl border transition-all text-left flex items-center justify-between gap-2 active:scale-98 cursor-pointer`;
               if (hasAnswered) {
                 if (isCorrect) {
                   btnClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full";
                 } else if (isSelected) {
                   btnClass = "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full";
                 } else {
-                  btnClass = `${theme.isDark ? 'bg-slate-800/40 border-slate-700/20 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'} text-xs font-medium py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full disabled:cursor-not-allowed`;
+                  btnClass = `${theme.isDark ? 'bg-slate-800/40 border-slate-700/20 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'} text-xs font-medium py-2 px-3.5 rounded-xl border text-left flex items-center justify-between gap-2 w-full disabled:cursor-not-allowed opacity-80`;
                 }
               }
 
@@ -287,7 +287,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
                   onClick={() => setQuizSelections(prev => ({ ...prev, [msgId]: idx }))}
                   className={btnClass}
                 >
-                  <span className="flex-1 truncate">{option}</span>
+                  <span className="flex-1 whitespace-normal break-words text-left text-xs sm:text-sm">{option}</span>
                   {hasAnswered && isCorrect && <Check className="h-4 w-4 shrink-0 text-emerald-500" />}
                   {hasAnswered && isSelected && !isCorrect && <X className="h-4 w-4 shrink-0 text-rose-500" />}
                 </button>
@@ -327,7 +327,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
   );
 
   return (
-    <div className={`flex flex-col h-[85vh] w-full max-w-4xl mx-auto rounded-3xl border ${theme.borderCard} overflow-hidden shadow-2xl ${theme.bgCard}`}>
+    <div className={`flex flex-col h-full sm:h-[85vh] w-full max-w-4xl mx-auto rounded-none sm:rounded-3xl border-0 sm:border ${theme.borderCard} overflow-hidden shadow-none sm:shadow-2xl ${theme.bgCard}`}>
       {/* Header */}
       <div className={`p-4 border-b ${theme.borderCard} flex items-center justify-between bg-gradient-to-r ${theme.isDark ? "from-slate-800 to-slate-900" : "from-emerald-50 to-teal-50"}`}>
         <div className="flex items-center gap-3">
@@ -354,7 +354,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
           return (
@@ -370,11 +370,11 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
                 </div>
               )}
               
-              <div className={`max-w-[85%] rounded-2xl ${isUser ? 'bg-emerald-600 text-white rounded-tr-none px-4 py-3 shadow-sm' : ''}`}>
+              <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl ${isUser ? 'bg-emerald-600 text-white rounded-tr-none px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-sm' : ''}`}>
                 {isUser ? (
-                  <div className="space-y-2 text-sm leading-relaxed">
+                  <div className="space-y-2 text-xs sm:text-sm leading-relaxed">
                     {msg.attachment && (
-                      <div className="bg-white/20 rounded-lg p-2 flex items-center gap-2 text-xs w-max max-w-full truncate">
+                      <div className="bg-white/20 rounded-lg p-2 flex items-center gap-2 text-[10px] sm:text-xs w-max max-w-full truncate">
                         {msg.attachment.mimeType.includes("image") ? <FileText className="h-4 w-4 shrink-0" /> : <FileText className="h-4 w-4 shrink-0" />}
                         <span className="truncate">{msg.attachment.name}</span>
                       </div>
@@ -384,8 +384,8 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
                 ) : (
                   <div className="w-full">
                     {msg.content && (
-                      <div className={`px-4 py-3 rounded-2xl rounded-tl-none border shadow-sm ${theme.isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                      <div className={`px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-tl-none border shadow-sm ${theme.isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <p className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">{msg.content}</p>
                       </div>
                     )}
                     {msg.solution && renderSolution(msg.solution, msg.id)}
@@ -417,7 +417,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
             <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-1">
               <Sparkles className="h-4 w-4" />
             </div>
-            <div className={`px-4 py-3 rounded-2xl rounded-tl-none border shadow-sm flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className={`px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-tl-none border shadow-sm flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
               <span className={`text-xs ${theme.textMuted}`}>{t.solving}</span>
             </div>
@@ -487,7 +487,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
               }}
               placeholder={t.placeholder}
               rows={1}
-              className="w-full bg-transparent px-4 py-3.5 text-sm focus:outline-none resize-none max-h-32 min-h-[50px] leading-relaxed"
+              className={`w-full bg-transparent px-4 py-3.5 text-xs sm:text-sm focus:outline-none resize-none max-h-32 min-h-[50px] leading-relaxed ${theme.isDark ? 'text-white placeholder-slate-500' : 'text-slate-900 placeholder-slate-400'}`}
               style={{ height: "auto" }}
             />
           </div>

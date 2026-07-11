@@ -119,37 +119,48 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
       ) : (
         <div className="space-y-6 mt-4">
           {questions.map((q, qIndex) => (
-            <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-slate-50/50 dark:bg-slate-800/20`}>
+            <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-900 shadow-3xs`}>
               <div className="flex gap-2 mb-3">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   {q.subject}
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   {q.year}
                 </span>
               </div>
-              <p className={`font-bold ${theme.textHeading} text-sm mb-4 leading-relaxed`}>
+              <p className={`font-semibold ${theme.textHeading} text-xs sm:text-sm mb-4 leading-relaxed`}>
                 <span className={`text-amber-500 mr-2`}>Q{qIndex + 1}.</span>
                 {q.question}
               </p>
               
-              <div className="grid gap-2">
+              <div className="grid gap-2.5">
                 {q.options.map((opt, optIndex) => {
                   const isSelected = selectedAnswers[qIndex] === optIndex;
                   const isCorrect = opt === q.correctAnswer;
                   
-                  let optStyle = `border ${theme.borderCard} bg-white dark:bg-slate-900 hover:border-amber-500/50`;
+                  let optStyle = `border ${theme.borderCard} bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 text-black dark:text-slate-300 font-semibold`;
                   if (isSelected) {
-                    optStyle = `border-amber-500 bg-amber-50 dark:bg-amber-900/20`;
+                    optStyle = `border border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 font-bold shadow-3xs`;
                   }
                   if (showResults) {
                     if (isCorrect) {
-                      optStyle = `border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400`;
+                      optStyle = `border border-green-500 bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-300 font-semibold`;
                     } else if (isSelected && !isCorrect) {
-                      optStyle = `border-rose-500 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400`;
+                      optStyle = `border border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-900 dark:text-rose-300 font-semibold`;
                     } else {
-                      optStyle = `border ${theme.borderCard} opacity-50`;
+                      optStyle = `border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400`;
                     }
+                  }
+
+                  // Dynamic badge style for A, B, C, D circles
+                  let badgeStyle = "bg-slate-150 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                  if (showResults) {
+                    if (isCorrect) badgeStyle = "bg-green-600 text-white";
+                    else if (isSelected) badgeStyle = "bg-red-600 text-white";
+                  } else {
+                    badgeStyle = isSelected 
+                      ? "bg-emerald-600 text-white" 
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/50 dark:border-slate-750";
                   }
 
                   return (
@@ -157,16 +168,16 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
                       key={optIndex}
                       onClick={() => handleSelectAnswer(qIndex, optIndex)}
                       disabled={showResults}
-                      className={`w-full text-left p-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${optStyle} ${theme.textMain} ${!showResults ? 'cursor-pointer' : 'cursor-default'}`}
+                      className={`w-full text-left p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${optStyle} ${!showResults ? 'cursor-pointer' : 'cursor-default'}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold border ${isSelected ? 'border-amber-500 bg-amber-500 text-white' : `${theme.borderCard} ${theme.textMuted}`}`}>
+                        <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black shrink-0 ${badgeStyle}`}>
                           {String.fromCharCode(65 + optIndex)}
                         </span>
-                        {opt}
+                        <span className="font-bold leading-snug">{opt}</span>
                       </div>
-                      {showResults && isCorrect && <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />}
-                      {showResults && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-rose-500 shrink-0" />}
+                      {showResults && isCorrect && <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />}
+                      {showResults && isSelected && !isCorrect && <XCircle className="h-4 w-4 text-rose-600 shrink-0" />}
                     </button>
                   );
                 })}
@@ -189,8 +200,9 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`p-6 rounded-xl border ${theme.borderCard} bg-slate-50 dark:bg-slate-800/40 text-center`}
+              style={{ contentVisibility: 'auto' }}
             >
-              <h4 className={`text-xl font-black ${theme.textHeading} mb-2`}>
+              <h4 className={`text-xl font-bold ${theme.textHeading} mb-2`}>
                 {lang === "bn" ? "আপনার স্কোর" : "Your Score"}: {calculateScore()} / {questions.length}
               </h4>
               <p className={`text-sm ${theme.textMuted} mb-4`}>
@@ -200,7 +212,7 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
               </p>
               <button
                 onClick={() => fetchQuestions(selectedExam)}
-                className={`px-6 py-2 rounded-lg font-bold border ${theme.borderCard} hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer ${theme.textMain}`}
+                className={`px-6 py-2 rounded-lg font-bold border ${theme.borderCard} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${theme.textMain}`}
               >
                 {lang === "bn" ? "নতুন প্রশ্ন প্র্যাকটিস করুন" : "Practice New Questions"}
               </button>

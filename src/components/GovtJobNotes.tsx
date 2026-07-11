@@ -621,16 +621,16 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
     const lines = content.split('\n');
     return lines.map((line, idx) => {
       if (line.startsWith('### ')) {
-        return <h3 key={idx} className="text-base font-bold text-slate-800 dark:text-slate-100 mt-4 mb-2">{line.replace('### ', '')}</h3>;
+        return <h3 key={idx} className={`text-base font-bold ${theme.textHeading} mt-4 mb-2`}>{line.replace('### ', '')}</h3>;
       }
       if (line.startsWith('## ')) {
-        return <h2 key={idx} className="text-lg font-extrabold text-slate-950 dark:text-slate-50 mt-5 mb-3">{line.replace('## ', '')}</h2>;
+        return <h2 key={idx} className={`text-lg font-extrabold ${theme.textHeading} mt-5 mb-3`}>{line.replace('## ', '')}</h2>;
       }
       if (line.startsWith('# ')) {
-        return <h1 key={idx} className="text-xl font-black text-slate-950 dark:text-slate-50 mt-6 mb-4">{line.replace('# ', '')}</h1>;
+        return <h1 key={idx} className={`text-xl font-black ${theme.textHeading} mt-6 mb-4`}>{line.replace('# ', '')}</h1>;
       }
       if (line.startsWith('* ') || line.startsWith('- ')) {
-        return <li key={idx} className="ml-5 list-disc text-sm text-slate-700 dark:text-slate-300 my-1">{line.substring(2)}</li>;
+        return <li key={idx} className={`ml-5 list-disc text-sm ${theme.textMain} my-1`}>{line.substring(2)}</li>;
       }
       if (line.trim() === '') {
         return <div key={idx} className="h-2" />;
@@ -638,12 +638,12 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
       const parts = line.split('**');
       if (parts.length > 1) {
         return (
-          <p key={idx} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed my-2">
-            {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className="font-bold text-slate-900 dark:text-white">{part}</strong> : part)}
+          <p key={idx} className={`text-sm ${theme.textMain} leading-relaxed my-2`}>
+            {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className={`font-bold ${theme.textHeading}`}>{part}</strong> : part)}
           </p>
         );
       }
-      return <p key={idx} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed my-2">{line}</p>;
+      return <p key={idx} className={`text-sm ${theme.textMain} leading-relaxed my-2`}>{line}</p>;
     });
   };
 
@@ -970,7 +970,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                       )}
                     </div>
                     
-                    <div className={`prose prose-sm max-w-none ${theme.isDark ? 'prose-invert text-slate-300' : 'text-slate-700'} whitespace-pre-wrap`}>
+                    <div className={`prose prose-sm max-w-none ${theme.isDark ? 'prose-invert text-slate-300' : theme.textMain} whitespace-pre-wrap`}>
                       {note.content}
                     </div>
                   </div>
@@ -1124,11 +1124,11 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                     <h1 className="text-3xl md:text-4xl font-black text-slate-900 font-sans tracking-tight leading-snug">
                       {selectedPdf.title}
                     </h1>
-                    <p className="text-base text-slate-600 max-w-xl mx-auto italic">
+                    <p className="text-base text-black max-w-xl mx-auto italic font-semibold">
                       "{selectedPdf.introduction}"
                     </p>
                     <div className="pt-8">
-                      <span className="font-sans text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                      <span className="font-sans text-xs font-extrabold text-black uppercase tracking-widest block mb-1">
                         SUBJECT CATEGORY
                       </span>
                       <span className="font-sans text-sm font-extrabold bg-slate-100 px-4 py-1.5 rounded-full text-slate-800">
@@ -1241,7 +1241,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                                       ? (isBengali ? "সঠিক উত্তর!" : "Correct Answer!") 
                                       : (isBengali ? `ভুল উত্তর! সঠিক উত্তর: ${mcq.correctAnswer}` : `Incorrect! Correct: ${mcq.correctAnswer}`)}
                                   </p>
-                                  <p className="text-slate-600">{mcq.explanation}</p>
+                                  <p className="text-black font-semibold">{mcq.explanation}</p>
                                 </div>
                               </div>
                             </motion.div>
