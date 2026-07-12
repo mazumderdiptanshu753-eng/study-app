@@ -73,5 +73,75 @@
         "subject": "Reasoning"
       }
     ]
+  },
+  "quiz-2026-07-12": {
+    "question": "With reference to the Finance Commission of India, which of the following statements is correct?",
+    "options": [
+      "Its recommendations are legally binding on the Union Government.",
+      "It is established as a non-constitutional advisory body under Article 280.",
+      "It consists of a Chairman and four other members appointed by the President.",
+      "The qualifications of its members are explicitly detailed within the Constitution of India."
+    ],
+    "correctAnswer": "It consists of a Chairman and four other members appointed by the President.",
+    "explanation": "The Finance Commission is a constitutional body established under Article 280 of the Constitution. It consists of a Chairman and four other members appointed by the President of India. Its recommendations are advisory in nature and not legally binding. The Constitution authorizes the Parliament to determine the qualifications of the members through law, rather than specifying them directly in the Constitution."
+  },
+  "ja-2026-07-12": {
+    "alerts": [
+      {
+        "title": "SSC CGL 2026 Notification Released",
+        "organization": "Staff Selection Commission (SSC)",
+        "type": "New Job",
+        "lastDateOrStatus": "Last Date: 24-07-2026",
+        "link": "https://ssc.nic.in"
+      },
+      {
+        "title": "Railway ALP Admit Card 2026",
+        "organization": "Railway Recruitment Board (RRB)",
+        "type": "Admit Card",
+        "lastDateOrStatus": "Available Now",
+        "link": "https://indianrailways.gov.in"
+      },
+      {
+        "title": "UPSC Civil Services Prelims Result 2026",
+        "organization": "Union Public Service Commission (UPSC)",
+        "type": "Result",
+        "lastDateOrStatus": "Declared",
+        "link": "https://upsc.gov.in"
+      }
+    ]
+  },
+  "ca-2026-07-12": {
+    "news": [
+      {
+        "headline": "India's space agency successfully launches new communication satellite",
+        "description": "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
+        "category": "Science & Technology",
+        "date": "2026-07-12"
+      },
+      {
+        "headline": "Government announces new economic package for MSMEs",
+        "description": "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
+        "category": "Economy",
+        "date": "2026-07-12"
+      },
+      {
+        "headline": "International summit on climate change begins in New Delhi",
+        "description": "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
+        "category": "Environment",
+        "date": "2026-07-12"
+      },
+      {
+        "headline": "Prominent sportsperson wins gold at international championship",
+        "description": "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
+        "category": "Sports",
+        "date": "2026-07-12"
+      },
+      {
+        "headline": "Parliament passes new bill on data privacy",
+        "description": "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
+        "category": "Polity",
+        "date": "2026-07-12"
+      }
+    ]
   }
 }

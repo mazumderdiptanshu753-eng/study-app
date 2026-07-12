@@ -110,14 +110,14 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
 
           return (
             <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-900 shadow-3xs`}>
-              <p className={`font-semibold ${theme.textHeading} text-xs sm:text-sm mb-4 leading-relaxed`}>
+              <p className={`font-semibold ${theme.textHeading} dark:text-white text-xs sm:text-sm mb-4 leading-relaxed`}>
                 <span className="text-amber-500 mr-1.5">{qIndex + 1}.</span> {q.question}
               </p>
               
               <div className="space-y-2.5">
                 {q.options.map((opt, optIndex) => {
                   const isSelected = selectedAnswers[qIndex] === optIndex;
-                  let buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} text-xs font-semibold transition-all cursor-pointer bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 text-black dark:text-slate-300`;
+                  let buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} text-xs font-semibold transition-all cursor-pointer bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 ${theme.textHeading} dark:text-white`;
                   
                   if (showResults) {
                     if (optIndex === q.correctOptionIndex) {
@@ -125,7 +125,7 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
                     } else if (selectedAnswers[qIndex] === optIndex) {
                       buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-900 dark:text-rose-300 font-semibold`;
                     } else {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 ${theme.textMuted} dark:text-slate-400 font-medium`;
                     }
                   } else if (isSelected) {
                     buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 font-bold shadow-3xs`;
@@ -154,7 +154,7 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
                           <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black shrink-0 ${badgeStyle}`}>
                             {String.fromCharCode(65 + optIndex)}
                           </span>
-                          <span className="font-medium leading-snug">{opt}</span>
+                          <span className={`font-medium leading-snug ${theme.textHeading} dark:text-white`}>{opt}</span>
                         </div>
                         {showResults && optIndex === q.correctOptionIndex && (
                           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />

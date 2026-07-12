@@ -37,6 +37,17 @@ import CommunityForum from "./components/CommunityForum";
 import LiveClasses from "./components/LiveClasses";
 import GovtJobNotes from "./components/GovtJobNotes";
 import AIStudyAssistant from "./components/AIStudyAssistant";
+
+const LazyDashboard = Dashboard;
+const LazyNotesManager = NotesManager;
+const LazySupportChat = SupportChat;
+const LazyVideoPortal = VideoPortal;
+const LazyAdminPanel = AdminPanel;
+const LazyGeneralKnowledgePage = GeneralKnowledgePage;
+const LazyCommunityForum = CommunityForum;
+const LazyLiveClasses = LiveClasses;
+const LazyGovtJobNotes = GovtJobNotes;
+const LazyAIStudyAssistant = AIStudyAssistant;
 import NotificationBell from "./components/NotificationBell";
 import ProfileSettings from "./components/ProfileSettings";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
@@ -246,6 +257,7 @@ export default function App() {
 
   // Load users from central backend API
   const fetchSettings = async () => {
+    console.log("Fetching settings...");
     try {
       const res = await fetch("/api/settings");
       if (res.ok) {
@@ -266,8 +278,12 @@ export default function App() {
              } catch(e) {}
           }
         }
+      } else {
+        console.error("Failed to fetch settings, status:", res.status);
       }
-    } catch(e) {}
+    } catch (e) {
+      console.error("Failed to fetch settings (exception):", e);
+    }
   };
 
   const fetchUsers = async () => {
@@ -974,7 +990,7 @@ export default function App() {
             </aside>
           )}
 
-          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-full overflow-y-auto scroll-smooth">
+          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-full overflow-y-auto scroll-smooth overscroll-y-contain">
             {/* Mobile-only compact floating header */}
             {profile && (
               <header className={`md:hidden flex items-center justify-between px-4 h-16 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-3xs`}>
@@ -1061,8 +1077,9 @@ export default function App() {
                   <span>{lang === "bn" ? "ড্যাশবোর্ড-এ ফিরুন" : "Back to Dashboard"}</span>
                 </motion.button>
               )}
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[50vh]"><div className={`h-12 w-12 rounded-full border-4 ${theme.borderCard} border-t-current animate-spin ${theme.textHeading}`} /></div>}>
               {currentTab === "dashboard" && (
-                <Dashboard 
+                <LazyDashboard 
                   stats={stats} 
                   notes={notes}
                   onNavigate={(tab) => {
@@ -1079,7 +1096,7 @@ export default function App() {
                 />
               )}
               {currentTab === "notes" && (
-                <NotesManager 
+                <LazyNotesManager 
                   notes={notes}
                   selectedNote={selectedNote}
                   onSelectNote={setSelectedNote}
@@ -1100,13 +1117,13 @@ export default function App() {
                 />
               )}
               {currentTab === "chat" && (
-                <SupportChat lang={lang} theme={theme} profile={profile} />
+                <LazySupportChat lang={lang} theme={theme} profile={profile} />
               )}
               {currentTab === "aiAssistant" && (
-                <AIStudyAssistant lang={lang} theme={theme} />
+                <LazyAIStudyAssistant lang={lang} theme={theme} />
               )}
               {currentTab === "videos" && (
-                <VideoPortal 
+                <LazyVideoPortal 
                   lang={lang} 
                   theme={theme} 
                   profile={profile} 
@@ -1126,7 +1143,7 @@ export default function App() {
                 />
               )}
               {currentTab === "liveClasses" && (
-                <LiveClasses
+                <LazyLiveClasses
                   lang={lang}
                   theme={theme}
                   profile={profile}
@@ -1134,7 +1151,7 @@ export default function App() {
                 />
               )}
               {currentTab === "forum" && (
-                <CommunityForum
+                <LazyCommunityForum
                   lang={lang}
                   theme={theme}
                   profile={profile}
@@ -1142,14 +1159,14 @@ export default function App() {
                 />
               )}
               {currentTab === "gk" && (
-                <GeneralKnowledgePage
+                <LazyGeneralKnowledgePage
                   lang={lang}
                   theme={theme}
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
               {currentTab === "govtJobNotes" && (
-                <GovtJobNotes
+                <LazyGovtJobNotes
                   lang={lang}
                   theme={theme}
                   profile={profile}
@@ -1157,6 +1174,7 @@ export default function App() {
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
+              </React.Suspense>
               {currentTab === "profile" && profile && (
                 <ProfileSettings
                   profile={profile}

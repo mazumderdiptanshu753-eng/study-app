@@ -19,6 +19,16 @@
       "avatarUrl": "🎓",
       "role": "Student",
       "isSuspended": false
+    },
+    {
+      "email": "mazumderdiptanshu753@gmail.com",
+      "fullName": "Dip",
+      "grade": "High School",
+      "preferredSubject": "Mathematics",
+      "registeredAt": "2026-07-12T14:57:29.718Z",
+      "avatarUrl": "👑",
+      "role": "Admin",
+      "isSuspended": false
     }
   ],
   "chatMessages": [
@@ -34,6 +44,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "Dip",
+      "action": "Login",
+      "timestamp": "2026-07-12T14:57:29.718Z",
+      "id": "log-1783868249613-s3ewt3plo"
+    },
     {
       "userEmail": "rajudas@gmail.com",
       "userName": "fdf",

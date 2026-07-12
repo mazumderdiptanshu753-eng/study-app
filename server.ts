@@ -166,6 +166,13 @@ try {
   console.error("Error reading ai-cache.json:", e);
 }
 
+// Fix for poisoned cache
+const todayKey = "ca-" + new Date().toISOString().split("T")[0];
+if (aiCacheData[todayKey] && !aiCacheData[todayKey].news) {
+  delete aiCacheData[todayKey];
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(aiCacheData, null, 2));
+}
+
 const aiCache = {
   has: (key) => aiCacheData.hasOwnProperty(key),
   get: (key) => aiCacheData[key],
@@ -306,7 +313,14 @@ function getGeminiClient() {
           return result;
         } catch (error: any) {
           lastError = error;
-          const errorMessage = error?.message || error;
+          const errorMessage = error?.message || "";
+          
+          // Check for quota exhaustion
+          if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+            console.error(`[Gemini Interceptor] Quota exhausted (429). Aborting fallbacks.`);
+            break;
+          }
+
           console.warn(`[Gemini Interceptor] Model ${model} failed: ${errorMessage}. Trying next fallback...`);
         }
       }
@@ -360,6 +374,73 @@ function getGeminiClient() {
                 type: "Result",
                 lastDateOrStatus: "Declared",
                 link: "https://upsc.gov.in"
+              }
+            ]
+          };
+        } else if (contentsText.includes("current affairs") || contentsText.includes("CurrentAffairs-") || contentsText.includes("current-affairs")) {
+          const currentDate = new Date().toISOString().split("T")[0];
+          resObj = {
+            news: isBengali ? [
+              {
+                headline: "ভারতের মহাকাশ গবেষণা সংস্থা সফলভাবে নতুন যোগাযোগ উপগ্রহ উৎক্ষেপণ করেছে",
+                description: "ইসরো (ISRO) সফলভাবে একটি নতুন উন্নত যোগাযোগ উপগ্রহ ভূ-স্থির কক্ষপথে স্থাপন করেছে, যা দেশের টেলিযোগাযোগ অবকাঠামোকে আরও শক্তিশালী করবে।",
+                category: "Science & Technology",
+                date: currentDate
+              },
+              {
+                headline: "এমএসএমই (MSME) খাতের জন্য সরকারের নতুন অর্থনৈতিক প্যাকেজ ঘোষণা",
+                description: "ক্ষুদ্র ও মাঝারি শিল্পকে পুনরুজ্জীবিত করার লক্ষ্যে অর্থ মন্ত্রক একটি ব্যাপক উদ্দীপনামূলক প্যাকেজ চালু করেছে।",
+                category: "Economy",
+                date: currentDate
+              },
+              {
+                headline: "নয়াদিল্লিতে জলবায়ু পরিবর্তন বিষয়ক আন্তর্জাতিক সম্মেলন শুরু",
+                description: "বিশ্বব্যাপী কার্বন নির্গমন হ্রাসের কার্যকর কৌশল নিয়ে আলোচনার জন্য ৫০টিরও বেশি দেশের প্রতিনিধিরা সমবেত হয়েছেন।",
+                category: "Environment",
+                date: currentDate
+              },
+              {
+                headline: "আন্তর্জাতিক চ্যাম্পিয়নশিপে ভারতীয় ক্রীড়াবিদের সোনা জয়",
+                description: "বিশ্ব অ্যাথলেটিক্স চ্যাম্পিয়নশিপে ১০০ মিটার স্প্রিন্টে দেশের জন্য গৌরব বয়ে এনে সোনা জিতেছেন ভারতীয় অ্যাথলেট।",
+                category: "Sports",
+                date: currentDate
+              },
+              {
+                headline: "সংসদে ডেটা প্রাইভেসি সংক্রান্ত নতুন বিল পাস",
+                description: "ব্যবহারকারীর ডেটা সুরক্ষিত করতে এবং প্রযুক্তি সংস্থাগুলির জন্য নির্দেশিকা প্রতিষ্ঠা করতে সংসদে একটি ঐতিহাসিক বিল পাস হয়েছে।",
+                category: "Polity",
+                date: currentDate
+              }
+            ] : [
+              {
+                headline: "India's space agency successfully launches new communication satellite",
+                description: "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
+                category: "Science & Technology",
+                date: currentDate
+              },
+              {
+                headline: "Government announces new economic package for MSMEs",
+                description: "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
+                category: "Economy",
+                date: currentDate
+              },
+              {
+                headline: "International summit on climate change begins in New Delhi",
+                description: "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
+                category: "Environment",
+                date: currentDate
+              },
+              {
+                headline: "Prominent sportsperson wins gold at international championship",
+                description: "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
+                category: "Sports",
+                date: currentDate
+              },
+              {
+                headline: "Parliament passes new bill on data privacy",
+                description: "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
+                category: "Polity",
+                date: currentDate
               }
             ]
           };
@@ -1154,8 +1235,12 @@ Do not output any extra text, only the valid JSON block.`;
       },
     });
     const data = parseJsonFromText(response.text) || { news: [] };
-    if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
-    res.json(data);
+    if (data.news && data.news.length > 0) {
+      if (typeof cacheKey !== 'undefined') aiCache.set(cacheKey, data);
+      res.json(data);
+    } else {
+      throw new Error("Generated content does not contain news array.");
+    }
   } catch (error) {
     console.warn("Using fallback for current affairs due to API limit.");
     const fallbackData = {

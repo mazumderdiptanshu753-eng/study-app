@@ -29,7 +29,11 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
 
   // Fetch notifications from backend
   const fetchNotifications = async () => {
-    if (!userEmail) return;
+    if (!userEmail) {
+      console.log("Notification fetch skipped: No userEmail");
+      return;
+    }
+    console.log("Fetching notifications for:", userEmail);
     try {
       const res = await fetch(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}`, {
         headers: { 'Accept': 'application/json' }

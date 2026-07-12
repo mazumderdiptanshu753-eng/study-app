@@ -948,7 +948,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className={`text-lg font-bold ${theme.textHeading} mb-2`}>{note.title}</h3>
+                        <h3 className={`text-lg font-bold ${theme.textHeading} dark:text-white mb-2`}>{note.title}</h3>
                         <div className="flex items-center gap-3">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest ${theme.isDark ? 'bg-slate-800 text-teal-400' : 'bg-teal-50 text-teal-700'}`}>
                             <User className="h-3 w-3" />
@@ -970,7 +970,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                       )}
                     </div>
                     
-                    <div className={`prose prose-sm max-w-none ${theme.isDark ? 'prose-invert text-slate-300' : theme.textMain} whitespace-pre-wrap`}>
+                    <div className={`prose prose-sm max-w-none ${theme.isDark ? 'prose-invert text-slate-300' : theme.textMain} dark:text-slate-300 whitespace-pre-wrap`}>
                       {note.content}
                     </div>
                   </div>
@@ -1003,12 +1003,12 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                                 {note.comments.map(comment => (
                                   <div key={comment.id} className={`p-3 rounded-xl ${theme.isDark ? 'bg-slate-800' : 'bg-white'} border ${theme.borderCard}`}>
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className={`text-xs font-bold ${theme.textHeading}`}>{comment.authorName}</span>
+                                      <span className={`text-xs font-bold ${theme.textHeading} dark:text-white`}>{comment.authorName}</span>
                                       <span className={`text-[10px] ${theme.textMuted}`}>
                                         {new Date(comment.timestamp).toLocaleDateString(isBengali ? 'bn-BD' : 'en-US')}
                                       </span>
                                     </div>
-                                    <p className={`text-sm ${theme.textMain}`}>{comment.text}</p>
+                                    <p className={`text-sm ${theme.textMain} dark:text-slate-300`}>{comment.text}</p>
                                   </div>
                                 ))}
                               </div>
