@@ -2677,14 +2677,12 @@ app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
-  try {
-    await initDatabase();
-  } catch (err) {
-    console.error("Database initialization failed:", err);
-  }
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running at http://0.0.0.0:${PORT}`);
+    // Initialize database asynchronously so startup is fast and non-blocking
+    initDatabase().catch(err => {
+      console.error("Database initialization failed asynchronously:", err);
+    });
   });
 }
 __name(startServer, "startServer");

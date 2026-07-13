@@ -43,10 +43,10 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
         setNotifications(data);
       } else {
         const errorText = await res.text();
-        console.error("Failed to fetch notifications, status:", res.status, "body:", errorText);
+        console.warn("Failed to fetch notifications, status:", res.status, "body:", errorText);
       }
     } catch (e) {
-      console.error("Failed to fetch notifications (exception):", e);
+      console.warn("Failed to fetch notifications (exception):", e);
     }
   };
 
@@ -78,7 +78,7 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       }
     } catch (e) {
-      console.error("Failed to mark notification as read:", e);
+      console.warn("Failed to mark notification as read:", e);
     }
   };
 
@@ -94,7 +94,7 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       }
     } catch (e) {
-      console.error("Failed to mark all as read:", e);
+      console.warn("Failed to mark all as read:", e);
     }
   };
 
@@ -107,7 +107,7 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
         setNotifications(prev => prev.filter(n => n.id !== id));
       }
     } catch (e) {
-      console.error("Failed to delete notification:", e);
+      console.warn("Failed to delete notification:", e);
     }
   };
 

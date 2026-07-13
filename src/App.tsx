@@ -21,7 +21,8 @@ import {
   ArrowLeft,
   Users,
   Award,
-  ChevronUp
+  ChevronUp,
+  BookMarked
 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
@@ -37,6 +38,7 @@ import CommunityForum from "./components/CommunityForum";
 import LiveClasses from "./components/LiveClasses";
 import GovtJobNotes from "./components/GovtJobNotes";
 import AIStudyAssistant from "./components/AIStudyAssistant";
+import SchoolSection from "./components/SchoolSection";
 
 const LazyDashboard = Dashboard;
 const LazyNotesManager = NotesManager;
@@ -114,7 +116,7 @@ export default function App() {
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(() => {
     return localStorage.getItem("has_started_welcome") === "true";
   });
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile">(() => {
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school">(() => {
     return (localStorage.getItem("current_tab") as any) || "dashboard";
   });
   const [isPageLoading, setIsPageLoading] = useState(false);
@@ -126,7 +128,7 @@ export default function App() {
 
   // App Update states
   const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
-    return localStorage.getItem("client_app_version") || "2.6.2";
+    return localStorage.getItem("client_app_version") || "2.6.5";
   });
   const [serverVersionInfo, setServerVersionInfo] = useState<{
     latestVersion: string;
@@ -197,7 +199,7 @@ export default function App() {
         clearInterval(interval);
         
         // Persist the updated version code in localStorage
-        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.2";
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.5";
         localStorage.setItem("client_app_version", versionToSave);
         localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
@@ -215,7 +217,7 @@ export default function App() {
               type: "info",
               userEmail: profile.email
             })
-          }).catch(err => console.error("Failed to post update completed notification:", err));
+          }).catch(err => console.warn("Failed to post update completed notification:", err));
         }
         
         setTimeout(() => {
@@ -361,25 +363,48 @@ export default function App() {
     return () => clearTimeout(splashTimer);
   }, []);
 
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      if (window.innerWidth < 768) {
+        setShowScrollTop(window.scrollY > 200);
+      }
+    };
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, []);
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setShowScrollTop(e.currentTarget.scrollTop > 200);
+    if (window.innerWidth >= 768) {
+      setShowScrollTop(e.currentTarget.scrollTop > 200);
+    }
   };
 
   const scrollToTop = () => {
-    mainScrollRef.current?.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    if (window.innerWidth < 768) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    } else {
+      mainScrollRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
   };
 
-  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile") => {
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school") => {
     setIsPageLoading(true);
     setTimeout(() => {
       _setCurrentTab(tab);
       localStorage.setItem("current_tab", tab);
       setIsPageLoading(false);
       // Automatically scroll to the top of our main scroll container on tab switches
-      mainScrollRef.current?.scrollTo({ top: 0, behavior: "instant" as any });
+      if (window.innerWidth < 768) {
+        window.scrollTo({ top: 0, behavior: "instant" as any });
+      } else {
+        mainScrollRef.current?.scrollTo({ top: 0, behavior: "instant" as any });
+      }
     }, 150);
   };
 
@@ -828,7 +853,7 @@ export default function App() {
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className={`w-full flex ${profile ? "h-[100dvh] overflow-hidden flex-row" : "min-h-screen flex-col overflow-y-auto"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`w-full flex ${profile ? "md:h-screen md:overflow-hidden flex-col md:flex-row min-h-screen" : "min-h-screen flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Unbelievably Elegant Desktop Left Sidebar Workspace Navigation */}
           {profile && (
@@ -895,6 +920,7 @@ export default function App() {
               <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto pr-1">
                 {[
                   { id: "dashboard", labelEn: "Dashboard", labelBn: "ড্যাশবোর্ড", icon: GraduationCap },
+                  { id: "school", labelEn: "School Academy", labelBn: "স্কুল একাডেমি", icon: BookMarked },
                   { id: "notes", labelEn: "Study Notes", labelBn: "অধ্যয়ন নোটস", icon: BookOpen },
                   { id: "chat", labelEn: "Support Chat", labelBn: "শিক্ষক চ্যাট", icon: MessageSquare },
                   { id: "liveClasses", labelEn: "Live Lectures", labelBn: "লাইভ ক্লাস", icon: Radio },
@@ -990,7 +1016,7 @@ export default function App() {
             </aside>
           )}
 
-          <div ref={mainScrollRef} onScroll={handleScroll} className="flex-1 flex flex-col min-w-0 relative h-full overflow-y-auto scroll-smooth overscroll-y-contain">
+          <div ref={mainScrollRef} onScroll={handleScroll} className={`flex-1 flex flex-col min-w-0 relative ${profile ? "md:h-full md:overflow-y-auto" : ""} scroll-smooth overscroll-y-contain`}>
             {/* Mobile-only compact floating header */}
             {profile && (
               <header className={`md:hidden flex items-center justify-between px-4 h-16 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-3xs`}>
@@ -1158,6 +1184,16 @@ export default function App() {
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
+              {currentTab === "school" && (
+                <SchoolSection
+                  lang={lang}
+                  theme={theme}
+                  onNavigate={(tab) => {
+                    setCurrentTab(tab as any);
+                    setSelectedNote(null);
+                  }}
+                />
+              )}
               {currentTab === "gk" && (
                 <LazyGeneralKnowledgePage
                   lang={lang}
@@ -1174,7 +1210,6 @@ export default function App() {
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
-              </React.Suspense>
               {currentTab === "profile" && profile && (
                 <ProfileSettings
                   profile={profile}
@@ -1185,6 +1220,7 @@ export default function App() {
                   lang={lang}
                 />
               )}
+              </React.Suspense>
               </>
               )}
             </motion.div>
@@ -1202,87 +1238,89 @@ export default function App() {
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
         <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
-          <div className={`flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl pointer-events-auto ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
+          <div className={`flex justify-around items-center w-full max-w-lg mx-auto h-16 px-1 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl pointer-events-auto ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
           <button
-            onClick={() => setCurrentTab("dashboard")}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+            onClick={() => {
+              setCurrentTab("dashboard");
+              setSelectedNote(null);
+            }}
+            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
               currentTab === "dashboard"
                 ? `${theme.primaryText} font-bold`
                 : `${theme.textMuted} font-medium`
             }`}
           >
             <GraduationCap className="h-5 w-5 mb-1" style={{ color: currentTab === "dashboard" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
+            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
               {lang === "bn" ? "ড্যাশবোর্ড" : "Dashboard"}
             </span>
           </button>
- 
+
           <button
             onClick={() => {
               setCurrentTab("notes");
               setSelectedNote(null);
             }}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
               currentTab === "notes"
                 ? `${theme.primaryText} font-bold`
                 : `${theme.textMuted} font-medium`
             }`}
           >
             <BookOpen className="h-5 w-5 mb-1" style={{ color: currentTab === "notes" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
+            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
               {lang === "bn" ? "নোটস" : "Notes"}
             </span>
           </button>
- 
+
           <button
             onClick={() => {
               setCurrentTab("chat");
               setSelectedNote(null);
             }}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
               currentTab === "chat"
                 ? `${theme.primaryText} font-bold`
                 : `${theme.textMuted} font-medium`
             }`}
           >
             <MessageSquare className="h-5 w-5 mb-1" style={{ color: currentTab === "chat" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
+            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
               {lang === "bn" ? "সহায়তা" : "Support"}
             </span>
           </button>
- 
+
           <button
             onClick={() => {
               setCurrentTab("liveClasses");
               setSelectedNote(null);
             }}
-            className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
               currentTab === "liveClasses"
                 ? `${theme.primaryText} font-bold`
                 : `${theme.textMuted} font-medium`
             }`}
           >
             <Radio className="h-5 w-5 mb-1" style={{ color: currentTab === "liveClasses" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[10px] tracking-tight">
+            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
               {lang === "bn" ? "লাইভ ক্লাস" : "Live"}
             </span>
           </button>
 
-          
           {profile.role === "Admin" && (
             <button
               onClick={() => {
                 setCurrentTab("admin");
                 setSelectedNote(null);
               }}
-              className={`flex flex-col items-center justify-center w-20 h-full transition-all android-ripple ${
+              className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
                 currentTab === "admin"
                   ? "text-amber-500 font-bold"
                   : `${theme.textMuted} font-medium`
               }`}
             >
               <Shield className="h-5 w-5 mb-1" style={{ color: currentTab === "admin" ? "#d97706" : "#94a3b8" }} />
-              <span className="text-[10px] tracking-tight">
+              <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
                 {lang === "bn" ? "অ্যাডমিন" : "Admin"}
               </span>
             </button>

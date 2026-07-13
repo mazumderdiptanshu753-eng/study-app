@@ -16,7 +16,8 @@ import {
   Radio,
   Quote,
   RefreshCw,
-  Zap
+  Zap,
+  GraduationCap
 } from "lucide-react";
 import { StudyNote, UserStats } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
@@ -32,7 +33,7 @@ import DailyQuiz from "./DailyQuiz";
 interface DashboardProps {
   stats: UserStats;
   notes: StudyNote[];
-  onNavigate: (tab: "notes" | "chat" | "videos" | "gk" | "forum" | "liveClasses" | "govtJobNotes") => void;
+  onNavigate: (tab: "notes" | "chat" | "videos" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "school") => void;
   onSelectNote: (note: StudyNote) => void;
   lang: Language;
   theme: ThemeConfig;
@@ -312,6 +313,53 @@ export default function Dashboard({
       {/* Current Affairs Ticker */}
       <CurrentAffairsTicker theme={theme} lang={lang} />
       <DailyQuiz theme={theme} lang={lang} />
+
+      {/* School Academy (Class 9-12) Section with Glowing Cards */}
+      <motion.div variants={itemVariants} className="w-full mb-8">
+        <div className="flex items-center justify-between mb-5 px-2">
+          <h2 className={`text-lg md:text-xl font-extrabold ${theme.textHeading} tracking-tight uppercase flex items-center gap-2 select-none`}>
+            <GraduationCap className={`h-6 w-6 text-emerald-500`} />
+            {lang === "bn" ? "স্কুল একাডেমি ও বোর্ড পরীক্ষা প্রস্তুতি (৯ম - ১২শ শ্রেণী)" : "School Academy & Board Prep (Class 9-12)"}
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { id: "9", name_bn: "৯ম শ্রেণী", name_en: "Class 9", icon: "🎒", color: "from-blue-500/10 to-blue-500/20 text-blue-600 border-blue-500/30" },
+            { id: "10", name_bn: "১০ম শ্রেণী", name_en: "Class 10 (মাধ্যমিক)", name_en_sub: "Madhyamik", icon: "🏫", color: "from-emerald-500/10 to-emerald-500/20 text-emerald-600 border-emerald-500/30" },
+            { id: "11", name_bn: "১১শ শ্রেণী", name_en: "Class 11", icon: "📚", color: "from-purple-500/10 to-purple-500/20 text-purple-600 border-purple-500/30" },
+            { id: "12", name_bn: "১২শ শ্রেণী", name_en: "Class 12 (উচ্চ মাধ্যমিক)", name_en_sub: "Higher Secondary", icon: "🎓", color: "from-amber-500/10 to-amber-500/20 text-amber-600 border-amber-500/30" }
+          ].map((cls) => (
+            <motion.button
+              key={cls.id}
+              onClick={() => {
+                onNavigate("school");
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent("setSchoolClass", { detail: cls.id }));
+                }, 100);
+              }}
+              whileHover={{ y: -4, scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-xs hover:shadow-lg ${getGlowClass()} ${getGlowShadow()} cursor-pointer relative group overflow-hidden`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cls.color} flex items-center justify-center text-3xl shadow-xs transform group-hover:scale-110 transition-transform`}>
+                {cls.icon}
+              </div>
+              <div className="text-center">
+                <span className={`text-sm font-black ${theme.textHeading} block`}>
+                  {lang === "bn" ? cls.name_bn : cls.name_en}
+                </span>
+                {cls.name_en_sub && (
+                  <span className={`text-[9px] font-bold ${theme.textMuted} block mt-0.5 uppercase tracking-wider`}>
+                    {lang === "bn" ? (cls.id === "10" ? "মাধ্যমিক প্রস্তুতি" : "উচ্চ মাধ্যমিক") : cls.name_en_sub}
+                  </span>
+                )}
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Govt Job Subjects Section with Glowing Cards & Enhanced Graphics */}
       <motion.div variants={itemVariants} className="w-full mb-8">
