@@ -359,7 +359,7 @@ export default function App() {
   useEffect(() => {
     const splashTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 4000);
+    }, 2000);
     return () => clearTimeout(splashTimer);
   }, []);
 
@@ -394,18 +394,14 @@ export default function App() {
   };
 
   const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school") => {
-    setIsPageLoading(true);
-    setTimeout(() => {
-      _setCurrentTab(tab);
-      localStorage.setItem("current_tab", tab);
-      setIsPageLoading(false);
-      // Automatically scroll to the top of our main scroll container on tab switches
-      if (window.innerWidth < 768) {
-        window.scrollTo({ top: 0, behavior: "instant" as any });
-      } else {
-        mainScrollRef.current?.scrollTo({ top: 0, behavior: "instant" as any });
-      }
-    }, 150);
+    _setCurrentTab(tab);
+    localStorage.setItem("current_tab", tab);
+    // Automatically scroll to the top of our main scroll container on tab switches
+    if (window.innerWidth < 768) {
+      window.scrollTo({ top: 0, behavior: "instant" as any });
+    } else {
+      mainScrollRef.current?.scrollTo({ top: 0, behavior: "instant" as any });
+    }
   };
 
   const handleUpdateProfile = async (updated: StudentProfile) => {
@@ -850,9 +846,9 @@ export default function App() {
       ) : (
         <motion.div
           key="main-app"
-          initial={{ opacity: 0, scale: 1.05 }}
+          initial={{ opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className={`w-full flex ${profile ? "md:h-screen md:overflow-hidden flex-col md:flex-row min-h-screen" : "min-h-screen flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
           {/* Unbelievably Elegant Desktop Left Sidebar Workspace Navigation */}
@@ -1065,13 +1061,13 @@ export default function App() {
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
         ) : (
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={currentTab + (isPageLoading ? "-loading" : "")}
-              initial={{ opacity: 0, scale: 0.98, y: 5 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: -5 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              key={currentTab}
+              initial={{ opacity: 0, y: 15, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.985 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="w-full min-h-full flex flex-col"
             >
               {isPageLoading ? (

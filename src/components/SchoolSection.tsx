@@ -21,7 +21,10 @@ import {
   Zap,
   CheckCircle,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  Printer,
+  X,
+  ArrowLeft
 } from "lucide-react";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -970,6 +973,9 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
   // Notes state
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("math");
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
+  const [viewingPdfChapter, setViewingPdfChapter] = useState<ChapterNote | null>(null);
+  const [viewingPdfPYQ, setViewingPdfPYQ] = useState<PYQData | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
   
   // Board Prep state
   const [selectedPrepSubTab, setSelectedPrepSubTab] = useState<"pyqs" | "syllabus" | "suggestions">("pyqs");
@@ -1024,6 +1030,478 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
       : [...favourites, id];
     setFavourites(nextFavs);
     localStorage.setItem("fav_formulas", JSON.stringify(nextFavs));
+  };
+
+  const downloadChapterPdfHtml = (chapter: ChapterNote) => {
+    if (!chapter) return;
+
+    const subjectName = SUBJECTS_DATA[selectedClass]?.find(s => s.id === selectedSubjectId);
+    const subName = lang === "bn" ? subjectName?.nameBn : subjectName?.nameEn;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+    <meta charset="UTF-8">
+    <title>${lang === "bn" ? chapter.chapterNameBn : chapter.chapterNameEn} - StudyHub Academy</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .page {
+            background-color: white;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border-radius: 24px;
+            padding: 50px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 5rem;
+            font-weight: 900;
+            color: rgba(16, 185, 129, 0.04);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 0;
+            user-select: none;
+        }
+        header {
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 24px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        .brand {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #059669;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 8px;
+        }
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 10px 0;
+            line-height: 1.2;
+        }
+        .meta {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .summary-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            border-radius: 0 16px 16px 0;
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 1;
+        }
+        .summary-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            color: #047857;
+            margin-bottom: 8px;
+        }
+        .summary-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #1e293b;
+            margin: 0;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+        .keypoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 40px;
+            padding: 0;
+            list-style: none;
+            position: relative;
+            z-index: 1;
+        }
+        .keypoint-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .keypoint-num {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #047857;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .keypoint-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #334155;
+            margin: 0;
+            font-weight: 500;
+        }
+        footer {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        .print-btn {
+            background-color: #0f172a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .print-btn:hover {
+            background-color: #1e293b;
+        }
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .page {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                border-radius: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="watermark">STUDY HUB ACADEMY</div>
+        <header>
+            <div class="brand">STUDY HUB ACADEMY • CLASS ${selectedClass}</div>
+            <h1>${lang === "bn" ? chapter.chapterNameBn : chapter.chapterNameEn}</h1>
+            <div class="meta">${subName} • ${lang === "bn" ? "অফলাইন স্টাডি গাইড" : "Official Offline Study Guide"}</div>
+        </header>
+
+        <div class="summary-box">
+            <div class="summary-title">${lang === "bn" ? "সংক্ষিপ্ত সারমর্ম (Summary)" : "Chapter Overview & Summary"}</div>
+            <p class="summary-text">${lang === "bn" ? chapter.summaryBn : chapter.summaryEn}</p>
+        </div>
+
+        <h2 class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            ${lang === "bn" ? "গুরুত্বপূর্ণ সংক্ষিপ্ত আলোচনা ও সূত্র" : "Important Key Concepts & Formulas"}
+        </h2>
+
+        <div class="keypoint-list">
+            ${(lang === "bn" ? chapter.keyPointsBn : chapter.keyPointsEn).map((point, idx) => `
+            <div class="keypoint-item">
+                <div class="keypoint-num">${idx + 1}</div>
+                <p class="keypoint-text">${point}</p>
+            </div>
+            `).join("")}
+        </div>
+
+        <footer>
+            <div>© ${new Date().getFullYear()} StudyHub Academy. ${lang === "bn" ? "সর্বস্বত্ব সংরক্ষিত।" : "All rights reserved."}</div>
+            <button class="print-btn no-print" onclick="window.print()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                ${lang === "bn" ? "প্রিন্ট / পিডিএফ সেভ" : "Print / Save PDF"}
+            </button>
+        </footer>
+    </div>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${chapter.chapterNameEn.replace(/[\s\W]+/g, "-")}-Study-Notes.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPyqPdfHtml = (pyq: PYQData) => {
+    if (!pyq) return;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+    <meta charset="UTF-8">
+    <title>${lang === "bn" ? pyq.subjectBn : pyq.subjectEn} (${pyq.year}) - StudyHub Academy</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .page {
+            background-color: white;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border-radius: 24px;
+            padding: 50px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 5rem;
+            font-weight: 900;
+            color: rgba(16, 185, 129, 0.04);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 0;
+            user-select: none;
+        }
+        header {
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 24px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        .brand {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #059669;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 8px;
+        }
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 10px 0;
+            line-height: 1.2;
+        }
+        .meta {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .question-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .question-num {
+            font-weight: 800;
+            color: #059669;
+            font-size: 1rem;
+        }
+        .question-marks {
+            font-size: 0.75rem;
+            font-weight: 800;
+            background: rgba(16, 185, 129, 0.15);
+            color: #047857;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .question-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.6;
+            margin: 0 0 15px 0;
+        }
+        .solution-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+        }
+        .solution-title {
+            font-weight: 850;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: #047857;
+            margin-bottom: 5px;
+        }
+        .solution-text {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: #1e293b;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        footer {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        .print-btn {
+            background-color: #0f172a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .print-btn:hover {
+            background-color: #1e293b;
+        }
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .page {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                border-radius: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="watermark">STUDY HUB ACADEMY</div>
+        <header>
+            <div class="brand">STUDY HUB ACADEMY • PREVIOUS YEAR PAPER</div>
+            <h1>${lang === "bn" ? pyq.subjectBn : pyq.subjectEn} (${pyq.year})</h1>
+            <div class="meta">Board: ${pyq.board.toUpperCase()} • ${lang === "bn" ? "প্রশ্ন ও সমাধান" : "Questions & Step-by-Step Solutions"}</div>
+        </header>
+
+        <div class="question-list">
+            ${pyq.questions.map((q, idx) => `
+            <div class="question-item">
+                <div class="question-header">
+                    <span class="question-num">QUESTION ${idx + 1}</span>
+                    <span class="question-marks">${q.marks} ${lang === "bn" ? "নম্বর" : "Marks"}</span>
+                </div>
+                <p class="question-text">${lang === "bn" ? q.qBn : q.qEn}</p>
+                <div class="solution-box">
+                    <div class="solution-title">${lang === "bn" ? "উত্তর / গাণিতিক সমাধান:" : "Step-by-Step Solution:"}</div>
+                    <p class="solution-text">${lang === "bn" ? q.answerBn : q.answerEn}</p>
+                </div>
+            </div>
+            `).join("")}
+        </div>
+
+        <footer>
+            <div>© ${new Date().getFullYear()} StudyHub Academy. ${lang === "bn" ? "সর্বস্বত্ব সংরক্ষিত।" : "All rights reserved."}</div>
+            <button class="print-btn no-print" onclick="window.print()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                ${lang === "bn" ? "প্রিন্ট / পিডিএফ সেভ" : "Print / Save PDF"}
+            </button>
+        </footer>
+    </div>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${pyq.subjectEn.replace(/[\s\W]+/g, "-")}-${pyq.year}-PYQ-Solutions.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Get subjects for currently selected class
@@ -1261,7 +1739,7 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                     </div>
                   </div>
 
-                  {/* PDF Download mockup */}
+                  {/* PDF View & Download Actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 mt-6 md:mt-8">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-red-500/20 text-red-600 rounded-lg flex items-center justify-center font-bold flex-shrink-0">
@@ -1276,13 +1754,22 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                         <p className={`text-[10px] ${theme.textMuted} font-semibold`}>Size: 1.8 MB | Pages: 12</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => alert(lang === "bn" ? "পিডিএফ ডাউনলোড শুরু হচ্ছে!" : "Downloading PDF file!")}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      {lang === "bn" ? "ডাউনলোড করুন" : "Download PDF"}
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+                      <button 
+                        onClick={() => setViewingPdfChapter(currentChapterObj)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {lang === "bn" ? "পিডিএফ দেখুন" : "View PDF"}
+                      </button>
+                      <button 
+                        onClick={() => downloadChapterPdfHtml(currentChapterObj)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {lang === "bn" ? "ডাউনলোড করুন" : "Download PDF"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1441,13 +1928,31 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                   <div className="lg:col-span-8 space-y-4">
                     {activePYQ ? (
                       <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 space-y-5 md:space-y-6 shadow-xs`}>
-                        <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                          <h3 className={`text-base md:text-lg font-black ${theme.textHeading}`}>
-                            {lang === "bn" ? activePYQ.subjectBn : activePYQ.subjectEn} ({activePYQ.year})
-                          </h3>
-                          <p className={`text-[11px] md:text-xs ${theme.textMuted} font-semibold mt-1`}>
-                            Board: {activePYQ.board.toUpperCase()} | {lang === "bn" ? "সম্পূর্ণ প্রশ্ন ও সমাধান গাইড" : "Complete Question & Solution Guide"}
-                          </p>
+                        <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <h3 className={`text-base md:text-lg font-black ${theme.textHeading}`}>
+                              {lang === "bn" ? activePYQ.subjectBn : activePYQ.subjectEn} ({activePYQ.year})
+                            </h3>
+                            <p className={`text-[11px] md:text-xs ${theme.textMuted} font-semibold mt-1`}>
+                              Board: {activePYQ.board.toUpperCase()} | {lang === "bn" ? "সম্পূর্ণ প্রশ্ন ও সমাধান গাইড" : "Complete Question & Solution Guide"}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => setViewingPdfPYQ(activePYQ)}
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-xs active:scale-95"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              {lang === "bn" ? "পিডিএফ দেখুন" : "View PDF"}
+                            </button>
+                            <button 
+                              onClick={() => downloadPyqPdfHtml(activePYQ)}
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              {lang === "bn" ? "ডাউনলোড" : "Download PDF"}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Question list */}
@@ -1775,6 +2280,362 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
               )}
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Highly immersive PDF Document Viewer */}
+      <AnimatePresence>
+        {viewingPdfChapter && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 h-[90vh] relative"
+            >
+              {/* PDF Top Bar */}
+              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center z-10">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-rose-500 rounded-lg flex items-center justify-center text-white font-extrabold text-xs">
+                    PDF
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 truncate max-w-[200px] md:max-w-md">
+                      {lang === "bn" ? viewingPdfChapter.chapterNameBn : viewingPdfChapter.chapterNameEn}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      StudyHub Academy • Class {selectedClass} • {lang === "bn" ? "অফলাইন গাইড" : "Official Study Notes"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowPrintModal(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 text-xs font-bold transition-all"
+                    title="Print or Save as PDF"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{lang === "bn" ? "পিডিএফ সেভ / প্রিন্ট" : "Save / Print PDF"}</span>
+                  </button>
+                  <button
+                    onClick={() => setViewingPdfChapter(null)}
+                    className="p-1.5 hover:bg-slate-200 rounded-lg transition-all text-slate-500 hover:text-slate-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Document Container */}
+              <div 
+                id="printable-school-pdf-document"
+                className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 bg-slate-100 print:bg-white relative font-sans select-text"
+              >
+                {/* Embedded Watermark for PDF Authenticity */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none z-0">
+                  <span className="text-slate-900 font-black text-6xl md:text-8xl tracking-widest uppercase rotate-275">
+                    STUDYHUB
+                  </span>
+                </div>
+
+                {/* PAGE 1: PDF Cover Sheet */}
+                <div className="min-h-[70vh] bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden page-break-after z-10">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
+                        STUDYHUB ACADEMY • SCHOOL LEVEL
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                        CLASS {selectedClass} EDITION
+                      </span>
+                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                        {lang === "bn" ? viewingPdfChapter.chapterNameBn : viewingPdfChapter.chapterNameEn}
+                      </h1>
+                      <p className="text-sm md:text-base text-slate-500 italic max-w-xl font-medium pt-2 border-t border-slate-150">
+                        "{lang === "bn" ? viewingPdfChapter.summaryBn : viewingPdfChapter.summaryEn}"
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                        SUBJECT
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                        {lang === "bn" ? SUBJECTS_DATA[selectedClass]?.find(s => s.id === selectedSubjectId)?.nameBn : SUBJECTS_DATA[selectedClass]?.find(s => s.id === selectedSubjectId)?.nameEn}
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                        {lang === "bn" ? "প্রকাশিত হয়েছে" : "PUBLISHED"}
+                      </span>
+                      <span className="text-xs font-bold text-slate-600">
+                        {new Date().toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PAGE 2: Key Concepts & Formulas */}
+                <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs space-y-6 md:space-y-8 relative z-10">
+                  <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
+                    <span className="text-xs font-extrabold text-emerald-600 tracking-widest uppercase">
+                      {lang === "bn" ? viewingPdfChapter.chapterNameBn : viewingPdfChapter.chapterNameEn}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold">SECTION 1 • KEY CONCEPTS</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h2 className="text-lg md:text-xl font-bold text-slate-950 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-emerald-500" />
+                      {lang === "bn" ? "গুরুত্বপূর্ণ সংক্ষিপ্ত আলোচনা ও সূত্র" : "Important Key Concepts & Formulas"}
+                    </h2>
+                    
+                    <div className="grid gap-3 pt-2">
+                      {(lang === "bn" ? viewingPdfChapter.keyPointsBn : viewingPdfChapter.keyPointsEn).map((point, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200/60 text-xs md:text-sm font-medium items-start"
+                        >
+                          <span className="flex-shrink-0 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-[10px] font-black">
+                            {idx + 1}
+                          </span>
+                          <span className="text-slate-700 leading-relaxed flex-1">{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PAGE 3: Final back cover */}
+                <div className="bg-slate-800 text-white rounded-2xl md:rounded-3xl p-8 md:p-12 text-center space-y-4 print:bg-white print:text-slate-800 print:border-t print:pt-6">
+                  <Award className="h-10 w-10 mx-auto text-amber-400" />
+                  <h4 className="font-bold text-sm tracking-widest uppercase">
+                    STUDY HUB ACADEMY
+                  </h4>
+                  <p className="text-xs text-slate-400 print:text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    {lang === "bn" 
+                      ? "আপনার স্বপ্ন ছোঁয়ার যাত্রায় আমরা সর্বদা আপনার সাথে আছি। নিয়মিত পড়াশোনা করুন এবং সফল হোন।" 
+                      : "We are with you at every step of your preparation. Keep practicing and keep moving towards your dream."}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Help / Print & Download Options */}
+      <AnimatePresence>
+        {showPrintModal && viewingPdfChapter && (
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className={`${theme.bgCard} text-slate-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border ${theme.borderCard} p-6 space-y-6 relative`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
+                  <Printer className="h-5 w-5" />
+                  <h3 className={`text-base font-bold ${theme.textHeading}`}>
+                    {lang === "bn" ? "প্রিন্ট এবং পিডিএফ ডাউনলোড অপশন" : "Print & PDF Download Options"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <p className={`text-xs ${theme.textMuted} leading-relaxed`}>
+                  {lang === "bn" 
+                    ? "আইফ্রেম (iFrame) সিকিউরিটি সুবিধার কারণে ব্রাউজারের প্রিন্ট উইন্ডোটি এখানে সরাসরি কাজ নাও করতে পারে। নিচে দেওয়া সহজ এবং ১০০% কার্যকর অফলাইন ডাউনলোড অপশনটি ব্যবহার করুন:" 
+                    : "Due to browser security constraints inside standard sandboxed previews, the default print window may be blocked. Please choose the offline download option below to get a perfect copy:"}
+                </p>
+
+                <div className="space-y-3">
+                  <div className={`p-4 rounded-2xl border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 transition-all flex flex-col gap-2`}>
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                        <Download className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className={`text-xs font-bold ${theme.textHeading}`}>
+                          {lang === "bn" ? "১. প্রিমিয়াম অফলাইন নোট ফাইল ডাউনলোড (সেরা পদ্ধতি)" : "1. Download Offline Notes File (Recommended)"}
+                        </h4>
+                        <p className={`text-[10px] ${theme.textMuted} mt-0.5 leading-normal`}>
+                          {lang === "bn" 
+                            ? "এই নোটটি আপনার ডিভাইসে একটি ফাইল হিসেবে ডাউনলোড করুন। ফাইলটি ওপেন করলেই ব্রাউজারে সুন্দরভাবে খুলবে এবং আপনি সরাসরি প্রিন্ট বা PDF সেভ করতে পারবেন। বাংলা লেখার ফন্ট ১০০% সঠিক থাকবে!" 
+                            : "Download as a standalone offline file. Double-click to open in any browser to print/save as PDF with perfect formatting and fonts!"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        downloadChapterPdfHtml(viewingPdfChapter);
+                        setShowPrintModal(false);
+                      }}
+                      className="w-full h-9 rounded-xl text-white font-semibold text-xs bg-teal-600 hover:bg-teal-700 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                    >
+                      <Download className="h-4 w-4" />
+                      {lang === "bn" ? "অফলাইন নোট ফাইল ডাউনলোড করুন" : "Download Offline Note"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Highly immersive PYQ PDF Document Viewer */}
+      <AnimatePresence>
+        {viewingPdfPYQ && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 h-[90vh] relative"
+            >
+              {/* PDF Top Bar */}
+              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center z-10">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-rose-500 rounded-lg flex items-center justify-center text-white font-extrabold text-xs">
+                    PDF
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 truncate max-w-[200px] md:max-w-md">
+                      {lang === "bn" ? viewingPdfPYQ.subjectBn : viewingPdfPYQ.subjectEn} ({viewingPdfPYQ.year})
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      StudyHub Academy • Board Prep • {viewingPdfPYQ.board.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => downloadPyqPdfHtml(viewingPdfPYQ)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 text-xs font-bold transition-all"
+                    title="Print or Save as PDF"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{lang === "bn" ? "পিডিএফ সেভ / প্রিন্ট" : "Save / Print PDF"}</span>
+                  </button>
+                  <button
+                    onClick={() => setViewingPdfPYQ(null)}
+                    className="p-1.5 hover:bg-slate-200 rounded-lg transition-all text-slate-500 hover:text-slate-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Document Container */}
+              <div 
+                id="printable-pyq-pdf-document"
+                className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 bg-slate-100 print:bg-white relative font-sans select-text"
+              >
+                {/* Embedded Watermark for PDF Authenticity */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none z-0">
+                  <span className="text-slate-900 font-black text-6xl md:text-8xl tracking-widest uppercase rotate-275">
+                    STUDYHUB
+                  </span>
+                </div>
+
+                {/* PAGE 1: PDF Cover Sheet */}
+                <div className="min-h-[70vh] bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden page-break-after z-10">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-red-600">
+                        STUDYHUB ACADEMY • BOARD PREPARATION
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                        PREVIOUS YEAR SOLVED PAPERS
+                      </span>
+                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                        {lang === "bn" ? viewingPdfPYQ.subjectBn : viewingPdfPYQ.subjectEn} ({viewingPdfPYQ.year})
+                      </h1>
+                      <p className="text-sm md:text-base text-slate-500 italic max-w-xl font-medium pt-2 border-t border-slate-150">
+                        {lang === "bn" 
+                          ? `পশ্চিমবঙ্গ এবং মাধ্যমিক/উচ্চমাধ্যমিক পরীক্ষার পূর্ণাঙ্গ প্রশ্নোত্তর ও সমাধান গাইড` 
+                          : `Complete past year paper questions with expert step-by-step solutions for target board exams.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                        BOARD / EXAM
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                        {viewingPdfPYQ.board.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                        {lang === "bn" ? "পরীক্ষা সাল" : "EXAMINATION YEAR"}
+                      </span>
+                      <span className="text-xs font-bold text-slate-600 bg-amber-500/10 text-amber-700 px-3 py-1 rounded-full">
+                        {viewingPdfPYQ.year}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PAGE 2: Question & Solutions List */}
+                <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs space-y-6 md:space-y-8 relative z-10">
+                  <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
+                    <span className="text-xs font-extrabold text-red-600 tracking-widest uppercase">
+                      {lang === "bn" ? "প্রশ্নপত্র ও সমাধান" : "Question Paper & Solutions"}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-bold">SECTION 1 • DETAILED ANSWERS</span>
+                  </div>
+
+                  <div className="space-y-8">
+                    {viewingPdfPYQ.questions.map((q, idx) => (
+                      <div key={idx} className="space-y-3.5 pb-6 border-b border-slate-150 last:border-none last:pb-0">
+                        <div className="flex justify-between items-start gap-4">
+                          <h3 className="text-sm md:text-base font-bold text-slate-900 leading-relaxed flex gap-2">
+                            <span className="text-red-500 shrink-0 font-black">Q{idx + 1}.</span>
+                            <span>{lang === "bn" ? q.qBn : q.qEn}</span>
+                          </h3>
+                          <span className="text-2xs font-extrabold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md shrink-0">
+                            {q.marks} {lang === "bn" ? "নম্বর" : "Marks"}
+                          </span>
+                        </div>
+
+                        <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-2">
+                          <span className="text-[9px] font-extrabold text-emerald-600 uppercase tracking-widest block">
+                            {lang === "bn" ? "উত্তর / গাণিতিক সমাধান:" : "Step-by-Step Solution:"}
+                          </span>
+                          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                            {lang === "bn" ? q.answerBn : q.answerEn}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

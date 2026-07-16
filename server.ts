@@ -258,15 +258,24 @@ let aiInstance = null;
 function getGeminiClient() {
   if (!aiInstance) {
     const apiKey = process.env.GEMINI_API_KEY;
+    let rawClient;
+    let originalGenerateContent;
     if (!apiKey) {
-      throw new Error(
-        "GEMINI_API_KEY environment variable is missing. Please add it in the Secrets panel.",
+      console.warn("[Gemini Client] GEMINI_API_KEY environment variable is missing. Initializing Mock Client to prevent 500 errors...");
+      rawClient = {
+        models: {
+          generateContent: async function () {
+            throw new Error("No API key");
+          }
+        }
+      };
+      originalGenerateContent = rawClient.models.generateContent;
+    } else {
+      rawClient = new GoogleGenAI({ apiKey });
+      originalGenerateContent = rawClient.models.generateContent.bind(
+        rawClient.models,
       );
     }
-    const rawClient = new GoogleGenAI({ apiKey });
-    const originalGenerateContent = rawClient.models.generateContent.bind(
-      rawClient.models,
-    );
     rawClient.models.generateContent = async function (...args: any[]) {
       const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest"];
       const originalModel = args[0]?.model;
@@ -2126,7 +2135,7 @@ The response MUST match the JSON schema exactly and be comprehensive. Make the '
         },
       },
     });
-    const parsedData = JSON.parse(response.text.trim());
+    const parsedData = parseJsonFromText(response.text) || {};
     const newPdfNote = {
       id: `pdfn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       subject,

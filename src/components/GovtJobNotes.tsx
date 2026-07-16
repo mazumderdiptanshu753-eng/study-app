@@ -818,10 +818,10 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert(isBengali ? "পিডিএফটি অফলাইনে সেভ করা হয়েছে!" : "PDF saved for offline access!");
+                          downloadStandaloneHtml(pdf);
                         }}
                         className="p-1.5 text-teal-500 hover:bg-teal-500/10 rounded-lg transition-all ml-auto"
-                        title={isBengali ? "অফলাইনে সেভ করুন" : "Save Offline"}
+                        title={isBengali ? "পিডিএফ ডাউনলোড করুন" : "Download PDF"}
                       >
                         <DownloadCloud className="h-4 w-4" />
                       </button>

@@ -1,6 +1,8 @@
 import pg from "pg";
 import fs from "fs";
 import path from "path";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
 
 const { Pool } = pg;
 
@@ -56,6 +58,173 @@ function saveLocalDB() {
   }
 }
 
+// --- Firebase Firestore Initialization ---
+let firestoreDb: Firestore | null = null;
+try {
+  const serviceAccountPath = path.join(process.cwd(), "service-account.json");
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    let databaseId = undefined;
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      databaseId = config.firestoreDatabaseId;
+    }
+    
+    const appsList = getApps();
+    const app = appsList.length === 0 
+      ? initializeApp({ credential: cert(serviceAccount) })
+      : appsList[0];
+    
+    if (databaseId) {
+      firestoreDb = getFirestore(app, databaseId);
+      console.log(`Successfully initialized Firebase Admin for Firestore with databaseId: ${databaseId}`);
+    } else {
+      firestoreDb = getFirestore(app);
+      console.log("Successfully initialized Firebase Admin for Firestore (default database)");
+    }
+  } else {
+    console.warn("No service-account.json found. Firestore server-side persistence disabled.");
+  }
+} catch (error) {
+  console.error("Failed to initialize Firebase Admin:", error);
+}
+
+// Memory-Firestore Synchronizers
+export async function syncToFirestore(): Promise<void> {
+  if (!firestoreDb) return;
+  try {
+    console.log("Pushing memory state to Firestore as backup...");
+    
+    const collections = [
+      { name: "users", items: localDB.users, docKey: "email" },
+      { name: "chatMessages", items: localDB.chatMessages, docKey: "id" },
+      { name: "activityLogs", items: localDB.activityLogs, docKey: "id" },
+      { name: "forumPosts", items: localDB.forumPosts, docKey: "id" },
+      { name: "liveClasses", items: localDB.liveClasses, docKey: "id" },
+      { name: "govtJobNotes", items: localDB.govtJobNotes, docKey: "id" },
+      { name: "aiPdfNotes", items: localDB.aiPdfNotes, docKey: "id" },
+      { name: "studyNotes", items: localDB.studyNotes, docKey: "id" },
+      { name: "videoLectures", items: localDB.videoLectures, docKey: "id" },
+      { name: "notifications", items: localDB.notifications, docKey: "id" }
+    ];
+
+    for (const col of collections) {
+      if (Array.isArray(col.items)) {
+        console.log(`Pushing ${col.items.length} items to Firestore collection ${col.name}...`);
+        for (const item of col.items) {
+          const id = item[col.docKey];
+          if (id) {
+            await writeToFirestore(col.name, String(id), item);
+          }
+        }
+      }
+    }
+    
+    if (localDB.settings) {
+      await writeToFirestore("settings", "current", localDB.settings);
+    }
+    
+    if (localDB.systemSettings) {
+      await writeToFirestore("systemSettings", "current", localDB.systemSettings);
+    }
+    
+    console.log("Memory state successfully pushed to Firestore!");
+  } catch (err) {
+    console.error("Error pushing to Firestore:", err);
+  }
+}
+
+export async function syncFromFirestore(): Promise<void> {
+  if (!firestoreDb) return;
+  try {
+    console.log("Synchronizing memory state from Firestore...");
+    
+    const collections = [
+      { name: "users", key: "users" },
+      { name: "chatMessages", key: "chatMessages" },
+      { name: "activityLogs", key: "activityLogs" },
+      { name: "forumPosts", key: "forumPosts" },
+      { name: "liveClasses", key: "liveClasses" },
+      { name: "govtJobNotes", key: "govtJobNotes" },
+      { name: "aiPdfNotes", key: "aiPdfNotes" },
+      { name: "studyNotes", key: "studyNotes" },
+      { name: "videoLectures", key: "videoLectures" },
+      { name: "notifications", key: "notifications" }
+    ];
+
+    let firestoreEmpty = true;
+    for (const col of collections) {
+      try {
+        const snapshot = await firestoreDb.collection(col.name).get();
+        const items: any[] = [];
+        snapshot.forEach(doc => {
+          items.push(doc.data());
+        });
+        if (items.length > 0) {
+          firestoreEmpty = false;
+          localDB[col.key] = items;
+          console.log(`Synced ${items.length} items for ${col.name} from Firestore.`);
+        }
+      } catch (err) {
+        console.error(`Error syncing collection ${col.name} from Firestore:`, err);
+      }
+    }
+    
+    try {
+      const settingsDoc = await firestoreDb.collection("settings").doc("current").get();
+      if (settingsDoc.exists) {
+        localDB.settings = settingsDoc.data();
+        console.log("Synced settings from Firestore.");
+        firestoreEmpty = false;
+      }
+    } catch (err) {
+      console.error("Error syncing settings from Firestore:", err);
+    }
+    
+    try {
+      const sysSettingsDoc = await firestoreDb.collection("systemSettings").doc("current").get();
+      if (sysSettingsDoc.exists) {
+        localDB.systemSettings = sysSettingsDoc.data();
+        console.log("Synced systemSettings from Firestore.");
+        firestoreEmpty = false;
+      }
+    } catch (err) {
+      console.error("Error syncing systemSettings from Firestore:", err);
+    }
+    
+    if (firestoreEmpty && ((localDB.users && localDB.users.length > 0) || (localDB.studyNotes && localDB.studyNotes.length > 0))) {
+      console.log("Firestore is empty but local db.json has records. Initiating automatic cloud migration to Firestore...");
+      await syncToFirestore();
+    } else {
+      saveLocalDB();
+    }
+    console.log("Memory state successfully synchronized from Firestore!");
+  } catch (err) {
+    console.error("Error syncing from Firestore on startup:", err);
+  }
+}
+
+export async function writeToFirestore(collectionName: string, docId: string, data: any, merge: boolean = true) {
+  if (!firestoreDb) return;
+  try {
+    const cleanId = String(docId).trim().replace(/\//g, "_");
+    await firestoreDb.collection(collectionName).doc(cleanId).set(data, { merge });
+  } catch (e) {
+    console.error(`Error writing to Firestore collection ${collectionName}, id ${docId}:`, e);
+  }
+}
+
+export async function deleteFromFirestore(collectionName: string, docId: string) {
+  if (!firestoreDb) return;
+  try {
+    const cleanId = String(docId).trim().replace(/\//g, "_");
+    await firestoreDb.collection(collectionName).doc(cleanId).delete();
+  } catch (e) {
+    console.error(`Error deleting from Firestore collection ${collectionName}, id ${docId}:`, e);
+  }
+}
+
 // Pool initialization
 let pool: pg.Pool | null = null;
 
@@ -64,23 +233,27 @@ const sqlHost = process.env.SQL_HOST;
 const isPostgresActive = !!databaseUrl || !!sqlHost;
 
 if (databaseUrl) {
-  console.log("Found DATABASE_URL. Initializing database pool...");
+  console.log("Found DATABASE_URL. Initializing database pool with optimal serverless limits...");
   pool = new Pool({
     connectionString: databaseUrl,
-    connectionTimeoutMillis: 15000,
+    connectionTimeoutMillis: 5000,
+    max: 10,
+    idleTimeoutMillis: 1000,
   });
 
   pool.on("error", (err) => {
     console.error("Unexpected error on idle client", err);
   });
 } else if (sqlHost) {
-  console.log("Found Cloud SQL credentials. Initializing database pool...");
+  console.log("Found Cloud SQL credentials. Initializing database pool with optimal serverless limits...");
   pool = new Pool({
     host: process.env.SQL_HOST,
     user: process.env.SQL_USER,
     password: process.env.SQL_PASSWORD,
     database: process.env.SQL_DB_NAME,
-    connectionTimeoutMillis: 15000,
+    connectionTimeoutMillis: 5000,
+    max: 10,
+    idleTimeoutMillis: 1000,
   });
 
   pool.on("error", (err) => {
@@ -91,6 +264,13 @@ if (databaseUrl) {
 }
 
 export async function initDatabase(): Promise<boolean> {
+  // Sync memory state from Firestore first (primary persistent cloud storage)
+  try {
+    await syncFromFirestore();
+  } catch (e) {
+    console.error("Failed to perform Firestore startup sync:", e);
+  }
+
   if (!pool) return false;
   
   let retries = 5;
@@ -371,6 +551,10 @@ export async function saveUser(user: any): Promise<any[]> {
   }
   saveLocalDB();
 
+  if (user.email) {
+    await writeToFirestore("users", user.email, user);
+  }
+
   if (pool) {
     try {
       await pool.query(`
@@ -406,6 +590,8 @@ export async function deleteUser(email: string): Promise<boolean> {
   const len = localDB.users.length;
   localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== email.trim().toLowerCase());
   saveLocalDB();
+
+  await deleteFromFirestore("users", email);
 
   if (pool) {
     try {
@@ -452,6 +638,10 @@ export async function saveChatMessage(msg: any): Promise<any> {
   if (!localDB.chatMessages) localDB.chatMessages = [];
   localDB.chatMessages.push(msg);
   saveLocalDB();
+
+  if (msg.id) {
+    await writeToFirestore("chatMessages", msg.id, msg);
+  }
 
   if (pool) {
     try {
@@ -507,6 +697,10 @@ export async function saveForumPost(post: any): Promise<any> {
   }
   saveLocalDB();
 
+  if (post.id) {
+    await writeToFirestore("forumPosts", post.id, post);
+  }
+
   if (pool) {
     try {
       await pool.query(`
@@ -541,6 +735,7 @@ export async function addForumReply(postId: string, reply: any): Promise<any> {
     if (!post.replies) post.replies = [];
     post.replies.push(reply);
     saveLocalDB();
+    await writeToFirestore("forumPosts", postId, post);
   }
 
   if (pool) {
@@ -585,6 +780,10 @@ export async function saveLiveClass(cls: any): Promise<any> {
   }
   saveLocalDB();
 
+  if (cls.id) {
+    await writeToFirestore("liveClasses", cls.id, cls);
+  }
+
   if (pool) {
     try {
       await pool.query(`
@@ -621,6 +820,7 @@ export async function updateLiveClassStatus(id: string, status: string): Promise
   if (cls) {
     cls.status = status;
     saveLocalDB();
+    await writeToFirestore("liveClasses", id, cls);
     updatedCls = cls;
   }
 
@@ -646,6 +846,8 @@ export async function deleteLiveClass(id: string): Promise<boolean> {
   const len = (localDB.liveClasses || []).length;
   localDB.liveClasses = (localDB.liveClasses || []).filter((c: any) => c.id !== id);
   saveLocalDB();
+
+  await deleteFromFirestore("liveClasses", id);
 
   if (pool) {
     try {
@@ -678,6 +880,10 @@ export async function saveActivityLog(log: any): Promise<any> {
   if (!localDB.activityLogs) localDB.activityLogs = [];
   localDB.activityLogs.unshift(log);
   saveLocalDB();
+
+  if (log.id) {
+    await writeToFirestore("activityLogs", log.id, log);
+  }
 
   if (pool) {
     try {
@@ -744,6 +950,10 @@ export async function saveGovtJobNote(note: any): Promise<any> {
   }
   saveLocalDB();
 
+  if (note.id) {
+    await writeToFirestore("govtJobNotes", note.id, note);
+  }
+
   if (pool) {
     try {
       await pool.query(`
@@ -778,6 +988,7 @@ export async function addGovtJobNoteComment(noteId: string, comment: any): Promi
     if (!note.comments) note.comments = [];
     note.comments.push(comment);
     saveLocalDB();
+    await writeToFirestore("govtJobNotes", noteId, note);
   }
 
   if (pool) {
@@ -799,6 +1010,8 @@ export async function deleteGovtJobNote(id: string): Promise<boolean> {
   const len = (localDB.govtJobNotes || []).length;
   localDB.govtJobNotes = (localDB.govtJobNotes || []).filter((n: any) => n.id !== id);
   saveLocalDB();
+
+  await deleteFromFirestore("govtJobNotes", id);
 
   if (pool) {
     try {
@@ -892,6 +1105,10 @@ export async function saveAiPdfNote(note: any): Promise<any> {
   }
   saveLocalDB();
 
+  if (note.id) {
+    await writeToFirestore("aiPdfNotes", note.id, note);
+  }
+
   if (pool) {
     try {
       const summaryPayload = JSON.stringify({
@@ -932,6 +1149,8 @@ export async function deleteAiPdfNote(id: string): Promise<boolean> {
   localDB.aiPdfNotes = (localDB.aiPdfNotes || []).filter(n => n.id !== id);
   saveLocalDB();
 
+  await deleteFromFirestore("aiPdfNotes", id);
+
   if (pool) {
     try {
       await pool.query('DELETE FROM ai_pdf_notes WHERE id = $1', [id]);
@@ -957,6 +1176,12 @@ export async function getAiPdfNotesCount(): Promise<number> {
 export async function seedAiPdfNotes(seedData: any[]): Promise<any[]> {
   localDB.aiPdfNotes = seedData;
   saveLocalDB();
+
+  for (const note of seedData) {
+    if (note.id) {
+      await writeToFirestore("aiPdfNotes", note.id, note);
+    }
+  }
 
   if (pool) {
     try {
@@ -1020,6 +1245,10 @@ export async function saveStudyNote(note: any): Promise<any> {
   }
   saveLocalDB();
 
+  if (note.id) {
+    await writeToFirestore("studyNotes", note.id, note);
+  }
+
   if (pool) {
     try {
       await pool.query(`
@@ -1065,6 +1294,8 @@ export async function deleteStudyNote(id: string): Promise<boolean> {
   localDB.studyNotes = (localDB.studyNotes || []).filter((n: any) => n.id !== id);
   saveLocalDB();
 
+  await deleteFromFirestore("studyNotes", id);
+
   if (pool) {
     try {
       await pool.query('DELETE FROM study_notes WHERE id = $1', [id]);
@@ -1100,6 +1331,14 @@ export async function getAppVersion(): Promise<any> {
 }
 
 export async function saveAppVersion(versionInfo: any): Promise<any> {
+  if (!localDB.systemSettings) {
+    localDB.systemSettings = {};
+  }
+  localDB.systemSettings.app_version = versionInfo;
+  saveLocalDB();
+
+  await writeToFirestore("systemSettings", "current", localDB.systemSettings);
+
   if (pool) {
     try {
       await pool.query(`
@@ -1112,11 +1351,6 @@ export async function saveAppVersion(versionInfo: any): Promise<any> {
       console.error("Error saving app version to PG, falling back:", e);
     }
   }
-  if (!localDB.systemSettings) {
-    localDB.systemSettings = {};
-  }
-  localDB.systemSettings.app_version = versionInfo;
-  saveLocalDB();
   return versionInfo;
 }
 
@@ -1170,6 +1404,11 @@ export async function saveVideoLecture(video: any): Promise<any> {
     localDB.videoLectures.push(video);
   }
   saveLocalDB();
+
+  if (video.id) {
+    await writeToFirestore("videoLectures", video.id, video);
+  }
+
   return video;
 }
 
@@ -1185,6 +1424,9 @@ export async function deleteVideoLecture(id: string): Promise<boolean> {
   const len = (localDB.videoLectures || []).length;
   localDB.videoLectures = (localDB.videoLectures || []).filter((v: any) => v.id !== id);
   saveLocalDB();
+
+  await deleteFromFirestore("videoLectures", id);
+
   return (localDB.videoLectures || []).length < len;
 }
 
@@ -1263,6 +1505,11 @@ export async function createNotification(notification: any): Promise<any> {
     localDB.notifications.push(notification);
   }
   saveLocalDB();
+
+  if (notification.id) {
+    await writeToFirestore("notifications", notification.id, notification);
+  }
+
   return notification;
 }
 
@@ -1280,6 +1527,7 @@ export async function markNotificationAsRead(id: string): Promise<boolean> {
   if (notif) {
     notif.isRead = true;
     saveLocalDB();
+    await writeToFirestore("notifications", id, notif);
     return true;
   }
   return false;
@@ -1309,6 +1557,16 @@ export async function markAllNotificationsAsRead(userEmail?: string): Promise<bo
     }
   });
   saveLocalDB();
+
+  // Sync updated notifications to Firestore
+  for (const n of localDB.notifications) {
+    if (!userEmail || !n.userEmail || n.userEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()) {
+      if (n.id) {
+        await writeToFirestore("notifications", n.id, n);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -1324,6 +1582,9 @@ export async function deleteNotification(id: string): Promise<boolean> {
   const len = (localDB.notifications || []).length;
   localDB.notifications = (localDB.notifications || []).filter((n: any) => n.id !== id);
   saveLocalDB();
+
+  await deleteFromFirestore("notifications", id);
+
   return (localDB.notifications || []).length < len;
 }
 
@@ -1347,6 +1608,9 @@ export async function getSettings(): Promise<any> {
 export async function updateSettings(newSettings: any): Promise<void> {
   localDB.settings = { ...(localDB.settings || {}), ...newSettings };
   saveLocalDB();
+
+  await writeToFirestore("settings", "current", localDB.settings);
+
   if (pool) {
     try {
       if (newSettings.maintenanceMode !== undefined) {
@@ -1362,8 +1626,18 @@ export async function updateSettings(newSettings: any): Promise<void> {
 }
 
 export async function cleanDemoMessages() {
+  const originalIds = localDB.chatMessages.map((m: any) => m.id);
   localDB.chatMessages = localDB.chatMessages.filter(m => m.studentEmail !== 'demo@studyhub.com');
   saveLocalDB();
+
+  // Delete matching demo messages from Firestore
+  for (const id of originalIds) {
+    const isStillPresent = localDB.chatMessages.some((m: any) => m.id === id);
+    if (!isStillPresent) {
+      await deleteFromFirestore("chatMessages", id);
+    }
+  }
+
   if (pool) {
     try {
       await pool.query("DELETE FROM chat_messages WHERE \"studentEmail\" = 'demo@studyhub.com'");
