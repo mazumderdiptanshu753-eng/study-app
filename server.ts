@@ -95,7 +95,7 @@ async function withRetry(operation, maxRetries = 5) {
         error?.status || error?.statusCode || error?.response?.status;
       const errorMessage = error?.message || "";
       const isTransient =
-        !status ||
+        (!status && !errorMessage.toLowerCase().includes("api key") && !errorMessage.toLowerCase().includes("key not found") && !errorMessage.toLowerCase().includes("invalid") && !errorMessage.toLowerCase().includes("no api key")) ||
         status === 429 ||
         status === 503 ||
         status === 500 ||
@@ -261,7 +261,7 @@ function getGeminiClient() {
     let rawClient;
     let originalGenerateContent;
     if (!apiKey) {
-      console.warn("[Gemini Client] GEMINI_API_KEY environment variable is missing. Initializing Mock Client to prevent 500 errors...");
+      console.log("[Gemini Client] GEMINI_API_KEY environment variable is missing. Initializing Mock Client to handle requests offline...");
       rawClient = {
         models: {
           generateContent: async function () {
@@ -290,51 +290,53 @@ function getGeminiClient() {
       }
 
       let lastError;
-      for (const model of modelsToTry) {
-        try {
-          if (args[0]) {
-            args[0].model = model;
-            if (args[0].config) {
-              const configCopy = { ...args[0].config };
-              if (model.startsWith("gemini-2.5") || model.startsWith("gemini-1.5")) {
-                delete configCopy.thinkingConfig;
+      if (apiKey) {
+        for (const model of modelsToTry) {
+          try {
+            if (args[0]) {
+              args[0].model = model;
+              if (args[0].config) {
+                const configCopy = { ...args[0].config };
+                if (model.startsWith("gemini-2.5") || model.startsWith("gemini-1.5")) {
+                  delete configCopy.thinkingConfig;
+                }
+                args[0].config = configCopy;
               }
-              args[0].config = configCopy;
             }
-          }
-          console.log(`[Gemini Interceptor] Attempting generateContent with model: ${model}`);
-          const result = await withRetry(() => originalGenerateContent(...args), 2);
-          if (result && typeof result.text === "string") {
-            let cleaned = result.text.trim();
-            if (cleaned.startsWith("```")) {
-              cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, "");
-              cleaned = cleaned.replace(/\s*```$/, "");
-              cleaned = cleaned.trim();
+            console.log(`[Gemini Interceptor] Attempting generateContent with model: ${model}`);
+            const result = await withRetry(() => originalGenerateContent(...args), 2);
+            if (result && typeof result.text === "string") {
+              let cleaned = result.text.trim();
+              if (cleaned.startsWith("```")) {
+                cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, "");
+                cleaned = cleaned.replace(/\s*```$/, "");
+                cleaned = cleaned.trim();
+              }
+              Object.defineProperty(result, "text", {
+                get() {
+                  return cleaned;
+                },
+                configurable: true,
+                enumerable: true
+              });
             }
-            Object.defineProperty(result, "text", {
-              get() {
-                return cleaned;
-              },
-              configurable: true,
-              enumerable: true
-            });
-          }
-          return result;
-        } catch (error: any) {
-          lastError = error;
-          const errorMessage = error?.message || "";
-          
-          // Check for quota exhaustion
-          if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
-            console.error(`[Gemini Interceptor] Quota exhausted (429). Aborting fallbacks.`);
-            break;
-          }
+            return result;
+          } catch (error: any) {
+            lastError = error;
+            const errorMessage = error?.message || "";
+            
+            // Check for quota exhaustion
+            if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+              console.log(`[Gemini Interceptor] Quota exhausted (429). Aborting fallbacks.`);
+              break;
+            }
 
-          console.warn(`[Gemini Interceptor] Model ${model} failed: ${errorMessage}. Trying next fallback...`);
+            console.log(`[Gemini Interceptor] Model ${model} failed: ${errorMessage}. Trying next fallback...`);
+          }
         }
       }
       
-      console.warn(`[Gemini Interceptor] All API attempts failed due to rate limits or key errors. Activating dynamic offline fallback responder...`);
+      console.log(`[Gemini Interceptor] No API key or all attempts failed. Activating dynamic offline fallback responder...`);
       
       // Dynamic offline fallback generator
       const contentsText = typeof args[0]?.contents === "string" ? args[0].contents : JSON.stringify(args[0]?.contents || "");
@@ -836,6 +838,37 @@ app.post("/api/study-assistant/chat", async (req, res) => {
   } catch (error) {
     console.error("AI Assistant Error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+app.post("/api/technical-assistant", async (req, res) => {
+  try {
+    const { prompt, courseContext, branchContext, language } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required." });
+    }
+    const ai = getGeminiClient();
+    const isBengali = language === "bn";
+    const systemInstruction = `You are an expert Engineering & Polytechnic Technical Mentor.
+You assist B.Tech and Diploma students in studying key engineering disciplines: CSE/CST, EE/ET, CE/CT, ME/MT.
+- For Code requests: write clean, commented, and optimal code (C, C++, Java, Python, HTML/JS/SQL) with explanation.
+- For electrical/electronic questions: perform calculations using correct formulas (Ohm's law, Kirchhoff's, impedance, resonant frequency) and explain step-by-step.
+- For Civil/Mechanical questions: explain structural calculations, material properties, thermodynamics, and fluid mechanics concepts clearly.
+- Keep the language of explanation strictly in ${isBengali ? "Bengali (বাংলা)" : "English"}.
+- Use markdown tables, bold highlights, bullet lists, and code blocks for visual clarity.
+- Do not output polite intro/outro fluff; get straight to the engineering explanation.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction,
+        temperature: 0.2,
+      }
+    });
+    res.json({ reply: response.text });
+  } catch (error) {
+    console.error("Technical assistant error:", error);
+    res.status(500).json({ error: error.message || "Failed to process engineering query." });
   }
 });
 app.post("/api/solve-math", async (req, res) => {

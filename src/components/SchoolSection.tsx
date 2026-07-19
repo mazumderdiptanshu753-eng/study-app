@@ -24,15 +24,23 @@ import {
   AlertCircle,
   Printer,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Trash2,
+  Upload
 } from "lucide-react";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
+import { db } from "../lib/firebase";
+import { collection, doc, addDoc, getDocs, deleteDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { class9Subjects } from "../data/class9Data";
+import { class10Subjects } from "../data/class10Data";
+import { StudentProfile, BoardPrepPaper } from "../types";
 
 interface SchoolSectionProps {
   lang: Language;
   theme: ThemeConfig;
   onNavigate?: (tab: string) => void;
+  profile?: StudentProfile | null;
 }
 
 // Static database of School Notes, PYQs, Syllabi, suggestions, and formulas
@@ -104,190 +112,8 @@ interface FormulaItem {
 
 // SAMPLE DATA
 const SUBJECTS_DATA: Record<string, SubjectData[]> = {
-  "9": [
-    {
-      id: "math",
-      nameEn: "Mathematics",
-      nameBn: "গণিত",
-      icon: "📐",
-      chapters: [
-        {
-          id: "real-numbers",
-          chapterNameEn: "Real Numbers",
-          chapterNameBn: "বাস্তব সংখ্যা",
-          summaryEn: "Introduction to rational, irrational, and real numbers, representation on number lines, and decimal representations.",
-          summaryBn: "মূলদ, অমূলদ এবং বাস্তব সংখ্যার ধারণা, সংখ্যা রেখায় উপস্থাপন এবং দশমিক বিস্তার আলোচনা।",
-          keyPointsEn: [
-            "Every rational number can be expressed as a terminating or repeating decimal.",
-            "Irrational numbers cannot be written in the form p/q where p and q are integers and q ≠ 0.",
-            "The sum or difference of a rational and irrational number is always irrational."
-          ],
-          keyPointsBn: [
-            "প্রতিটি মূলদ সংখ্যাকে সসীম বা আবৃত্ত দশমিকে প্রকাশ করা যায়।",
-            "অমূলদ সংখ্যাকে p/q আকারে প্রকাশ করা যায় না যেখানে p এবং q পূর্ণসংখ্যা এবং q ≠ ০।",
-            "একটি মূলদ এবং একটি অমূলদ সংখ্যার যোগফল বা বিয়োগফল সর্বদা অমূলদ হয়।"
-          ]
-        },
-        {
-          id: "laws-indices",
-          chapterNameEn: "Laws of Indices",
-          chapterNameBn: "সূচকের নিয়মাবলী",
-          summaryEn: "Understanding exponents, laws of indices for real numbers, and solving exponential equations.",
-          summaryBn: "সূচকের ধারণা, বাস্তব সংখ্যার ক্ষেত্রে সূচকের নিয়মাবলী এবং সূচকীয় সমীকরণের সমাধান।",
-          keyPointsEn: [
-            "a^m * a^n = a^(m+n)",
-            "(a^m)^n = a^(mn)",
-            "a^0 = 1 (where a ≠ 0)",
-            "a^(-n) = 1/(a^n)"
-          ],
-          keyPointsBn: [
-            "a^m * a^n = a^(m+n)",
-            "(a^m)^n = a^(mn)",
-            "a^0 = ১ (যেখানে a ≠ ০)",
-            "a^(-n) = ১/(a^n)"
-          ]
-        }
-      ]
-    },
-    {
-      id: "physics",
-      nameEn: "Physical Science",
-      nameBn: "ভৌত বিজ্ঞান",
-      icon: "🧪",
-      chapters: [
-        {
-          id: "measurement",
-          chapterNameEn: "Measurement and Units",
-          chapterNameBn: "পরিমাপ ও একক",
-          summaryEn: "Study of physical quantities, scalar and vector quantities, SI & CGS units, and dimensions.",
-          summaryBn: "ভৌত রাশি, স্কেলার ও ভেক্টর রাশি, SI ও CGS একক এবং মাত্রার বিস্তারিত আলোচনা।",
-          keyPointsEn: [
-            "Fundamental units are independent (e.g., Mass, Length, Time).",
-            "Derived units are formulated from fundamental units (e.g., Velocity, Force).",
-            "Dimensions represent the powers to which base units are raised."
-          ],
-          keyPointsBn: [
-            "মৌলিক এককগুলি অন্য এককের ওপর নির্ভরশীল নয় (যেমন- ভর, দৈর্ঘ্য, সময়)।",
-            "লব্ধ এককগুলি মৌলিক এককের সাহায্যে গঠিত হয় (যেমন- বেগ, বল)।",
-            "মাত্রা নির্দেশ করে কোন মৌলিক এককগুলি কত ঘাতে উন্নীত হয়েছে।"
-          ]
-        }
-      ]
-    }
-  ],
-  "10": [
-    {
-      id: "math",
-      nameEn: "Mathematics",
-      nameBn: "গণিত",
-      icon: "📐",
-      chapters: [
-        {
-          id: "quadratic-eq",
-          chapterNameEn: "Quadratic Equation with One Variable",
-          chapterNameBn: "একচলবিশিষ্ট দ্বিঘাত সমীকরণ",
-          summaryEn: "Detailed look into quadratic equations of form ax² + bx + c = 0, finding roots using factorization and Sridhara Acharya's formula.",
-          summaryBn: "ax² + bx + c = ০ আকারের দ্বিঘাত সমীকরণ, উৎপাদকে বিশ্লেষণ এবং শ্রীধর আচার্যের সূত্রের সাহায্যে বীজ নির্ণয়।",
-          keyPointsEn: [
-            "Sridhara Acharya's formula: x = [-b ± √(b² - 4ac)] / 2a",
-            "Discriminant (D) = b² - 4ac determines the nature of the roots.",
-            "If D > 0: roots are real and unequal. If D = 0: roots are real and equal. If D < 0: roots are imaginary."
-          ],
-          keyPointsBn: [
-            "শ্রীধর আচার্যের সূত্র: x = [-b ± √(b² - ৪ac)] / ২a",
-            "নিরূপক (D) = b² - ৪ac বীজের প্রকৃতি নির্ধারণ করে।",
-            "D > ০ হলে বীজদ্বয় বাস্তব ও অসমান; D = ০ হলে বাস্তব ও সমান; D < ০ হলে কাল্পনিক।"
-          ]
-        },
-        {
-          id: "simple-interest",
-          chapterNameEn: "Simple Interest",
-          chapterNameBn: "সরল সুদকষা",
-          summaryEn: "Calculation of simple interest, principal, rate of interest, and time period with practical problems.",
-          summaryBn: "সরল সুদ, আসল, সুদের হার এবং সময়কাল গণনা এবং বাস্তব সমস্যার সমাধান।",
-          keyPointsEn: [
-            "Simple Interest Formula: I = (P * R * T) / 100",
-            "Total Amount (A) = Principal (P) + Interest (I)",
-            "Rate of interest (R) must be per annum and Time (T) must be in years."
-          ],
-          keyPointsBn: [
-            "সরল সুদের সূত্র: I = (P * R * T) / ১০০",
-            "সবৃদ্ধিমূল (A) = আসল (P) + মোট সুদ (I)",
-            "সুদের হার (R) বার্ষিক এবং সময় (T) বছরে হিসাব করতে হয়।"
-          ]
-        }
-      ]
-    },
-    {
-      id: "physics",
-      nameEn: "Physical Science",
-      nameBn: "ভৌত বিজ্ঞান",
-      icon: "🧪",
-      chapters: [
-        {
-          id: "gas-behavior",
-          chapterNameEn: "Behavior of Gases",
-          chapterNameBn: "গ্যাসের আচরণ",
-          summaryEn: "Exploration of Boyle's Law, Charles's Law, Avogadro's Hypothesis, and the Ideal Gas Equation.",
-          summaryBn: "বয়েলের সূত্র, চার্লসের সূত্র, অ্যাভোগাড্রো সূত্র এবং আদর্শ গ্যাস সমীকরণ (PV = nRT) এর বিস্তারিত আলোচনা।",
-          keyPointsEn: [
-            "Boyle's Law: V ∝ 1/P at constant temperature.",
-            "Charles's Law: V ∝ T at constant pressure.",
-            "Ideal Gas Equation: PV = nRT = (w/M)RT.",
-            "Absolute zero temperature is -273.15°C or 0 Kelvin."
-          ],
-          keyPointsBn: [
-            "বয়েলের সূত্র: স্থির তাপমাত্রায় V ∝ ১/P।",
-            "চার্লসের সূত্র: স্থির চাপে V ∝ T।",
-            "আদর্শ গ্যাস সমীকরণ: PV = nRT।",
-            "পরম শূন্য তাপমাত্রা হল -২৭৩.১৫°C বা ০ কেলভিন।"
-          ]
-        },
-        {
-          id: "light",
-          chapterNameEn: "Light & Optics",
-          chapterNameBn: "আলো",
-          summaryEn: "Study of reflection on spherical mirrors, refraction through lenses, dispersion, and scattering of light.",
-          summaryBn: "গলীয় দর্পণে প্রতিফলন, লেন্সের মধ্য দিয়ে প্রতিসরণ, আলোর বিচ্ছুরণ এবং বিক্ষেপণ সংক্রান্ত তত্ত্বসমূহ।",
-          keyPointsEn: [
-            "Mirror formula: 1/v + 1/u = 1/f",
-            "Snell's Law: sin(i) / sin(r) = constant ( refractive index μ )",
-            "Red light has the highest wavelength and scatters the least, which is why danger signals are red."
-          ],
-          keyPointsBn: [
-            "দর্পণ সূত্র: ১/v + ১/u = ১/f",
-            "স্নেলের সূত্র: sin(i) / sin(r) = ধ্রুবক ( প্রতিসরাঙ্ক μ )",
-            "লাল আলোর তরঙ্গদৈর্ঘ্য সবচেয়ে বেশি এবং বিক্ষেপণ সবচেয়ে কম, তাই বিপদের সংকেত লাল হয়।"
-          ]
-        }
-      ]
-    },
-    {
-      id: "history",
-      nameEn: "History",
-      nameBn: "ইতিহাস",
-      icon: "🏛️",
-      chapters: [
-        {
-          id: "ideas-history",
-          chapterNameEn: "Ideas of History",
-          chapterNameBn: "ইতিহাসের ধারণা",
-          summaryEn: "Understanding new social history, history of sports, food, arts, attire, transport, and local/national visual resources.",
-          summaryBn: "নতুন সামাজিক ইতিহাস, খেলাধুলো, খাদ্যসামগ্রী, শিল্পচর্চা, পোশাক-পরিচ্ছদ এবং দৃশ্যশিল্পের ইতিহাসের আধুনিক ধারণা।",
-          keyPointsEn: [
-            "Social history shifted focus from kings and battles to common people.",
-            "In 1911, Mohun Bagan won the IFA Shield, a historical event in Indian nationalism.",
-            "Visual sources like photography and painting serve as crucial contemporary records."
-          ],
-          keyPointsBn: [
-            "সামাজিক ইতিহাস রাজা-রানিদের বদলে সাধারণ মানুষের জীবনযাত্রার উপর ফোকাস করে।",
-            "১৯১১ সালে মোহনবাগানের আইএফএ শিল্ড জয় ভারতীয় জাতীয়তাবাদের ইতিহাসে এক ঐতিহাসিক ঘটনা।",
-            "ফটোগ্রাফি এবং পেইন্টিং-এর মতো দৃশ্যশিল্প সমকালীন ইতিহাসের গুরুত্বপূর্ণ উপাদান।"
-          ]
-        }
-      ]
-    }
-  ],
+  "9": class9Subjects,
+  "10": class10Subjects,
   "11": [
     {
       id: "math",
@@ -310,6 +136,40 @@ const SUBJECTS_DATA: Record<string, SubjectData[]> = {
             "সেট হল সুনির্দিষ্টভাবে সংজ্ঞায়িত ভিন্ন ভিন্ন বস্তুর সংকলন।",
             "ডি মর্গ্যানের সূত্র: (A ∪ B)' = A' ∩ B' এবং (A ∩ B)' = A' ∪ B'",
             "অপেক্ষক ডোমেন থেকে কো-ডোমেনে প্রতিটি উপাদানকে অনন্যভাবে ম্যাপ করে।"
+          ]
+        },
+        {
+          id: "complex-numbers",
+          chapterNameEn: "Complex Numbers",
+          chapterNameBn: "জটিল সংখ্যা",
+          summaryEn: "Understanding imaginary numbers, standard form a + ib, conjugates, modulus, and argument.",
+          summaryBn: "কাল্পনিক সংখ্যা i = √(-১), জটিল সংখ্যার সাধারণ আকার a + ib, মডুলাস ও অ্যামপ্লিচিউড নির্ণয়।",
+          keyPointsEn: [
+            "i^2 = -1, i^3 = -i, i^4 = 1.",
+            "Modulus of z = a + ib is |z| = √(a^2 + b^2).",
+            "Conjugate of z = a + ib is z' = a - ib."
+          ],
+          keyPointsBn: [
+            "i^২ = -১, i^৩ = -i, i^৪ = ১।",
+            "z = a + ib জটিল সংখ্যার মডুলাস হল |z| = √(a^২ + b^২)।",
+            "z = a + ib জটিল সংখ্যার অনুবন্ধী সংখ্যা হল z' = a - ib।"
+          ]
+        },
+        {
+          id: "sequence-series-11",
+          chapterNameEn: "Sequence and Series",
+          chapterNameBn: "প্রগতি ও শ্রেণী",
+          summaryEn: "Arithmetic Progression (AP) and Geometric Progression (GP), finding general terms and sum of n terms.",
+          summaryBn: "সমান্তর প্রগতি (AP) এবং গুণোত্তর প্রগতি (GP) এর সাধারণ পদ ও প্রথম n পদের সমষ্টি নির্ণয়।",
+          keyPointsEn: [
+            "Arithmetic Progression n-th term: t_n = a + (n-1)d. Sum of n terms: S_n = (n/2)[2a + (n-1)d].",
+            "Geometric Progression n-th term: t_n = a * r^(n-1). Sum of n terms: S_n = a(r^n - 1)/(r - 1) for r > 1.",
+            "Arithmetic Mean (AM) >= Geometric Mean (GM) for positive real numbers."
+          ],
+          keyPointsBn: [
+            "সমান্তর প্রগতির n-তম পদ: t_n = a + (n-১)d; সমষ্টি: S_n = (n/২)[২a + (n-১)d]।",
+            "গুণোত্তর প্রগতির n-তম পদ: t_n = a * r^(n-১); সমষ্টি: S_n = a(r^n - ১)/(r - ১) যেখানে r > ১।",
+            "ধনাত্মক বাস্তব সংখ্যার ক্ষেত্রে সমান্তরীয় মধ্যক (AM) সর্বদা গুণোত্তরীয় মধ্যক (GM) অপেক্ষা বড় বা সমান।"
           ]
         }
       ]
@@ -335,6 +195,208 @@ const SUBJECTS_DATA: Record<string, SubjectData[]> = {
             "গতির সমীকরণ: v = u + at, s = ut + ০.৫*at², v² = u² + ২as",
             "অতিক্রান্ত দূরত্ব স্কেলার রাশি; সরণ ভেক্টর রাশি।",
             "সময়ের সাপেক্ষে বেগের পরিবর্তনের হারকেই ত্বরণ বলে।"
+          ]
+        },
+        {
+          id: "laws-of-motion",
+          chapterNameEn: "Newton's Laws of Motion",
+          chapterNameBn: "নিউটনের গতিসূত্রাবলী",
+          summaryEn: "Inertia, force, momentum, Newton's three laws of motion, and conservation of linear momentum.",
+          summaryBn: "জাড্য ধর্ম, বলের সংজ্ঞা, ভরবেগ, নিউটনের তিনটি গতিসূত্র এবং রৈখিক ভরবেগের সংরক্ষণ সূত্র।",
+          keyPointsEn: [
+            "First Law: Defines inertia and force. Second Law: F = ma.",
+            "Third Law: To every action there is an equal and opposite reaction.",
+            "Momentum is product of mass and velocity (p = mv)."
+          ],
+          keyPointsBn: [
+            "প্রথম সূত্র থেকে জাড্য ধর্ম এবং বলের পরিমাপহীন ধারণা পাওয়া যায়। দ্বিতীয় সূত্র: F = ma।",
+            "তৃতীয় সূত্র: প্রত্যেক ক্রিয়ারই সমান ও বিপরীত প্রতিক্রিয়া আছে।",
+            "ভরবেগ হল ভর ও বেগের গুণফল (p = mv)।"
+          ]
+        },
+        {
+          id: "work-energy-power-11",
+          chapterNameEn: "Work, Energy and Power",
+          chapterNameBn: "কার্য, ক্ষমতা ও শক্তি",
+          summaryEn: "Work done by constant/variable force, kinetic and potential energy, work-energy theorem, and conservation of mechanical energy.",
+          summaryBn: "স্থির ও পরিবর্তনশীল বল দ্বারা কৃতকার্য, গতিশক্তি ও স্থিতিশক্তির ধারণা, কার্য-শক্তি উপপাদ্য এবং যান্ত্রিক শক্তির সংরক্ষণ সূত্র।",
+          keyPointsEn: [
+            "Work done W = F * s * cos(θ). Work is zero if force and displacement are perpendicular.",
+            "Kinetic Energy K = 0.5 * m * v². Potential Energy U = m * g * h.",
+            "Work-Energy Theorem: Work done by all forces equals the change in kinetic energy."
+          ],
+          keyPointsBn: [
+            "কৃতকার্য W = F * s * cos(θ)। বল এবং সরণ পরস্পর লম্ব হলে কৃতকার্য শূন্য হয়।",
+            "গতিশক্তি K = ০.৫ * m * v²; স্থিতিশক্তি U = m * g * h।",
+            "কার্য-শক্তি উপপাদ্য: সমস্ত বল দ্বারা কৃতকার্য বস্তুর গতিশক্তির পরিবর্তনের সমান।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "chemistry",
+      nameEn: "Chemistry",
+      nameBn: "রসায়ন",
+      icon: "🧪",
+      chapters: [
+        {
+          id: "basic-concepts",
+          chapterNameEn: "Basic Concepts of Chemistry",
+          chapterNameBn: "রসায়নের প্রাথমিক ধারণা",
+          summaryEn: "Mole concept, empirical and molecular formulas, stoichiometry, and limiting reagents.",
+          summaryBn: "মোল ধারণা, স্থূল সংকেত ও আণবিক সংকেত এবং রাসায়নিক সমীকরণ সংক্রান্ত গণনা।",
+          keyPointsEn: [
+            "One mole of any substance contains 6.022 * 10^23 entities (Avogadro's number).",
+            "Molar volume of any ideal gas at STP is 22.4 liters.",
+            "Empirical formula represents the simplest whole-number ratio of atoms."
+          ],
+          keyPointsBn: [
+            "যেকোনো পদার্থের এক মোলে ৬.০২২ * ১০^২৩ টি কণা থাকে (অ্যাভোগাড্রো সংখ্যা)।",
+            "STP-তে যেকোনো আদর্শ গ্যাসের মোলার আয়তন ২২.৪ লিটার।",
+            "স্থূল সংকেত অণুর মধ্যে অবস্থিত পরমাণুগুলির সরলতম অনুপাত প্রকাশ করে।"
+          ]
+        },
+        {
+          id: "structure-of-atom-11",
+          chapterNameEn: "Structure of Atom",
+          chapterNameBn: "পরমাণুর গঠন",
+          summaryEn: "Discovery of subatomic particles, Bohr's atomic model, dual nature of matter, Heisenberg's uncertainty principle, and quantum numbers.",
+          summaryBn: "পরমাণুর উপাদানসমূহ, বোরের পরমাণু মডেল, পদার্থের দ্বৈত সত্তা, হাইজেনবার্গের অনিশ্চয়তা নীতি এবং কোয়ান্টাম সংখ্যার আলোচনা।",
+          keyPointsEn: [
+            "Bohr's model: Electrons revolve in stationary orbits where angular momentum is mvr = nh / 2π.",
+            "Heisenberg's Uncertainty Principle: It is impossible to determine both position and momentum of an electron simultaneously.",
+            "Four quantum numbers: Principal (n), Azimuthal (l), Magnetic (m), and Spin (s) define electron states."
+          ],
+          keyPointsBn: [
+            "বোরের মডেল: ইলেকট্রনগুলি নির্দিষ্ট কক্ষপথে ঘোরে যেখানে কৌণিক ভরবেগ mvr = nh / ২π হয়।",
+            "হাইজেনবার্গের অনিশ্চয়তা নীতি: ইলেকট্রনের অবস্থান ও ভরবেগ একই সঙ্গে নির্ভুলভাবে নির্ণয় করা অসম্ভব।",
+            "চারটি কোয়ান্টাম সংখ্যা: মুখ্য (n), গৌণ (l), চুম্বকীয় (m) ও ঘূর্ণন (s) ইলেকট্রনের শক্তি ও অবস্থান নির্দেশ করে।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "biology",
+      nameEn: "Biology",
+      nameBn: "জীববিজ্ঞান",
+      icon: "🌿",
+      chapters: [
+        {
+          id: "cell-structure",
+          chapterNameEn: "Cell: Structure and Functions",
+          chapterNameBn: "কোষ: গঠন ও কাজ",
+          summaryEn: "Cell theory, prokaryotic vs eukaryotic cells, cell organelles and plasma membrane structure.",
+          summaryBn: "কোষ তত্ত্ব, প্রোক্যারিওটিক ও ইউক্যারিওটিক কোষের তুলনা এবং গুরুত্বপূর্ণ কোষ অঙ্গাণুর আলোচনা।",
+          keyPointsEn: [
+            "Mitochondria is known as the powerhouse of the cell.",
+            "Ribosomes are the sites of protein synthesis.",
+            "Fluid Mosaic Model of plasma membrane was proposed by Singer and Nicolson."
+          ],
+          keyPointsBn: [
+            "মাইটোকন্ড্রিয়াকে কোষের শক্তিঘর বলা হয়।",
+            "রাইবোজোম কোষে প্রোটিন সংশ্লেষের প্রধান স্থান।",
+            "প্লাজما পর্দার ফ্লুইড মোজাইক মডেল সিঙ্গার এবং নিকোলসন প্রস্তাব করেন।"
+          ]
+        },
+        {
+          id: "plant-kingdom-11",
+          chapterNameEn: "Plant Kingdom",
+          chapterNameBn: "উদ্ভিদ রাজ্য",
+          summaryEn: "Classification of plants: Algae, Bryophytes, Pteridophytes, Gymnosperms, and Angiosperms.",
+          summaryBn: "উদ্ভিদ জগতের শ্রেণীবিন্যাস: শৈবাল, ব্রায়োফাইটা বা শ্যাওলা, টেরিডোফাইটা বা ফার্ন, ব্যক্তজীবী ও গুপ্তজীবী উদ্ভিদ।",
+          keyPointsEn: [
+            "Bryophytes are called amphibians of the plant kingdom because they require water for fertilization.",
+            "Pteridophytes are the first terrestrial vascular plants.",
+            "Gymnosperms produce naked seeds while Angiosperms produce seeds enclosed within fruits."
+          ],
+          keyPointsBn: [
+            "ব্রায়োফাইটদের উদ্ভিদ রাজ্যের উভচর বলা হয় কারণ তাদের নিষেক প্রক্রিয়ার জন্য জলের প্রয়োজন হয়।",
+            "টেরিডোফাইট হল প্রথম স্থলজ সংবহনকলাযুক্ত উদ্ভিদ।",
+            "ব্যক্তজীবী উদ্ভিদের বীজ অনাবৃত থাকে এবং গুপ্তজীবী উদ্ভিদের বীজ ফলের মধ্যে আবৃত থাকে।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "english",
+      nameEn: "English",
+      nameBn: "ইংরেজি",
+      icon: "📖",
+      chapters: [
+        {
+          id: "leelas-friend",
+          chapterNameEn: "Leela's Friend",
+          chapterNameBn: "লীলা'স ফ্রেন্ড",
+          summaryEn: "Analysis of R.K. Narayan's short story exploring social differences through Sidda and Leela.",
+          summaryBn: "আর. কে. নারায়ণ রচিত গল্পে সিদ্দা ও লীলার নিষ্পাপ বন্ধুত্বের ট্র্যাজেডি এবং সামাজিক বৈষম্য বিশ্লেষণ।",
+          keyPointsEn: [
+            "Sidda is employed as a servant in Sivasanker's household.",
+            "Leela develops deep trust and plays with Sidda daily.",
+            "Sidda is falsely accused of stealing Leela's gold chain, exposing class prejudice."
+          ],
+          keyPointsBn: [
+            "সিদ্দা শিবশঙ্করের পরিবারে একজন গৃহভৃত্য হিসেবে কাজে যোগ দেয়।",
+            "লীলা সিদ্দার প্রতি গভীর বিশ্বাস ও সখ্যতা গড়ে তোলে।",
+            "লীলার সোনার চেন চুরির মিথ্যা অপবাদ সিদ্দার উপর দেওয়া হয়, যা সামাজিক শ্রেণির নির্মম রূপ দেখায়।"
+          ]
+        },
+        {
+          id: "meeting-at-night-11",
+          chapterNameEn: "Meeting at Night",
+          chapterNameBn: "মিটিং অ্যাট নাইট",
+          summaryEn: "Analysis of Robert Browning's love poem depicting the speaker's journey across land and sea to meet his beloved.",
+          summaryBn: "রবার্ট ব্রাউনিং রচিত প্রেমের কবিতা যেখানে বক্তা সমস্ত বাধা অতিক্রম করে রাতে তার প্রেমিকার সাথে সাক্ষাৎ করতে যান।",
+          keyPointsEn: [
+            "The poem is divided into two parts: the journey across the sea, and the walk across the beach/fields.",
+            "Sensory imagery like 'gray sea', 'yellow half-moon', 'warm slushy scent' enhances the physical experience.",
+            "The quiet scratch and the blue spurt of a lighted match symbolize the intense and secret reunion."
+          ],
+          keyPointsBn: [
+            "কবিতাটি দুটি অংশে বিভক্ত: সমুদ্রের উপর দিয়ে প্রথম যাত্রা এবং সমুদ্র সৈকত ও খেতের মধ্য দিয়ে হেঁটে যাওয়া।",
+            "ধূসর সমুদ্র, হলদেটে অর্ধচন্দ্র ও উষ্ণ কাদার গন্ধের মতো সংবেদনশীল চিত্রকল্প মানুষের বাস্তব অনুভূতি প্রকাশ করে।",
+            "দিয়াশলাই জ্বালানোর নীল আলো এবং মৃদু আওয়াজ প্রেমিক-প্রেমিকার গোপন ও তীব্র মিলনকে প্রতিফলিত করে।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "bengali",
+      nameEn: "Bengali",
+      nameBn: "বাংলা",
+      icon: "✍️",
+      chapters: [
+        {
+          id: "kartar-bhoot",
+          chapterNameEn: "Kartar Bhoot",
+          chapterNameBn: "কর্তার ভূত",
+          summaryEn: "Analysis of Rabindranath Tagore's satirical allegory about blind traditionalism.",
+          summaryBn: "রবীন্দ্রনাথ ঠাকুরের রূপকধর্মী গল্প 'কর্তার ভূত'-এর অন্ধ কুসংস্কার এবং জাতীয় মানসিকতার রাজনৈতিক ব্যাখ্যা।",
+          keyPointsEn: [
+            "The 'Karta' represents absolute traditional authority governing blindly.",
+            "Ghostly regimentation paralyzes critical thinking and progress in the country.",
+            "Highlights the necessity of independent awakening against blind dogmatism."
+          ],
+          keyPointsBn: [
+            "এখানে 'কর্তা' বলতে অন্ধ অতীত প্রথা ও রক্ষণশীল শাসনকে রূপক হিসেবে দেখানো হয়েছে।",
+            "ভূতগ্রস্ত সমাজ স্বাধীন চিন্তা এবং যুক্তিবাদকে অবদমিত করে রাখে।",
+            "গল্পের শেষে স্বাধীন চেতনার উন্মেষ ও অন্ধ কুসংস্কারমুক্ত হওয়ার বার্তা দেওয়া হয়েছে।"
+          ]
+        },
+        {
+          id: "dakater-ma-11",
+          chapterNameEn: "Dakat-er Ma",
+          chapterNameBn: "ডাকাতের মা",
+          summaryEn: "Analysis of Satinath Bhaduri's social story portraying a mother's perspective on her robber son's life.",
+          summaryBn: "সতীনাথ ভাদুড়ী রচিত গল্প যেখানে একজন ডাকাতের মায়ের মানসিকতা, দারিদ্র্য ও মাতৃত্বের এক করুণ চিত্র প্রকাশ পেয়েছে।",
+          keyPointsEn: [
+            "The mother is accustomed to her son's long absences and the sudden late-night knocks on the door.",
+            "Despite being a robber's mother, she has her own morals and is deeply hurt when the police arrest her son.",
+            "The story highlights the harsh social reality and poverty of the lower class."
+          ],
+          keyPointsBn: [
+            "মা তার ছেলের দীর্ঘ অনুপস্থিতি ও গভীর রাতে দরজায় কড়া নাড়ার চিরাচরিত অভ্যাসের সাথে পরিচিত।",
+            "ডাকাতের মা হওয়া সত্ত্বেও তার মধ্যে নিজস্ব এক নৈতিকতা কাজ করে এবং ছেলের গ্রেফতারি তাকে ব্যথিত করে।",
+            "গল্পটিতে নিম্নবিত্ত মানুষের তীব্র অর্থনৈতিক দারিদ্র্য ও সামাজিক অসহায়তার নিখুঁত প্রকাশ ঘটেছে।"
           ]
         }
       ]
@@ -363,6 +425,40 @@ const SUBJECTS_DATA: Record<string, SubjectData[]> = {
             "অবকলন হল তাৎক্ষণিক পরিবর্তনের হার: dy/dx = lim(h->০) [f(x+h) - f(x)] / h",
             "কোনো বিন্দুতে অপেক্ষক অন্তরকলনযোগ্য হলে সেটি অবশ্যই ওই বিন্দুতে সন্তত হবে।"
           ]
+        },
+        {
+          id: "matrices",
+          chapterNameEn: "Matrices and Determinants",
+          chapterNameBn: "ম্যাট্রিক্স এবং ডিটারমিন্যান্ট",
+          summaryEn: "Matrix algebra, types of matrices, determinant properties, Cramer's rule, and inverse of a matrix.",
+          summaryBn: "ম্যাট্রিক্সের প্রকারভেদ, বিপরীত ম্যাট্রিক্স নির্ণয়, ক্র্যামার নিয়মে সমীকরণ সমাধান এবং ডিটারমিন্যান্টের ধর্মাবলী।",
+          keyPointsEn: [
+            "Matrix multiplication is non-commutative in general (AB ≠ BA).",
+            "A matrix A has an inverse if and only if determinant |A| ≠ 0.",
+            "Cramer's Rule is used to solve a system of linear equations using determinants."
+          ],
+          keyPointsBn: [
+            "ম্যাট্রিক্সের গুণ সাধারণত বিনিময় নিয়ম মেনে চলে না (AB ≠ BA)।",
+            "একটি ম্যাট্রিক্সের বিপরীত ম্যাট্রিক্স থাকবে যদি এবং কেবল যদি |A| ≠ ০ হয়।",
+            "ক্র্যামার নিয়মের সাহায্যে নির্ণায়কের মাধ্যমে সরল সহসমীকরণ সহজে সমাধান করা যায়।"
+          ]
+        },
+        {
+          id: "probability-12",
+          chapterNameEn: "Probability",
+          chapterNameBn: "সম্ভাবনা তত্ত্ব",
+          summaryEn: "Conditional probability, multiplication theorem, independent events, Bayes' theorem, and random variables.",
+          summaryBn: "শর্তাধীন সম্ভাবনা, গুণের উপপাদ্য, স্বাধীন ঘটনা, বায়েসের উপপাদ্য এবং সমসম্ভব চলক সংক্রান্ত আলোচনা।",
+          keyPointsEn: [
+            "Conditional Probability: P(A|B) = P(A ∩ B) / P(B) where P(B) ≠ 0.",
+            "Bayes' Theorem: Calculates posterior probability of an event given prior evidence.",
+            "Total probability must equal 1, and probability values must be between 0 and 1."
+          ],
+          keyPointsBn: [
+            "শর্তাধীন সম্ভাবনা: P(A|B) = P(A ∩ B) / P(B) যেখানে P(B) ≠ ০।",
+            "বায়েসের উপপাদ্য (Bayes' Theorem): পূর্ববর্তী প্রমাণের ওপর ভিত্তি করে ঘটনার সম্ভাবনা নির্ণয় করে।",
+            "সম্ভাবনার মোট মান সর্বদা ১ হয় এবং যেকোনো ঘটনার সম্ভাবনা ০ থেকে ১ এর মধ্যে থাকে।"
+          ]
         }
       ]
     },
@@ -389,6 +485,208 @@ const SUBJECTS_DATA: Record<string, SubjectData[]> = {
             "তড়িৎক্ষেত্রের প্রাবল্য E = F / q।",
             "গাউসের উপপাদ্য: আবদ্ধ তলে মোট তড়িৎ ফ্লাক্স Φ = Q_enclosed / ε০।",
             "সমান্তরাল পাত ধারকের ধারকত্ব: C = ε০ * A / d।"
+          ]
+        },
+        {
+          id: "current-elec",
+          chapterNameEn: "Current Electricity",
+          chapterNameBn: "প্রবাহী তড়িৎ",
+          summaryEn: "Ohm's Law, drift velocity, Kirchhoff's Laws, Wheatstone Bridge, and Potentiometer.",
+          summaryBn: "ওহমের সূত্র, মুক্ত ইলেকট্রনের তাড়ন বেগ, কির্শফের সূত্রসমূহ, হুইটস্টোন ব্রিজ এবং পটেনশিওমিটারের কার্যনীতি।",
+          keyPointsEn: [
+            "Kirchhoff's Current Law (KCL) is based on conservation of charge.",
+            "Kirchhoff's Voltage Law (KVL) is based on conservation of energy.",
+            "Wheatstone Bridge balance condition: P/Q = R/S."
+          ],
+          keyPointsBn: [
+            "কির্শফের প্রথম সূত্র (KCL) আধান সংরক্ষণের ওপর ভিত্তি করে প্রতিষ্ঠিত।",
+            "কির্শফের দ্বিতীয় সূত্র (KVL) শক্তি সংরক্ষণের ওপর ভিত্তি করে প্রতিষ্ঠিত।",
+            "হুইটস্টোন ব্রিজের সাম্যাবস্থার শর্ত হল: P/Q = R/S।"
+          ]
+        },
+        {
+          id: "emi-ac-12",
+          chapterNameEn: "Electromagnetic Induction & Alternating Current",
+          chapterNameBn: "তড়িৎচুম্বকীয় আবেশ ও পরিবর্তী প্রবাহ",
+          summaryEn: "Faraday's Laws, Lenz's Law, self and mutual induction, alternating currents, peak and RMS value, LCR series circuit, and resonance.",
+          summaryBn: "ফ্যারাডের সূত্রাবলী, লেঞ্জের সূত্র, স্বাবেশ ও পারস্পরিক আবেশ, পরিবর্তী প্রবাহের শীর্ষ ও আর.এম.এস মান, LCR শ্রেণী বর্তনী এবং অনুনাদ।",
+          keyPointsEn: [
+            "Lenz's Law is a consequence of the law of conservation of energy.",
+            "RMS value of alternating current: I_rms = I_0 / √2.",
+            "In an LCR series circuit, resonance occurs when inductive reactance equals capacitive reactance (X_L = X_C)."
+          ],
+          keyPointsBn: [
+            "লেঞ্জের সূত্রটি শক্তি সংরক্ষণ সূত্রের একটি প্রত্যক্ষ রূপ বা রূপান্তর মাত্র।",
+            "পরিবর্তী প্রবাহের কার্যকর বা RMS মান: I_rms = I_০ / √২।",
+            "LCR শ্রেণী বর্তনীতে যখন আবেশকীয় প্রতিঘাত ও ধারকীয় প্রতিঘাত সমান হয় (X_L = X_C), তখন অনুনাদ ঘটে।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "chemistry",
+      nameEn: "Chemistry",
+      nameBn: "রসায়ন",
+      icon: "🧪",
+      chapters: [
+        {
+          id: "solid-state",
+          chapterNameEn: "Solid State Chemistry",
+          chapterNameBn: "পদার্থের কঠিন অবস্থা",
+          summaryEn: "Classification of solids, crystalline lattices, unit cells, closed packing, and defects in solids.",
+          summaryBn: "কঠিন পদার্থের শ্রেণীবিন্যাস, কেলাস জালক, একক কোষে পরমাণু সংখ্যা এবং কেলাসের ত্রুটিসমূহ।",
+          keyPointsEn: [
+            "Types of unit cells: Simple Cubic, Body-Centered (BCC), Face-Centered (FCC).",
+            "Bragg's Law: 2d sin θ = nλ.",
+            "Schottky defect decreases density of the crystal; Frenkel defect leaves it unchanged."
+          ],
+          keyPointsBn: [
+            "একক কোষের প্রকার: সরল ঘনকাকার, দেহ-কেন্দ্রিক (BCC), পৃষ্ঠ-কেন্দ্রিক (FCC)।",
+            "ব্র্যাগের সূত্র: ২d sin θ = nλ।",
+            "শটকি ত্রুটির কারণে কেলাসের ঘনত্ব হ্রাস পায়; ফ্রেনকেল ত্রুটিতে ঘনত্ব অপরিবর্তিত থাকে।"
+          ]
+        },
+        {
+          id: "solutions-12",
+          chapterNameEn: "Solutions",
+          chapterNameBn: "দ্রবণ",
+          summaryEn: "Types of solutions, concentration expressions, solubility of gases in liquids (Henry's Law), Raoult's Law, and colligative properties.",
+          summaryBn: "দ্রবণের প্রকারভেদ, গাঢ়ত্ব প্রকাশের বিভিন্ন একক, তরলে গ্যাসের দ্রাব্যতা (হেনরীর সূত্র), রাউল্টের সূত্র এবং দ্রবণের সংখ্যাগত ধর্মাবলী।",
+          keyPointsEn: [
+            "Henry's Law: Solubility of a gas in a liquid is directly proportional to its partial pressure.",
+            "Raoult's Law for non-volatile solutes: Relative lowering of vapor pressure equals the mole fraction of the solute.",
+            "Colligative properties depend only on the number of solute particles, not their nature (e.g., Osmotic pressure, Elevation of boiling point)."
+          ],
+          keyPointsBn: [
+            "হেনরীর সূত্র: তরলে গ্যাসের দ্রাব্যতা গ্যাসটির আংশিক চাপের সাথে সমানুপাতিক।",
+            "অনুদায়ী দ্রাবের ক্ষেত্রে রাউল্টের সূত্র: দ্রবণের বাষ্পচাপের আপেক্ষিক অবমনন দ্রাবের মোল ভগ্নাংশের সমান।",
+            "দ্রবণের সংখ্যাগত ধর্মাবলি কেবল দ্রবণে উপস্থিত দ্রাব কণার সংখ্যার ওপর নির্ভর করে, দ্রাবের প্রকৃতির ওপর নয় (যেমন- অভিস্রবণ চাপ, স্ফুটনাঙ্কের উন্নয়ন)।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "biology",
+      nameEn: "Biology",
+      nameBn: "জীববিজ্ঞান",
+      icon: "🌿",
+      chapters: [
+        {
+          id: "genetics",
+          chapterNameEn: "Genetics and Evolution",
+          chapterNameBn: "বংশগতি ও বিবর্তন",
+          summaryEn: "Mendelian inheritance, linkage, DNA as genetic material, transcription, and translation.",
+          summaryBn: "মেন্ডেলের বংশগতি সূত্র, লিংকেজ, বংশগত বস্তু হিসেবে DNA-র প্রমাণ এবং প্রোটিন সংশ্লেষ প্রক্রিয়া।",
+          keyPointsEn: [
+            "Mendel's Law of Segregation and Law of Independent Assortment.",
+            "DNA replication is semi-conservative, proven by Meselson and Stahl.",
+            "Transcription converts DNA to mRNA; Translation converts mRNA to protein."
+          ],
+          keyPointsBn: [
+            "মেন্ডেলের পৃথকীভবন সূত্র এবং স্বাধীন সঞ্চরণ সূত্র।",
+            "DNA রেপ্লিকেশন অর্ধ-রক্ষণশীল প্রকৃতির (মেселসন ও স্টাহল পরীক্ষা)।",
+            "ট্রান্সক্রিপশনের মাধ্যমে DNA থেকে mRNA তৈরি হয়; ট্রান্সলেশনের মাধ্যমে mRNA থেকে প্রোটিন গঠিত হয়।"
+          ]
+        },
+        {
+          id: "human-repro-12",
+          chapterNameEn: "Human Reproduction",
+          chapterNameBn: "মানুষের জনন",
+          summaryEn: "Male and female reproductive systems, gametogenesis, menstrual cycle, fertilization, embryonic development, and parturition.",
+          summaryBn: "পুরুষ ও স্ত্রী জননতন্ত্রের গঠন, গ্যামেট উৎপাদন (শুক্রাণু ও ডিম্বাণু উৎপাদন), রজঃচক্র, নিষেক, ভ্রূণের বিকাশ ও সন্তান প্রসব প্রক্রিয়া।",
+          keyPointsEn: [
+            "Spermatogenesis occurs in the seminiferous tubules; Oogenesis occurs in the ovaries.",
+            "Menstrual cycle is regulated by hormones like LH, FSH, Estrogen, and Progesterone.",
+            "Fertilization takes place in the ampulla region of the fallopian tube."
+          ],
+          keyPointsBn: [
+            "শুক্রাণু উৎপাদন সেমিনিফেরাস নালিকায় ঘটে এবং ডিম্বাণু উৎপাদন ডিম্বাশয়ে ঘটে।",
+            "রজঃচক্র LH, FSH, ইস্ট্রোজেন এবং প্রোজেস্টেরনের মতো হরমোন দ্বারা নিয়ন্ত্রিত হয়।",
+            "নিষেক প্রক্রিয়া ডিম্বনালীর অ্যাম্পুলা (Ampulla) অংশে সম্পন্ন হয়।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "english",
+      nameEn: "English",
+      nameBn: "ইংরেজি",
+      icon: "📖",
+      chapters: [
+        {
+          id: "eyes-have-it",
+          chapterNameEn: "The Eyes Have It",
+          chapterNameBn: "দ্য আইজ হ্যাভ ইট",
+          summaryEn: "Analysis of Ruskin Bond's romantic irony regarding two blind passengers in a train compartment.",
+          summaryBn: "রাসকিন বন্ড রচিত ট্রেনের কামরায় দুটি অন্ধ সহযাত্রীর কথোপকথনের চমৎকার রোমান্টিক এবং লৌকিক রস বিশ্লেষণ।",
+          keyPointsEn: [
+            "The narrator tries to hide his blindness from the girl who boards at Rohana.",
+            "They share small elegant conversations about Mussoorie and her face.",
+            "At the end, the new passenger reveals that the girl was also completely blind."
+          ],
+          keyPointsBn: [
+            "গল্পকথক রোহানা থেকে ট্রেনে ওঠা তরুণীর কাছ থেকে নিজের অন্ধত্ব গোপন করার চেষ্টা করেন।",
+            "তাঁরা মুসৌরি ও তরুণীর সুন্দর মুখমণ্ডল নিয়ে চমৎকার সংক্ষিপ্ত মতবিনিময় করেন।",
+            "সবশেষে, কামরায় ওঠা নতুন যাত্রীটি প্রকাশ করেন যে সেই তরুণীটিও সম্পূর্ণ অন্ধ ছিলেন।"
+          ]
+        },
+        {
+          id: "strong-roots-12",
+          chapterNameEn: "Strong Roots",
+          chapterNameBn: "স্ট্রং রুটস",
+          summaryEn: "Extract from A.P.J. Abdul Kalam's autobiography 'Wings of Fire' describing his early life and his father's spiritual teachings.",
+          summaryBn: "এ.পি.জে. আবদুল কালামের আত্মজীবনী 'উইংস অব ফায়ার' থেকে সংগৃহীত অংশ যেখানে তাঁর শৈশব ও বাবার আধ্যাত্মিক শিক্ষার বর্ণনা রয়েছে।",
+          keyPointsEn: [
+            "Kalam was born into a middle-class Tamil family in the island town of Rameswaram.",
+            "His father, Jainulabdeen, possessed great innate wisdom and a true generosity of spirit.",
+            "Kalam's father believed that adversity always presents opportunities for introspection."
+          ],
+          keyPointsBn: [
+            "কালাম রামেশ্বরম দ্বীপ শহরের এক মধ্যবিত্ত তামিল পরিবারে জন্মগ্রহণ করেন।",
+            "তাঁর পিতা জয়নুল আবেদিনের কোনো আনুষ্ঠানিক শিক্ষা বা সম্পদ না থাকলেও গভীর জ্ঞান ও উদারতা ছিল।",
+            "কালামের পিতা বিশ্বাস করতেন যে প্রতিকূলতা সর্বদা মানুষের আত্মদর্শনের সুযোগ তৈরি করে দেয়।"
+          ]
+        }
+      ]
+    },
+    {
+      id: "bengali",
+      nameEn: "Bengali",
+      nameBn: "বাংলা",
+      icon: "✍️",
+      chapters: [
+        {
+          id: "ke-bachay",
+          chapterNameEn: "Ke Bachay Ke Bache",
+          chapterNameBn: "কে বাঁচায় কে বাঁচে",
+          summaryEn: "Analysis of Manik Bandopadhyay's story about Nikhil and Mrityunjay surviving the Bengal Famine of 1943.",
+          summaryBn: "মানিক বন্দ্যোপাধ্যায় রচিত পঞ্চাশের মন্বন্তরের পটভূমিতে নিখিল ও মৃত্যুঞ্জয়ের নৈতিক লড়াই ও মনস্তাত্ত্বিক বিপর্যয়।",
+          keyPointsEn: [
+            "Mrityunjay is deeply shocked to see a starvation death on the street.",
+            "He neglects his job and family to feed the poor in gruel kitchens.",
+            "Gradually, his humanity leads to self-ruin as he joins the beggars on the pavement."
+          ],
+          keyPointsBn: [
+            "প্রথমবার ফুটপাতে অনাহারে মৃত্যু দেখে মৃত্যুঞ্জয়ের মানসিক ও শারীরিক বিপর্যয় ঘটে।",
+            "সে দরিদ্রদের অন্ন দিতে নিজের মাইনে, চাকরি ও সংসার ত্যাগ করে লঙ্গরখানায় ঘুরে বেড়ায়।",
+            "অবশেষে সে নিজেই ফুটপাতে ধুলোবালি মেখে ভিক্ষুকদের একজন হয়ে যায়।"
+          ]
+        },
+        {
+          id: "bhat-12",
+          chapterNameEn: "Bhat",
+          chapterNameBn: "ভাত",
+          summaryEn: "Analysis of Mahasweta Devi's story depicting a poor peasant Utsav's desperate search for rice (food) in a wealthy household.",
+          summaryBn: "মহাশ্বেতা দেবী রচিত গল্পে উৎসব নামক এক হতদরিদ্র মানুষের ভাতের প্রতি তীব্র আকাঙ্ক্ষা এবং ধনী সমাজের নিষ্ঠুরতা চিত্রিত হয়েছে।",
+          keyPointsEn: [
+            "Utsav loses his family and home in a natural disaster (Matla river flood).",
+            "He comes to Kolkata and works in a wealthy household, hoping for a meal of rice.",
+            "The story exposes the massive contrast between the food waste of the rich and the absolute starvation of the poor."
+          ],
+          keyPointsBn: [
+            "মাতলা নদীর বন্যায় উৎসব তার ঘরবাড়ি ও পরিবারকে হারিয়ে সর্বস্বান্ত হয়ে পড়ে।",
+            "সে কলকাতায় এসে এক ধনী পরিবারে কাঠ কাটার কাজ করতে শুরু করে কেবল এক মুঠো ভাতের আশায়।",
+            "ধনী বাড়ির বিপুল অপচয় ও উৎসবের তীব্র ক্ষুধার লড়াইয়ের মাধ্যমে গল্পটিতে কঠোর শ্রেণী বৈষম্য ফুটে উঠেছে।"
           ]
         }
       ]
@@ -424,6 +722,38 @@ const PYQS_DATA: Record<string, PYQData[]> = {
   ],
   "hs": [
     {
+      id: "hs-math-2024",
+      subjectEn: "Mathematics",
+      subjectBn: "গণিত",
+      year: 2024,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "Evaluate: integral of (x * e^x) / (1 + x)^2 dx.",
+          qBn: "মান নির্ণয় করো: সমাকলন (x * e^x) / (1 + x)^2 dx।",
+          marks: 4,
+          answerEn: "Rewrite the numerator: x = (x + 1) - 1.\nIntegral = ∫ [e^x * (x+1 - 1) / (x+1)^2] dx = ∫ e^x [1/(x+1) - 1/(x+1)^2] dx.\nSince d/dx [1/(x+1)] = -1/(x+1)^2, this is of the form ∫ e^x [f(x) + f'(x)] dx.\nTherefore, the value of the integral is e^x / (x+1) + C.",
+          answerBn: "লবকে সাজিয়ে পাই: x = (x + ১) - ১।\nসমাকলন = ∫ [e^x * (x+১ - ১) / (x+১)^২] dx = ∫ e^x [১/(x+১) - ১/(x+১)^২] dx।\nযেহেতু d/dx [১/(x+১)] = -১/(x+১)^২, এটি ∫ e^x [f(x) + f'(x)] dx আকারের।\nঅতএব, সমাকলনের মান হল e^x / (x+১) + C।"
+        }
+      ]
+    },
+    {
+      id: "hs-phys-2024",
+      subjectEn: "Physics",
+      subjectBn: "পদার্থবিদ্যা",
+      year: 2024,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "State Gauss's Theorem in electrostatics. Apply it to find the electric field intensity due to an infinitely long straight charged wire.",
+          qBn: "স্থির তড়িৎবিজ্ঞানে গাউসের উপপাদ্যটি বিবৃত করো। এর সাহায্যে একটি অসীম দৈর্ঘ্যের সুষমভাবে আহিত ঋজু তারের জন্য কোনো বিন্দুতে তড়িৎক্ষেত্র প্রাবল্য নির্ণয় করো।",
+          marks: 5,
+          answerEn: "1. Gauss's Law: The total electric flux through a closed surface is 1/ε0 times the total charge enclosed by the surface: ∮ E·dA = Q_encl / ε0.\n2. Consider a cylindrical Gaussian surface of radius r and length L coaxial with the charged wire of linear charge density λ.\n3. Total enclosed charge Q = λ * L.\n4. Flux through cylindrical surface = E * (2 * π * r * L).\n5. By Gauss's Law: E * (2 * π * r * L) = λ * L / ε0 => E = λ / (2 * π * ε0 * r).",
+          answerBn: "১. গাউসের সূত্র: কোনো বন্ধ তলের মধ্য দিয়ে অতিক্রান্ত মোট তড়িৎ ফ্লাক্স ওই তলের অভ্যন্তরে অবস্থিত মোট আধানের ১/ε০ গুণ: ∮ E·dA = Q_encl / ε০।\n২. r ব্যাসার্ধ এবং L দৈর্ঘ্যের একটি চোঙাকৃতি গাউসীয় তল বিবেচনা করি যা λ রৈখিক আধান ঘনত্বযুক্ত তারটির অক্ষ বরাবর অবস্থিত।\n৩. তল দ্বারা আবদ্ধ মোট আধান Q = λ * L।\n৪. চোঙের বক্রতলের মধ্য দিয়ে অতিক্রান্ত ফ্লাক্স = E * (২ * π * r * L)।\n৫. গাউসের সূত্রানুযায়ী: E * (২ * π * r * L) = λ * L / ε০ => E = λ / (২ * π * ε০ * r)।"
+        }
+      ]
+    },
+    {
       id: "hs-phys-2023",
       subjectEn: "Physics",
       subjectBn: "পদার্থবিদ্যা",
@@ -436,6 +766,86 @@ const PYQS_DATA: Record<string, PYQData[]> = {
           marks: 3,
           answerEn: "1. Let A be plate area, d be distance, +Q and -Q charges.\n2. Electric field between plates E = σ / ε0 = Q / (A * ε0).\n3. Potential difference V = E * d = Q * d / (A * ε0).\n4. Capacitance C = Q / V = ε0 * A / d.",
           answerBn: "১. ধরি, পাতের ক্ষেত্রফল A, পাতদ্বয়ের দূরত্ব d এবং আধান +Q ও -Q।\n২. পাতদ্বয়ের মধ্যবর্তী তড়িৎক্ষেত্র E = σ / ε০ = Q / (A * ε০)।\n৩. বিভব প্রভেদ V = E * d = Q * d / (A * ε০)।\n৪. ধারকত্ব C = Q / V = ε০ * A / d।"
+        }
+      ]
+    },
+    {
+      id: "hs-math-2023",
+      subjectEn: "Mathematics",
+      subjectBn: "গণিত",
+      year: 2023,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "If y = e^(a * sin^-1(x)), prove that (1 - x^2) y_2 - x y_1 - a^2 y = 0.",
+          qBn: "যদি y = e^(a * sin^-1(x)) হয়, তবে প্রমাণ করো যে (1 - x^2) y_2 - x y_1 - a^2 y = 0।",
+          marks: 4,
+          answerEn: "Differentiating both sides with respect to x:\ny_1 = e^(a * sin^-1(x)) * (a / √(1 - x^2)) = a * y / √(1 - x^2).\nSquaring both sides:\ny_1^2 (1 - x^2) = a^2 y^2.\nDifferentiating again with respect to x:\n2 * y_1 * y_2 * (1 - x^2) + y_1^2 * (-2x) = a^2 * 2 * y * y_1.\nDividing both sides by 2 * y_1 (assuming y_1 ≠ 0):\n(1 - x^2) y_2 - x y_1 = a^2 y => (1 - x^2) y_2 - x y_1 - a^2 y = 0. Hence Proved.",
+          answerBn: "উভয় পক্ষকে x এর সাপেক্ষে অবকলন করে পাই:\ny_1 = e^(a * sin^-1(x)) * (a / √(১ - x^২)) = a * y / √(১ - x^২)।\nউভয় পক্ষকে বর্গ করে পাই:\ny_1^২ (১ - x^২) = a^২ y^২।\nপুনরায় x এর সাপেক্ষে অবকলন করে পাই:\n২ * y_1 * y_2 * (১ - x^২) + y_1^২ * (-২x) = a^২ * ২ * y * y_1।\nউভয় পক্ষকে ২ * y_1 দিয়ে ভাগ করে পাই (ধরি y_1 ≠ ০):\n(১ - x^২) y_2 - x y_1 = a^২ y => (১ - x^২) y_2 - x y_1 - a^২ y = ০ (প্রমাণিত)।"
+        }
+      ]
+    },
+    {
+      id: "hs-chem-2022",
+      subjectEn: "Chemistry",
+      subjectBn: "রসায়ন",
+      year: 2022,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "State Raoult's law for a solution containing non-volatile solute. What is meant by isotonic solutions?",
+          qBn: "অনুদ্বায়ী দ্রাব যুক্ত দ্রবণের ক্ষেত্রে রাউল্টের সূত্রটি বিবৃত করো। আইসোটোনিক দ্রবণ বলতে কী বোঝো?",
+          marks: 3,
+          answerEn: "1. Raoult's Law: The relative lowering of vapor pressure of a dilute solution containing a non-volatile solute is equal to the mole fraction of the solute in the solution: (P0 - Ps) / P0 = x2.\n2. Isotonic Solutions: Two solutions having the same osmotic pressure at a given temperature are called isotonic solutions. If they are separated by a semipermeable membrane, no osmosis occurs.",
+          answerBn: "১. রাউল্টের সূত্র: কোনো অনুদ্বায়ী দ্রাবের লঘু দ্রবণের বাষ্পচাপের আপেক্ষিক অবমনন দ্রবণে উপস্থিত দ্রাবের মোল ভগ্নাংশের সমান: (P০ - Ps) / P০ = x২।\n২. আইসোটোনিক দ্রবণ: নির্দিষ্ট উষ্ণতায় যে দুটি দ্রবণের অভিস্রবণ চাপ সমান হয়, তাদের আইসোটোনিক দ্রবণ বলা হয়। এদের অর্ধভেদ্য পর্দা দিয়ে পৃথক করে রাখলে কোনো অভিস্রবণ ঘটে না।"
+        }
+      ]
+    },
+    {
+      id: "hs-phys-2022",
+      subjectEn: "Physics",
+      subjectBn: "পদার্থবিদ্যা",
+      year: 2022,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "Write down the conditions for sustained interference of light. Why can two independent light sources not produce interference?",
+          qBn: "স্থায়ী আলোর ব্যতিচারের শর্তাবলী লেখো। দুটি স্বতন্ত্র আলোক উৎস কেন ব্যতিচার সৃষ্টি করতে পারে না?",
+          marks: 3,
+          answerEn: "1. Conditions: (a) The two light sources must be coherent (constant phase difference). (b) The sources must emit continuous waves of the same wavelength and amplitude. (c) The distance between sources must be small, and the screen should be far.\n2. Independent sources cannot produce interference because they do not maintain a constant phase difference over time. Light is emitted in random wave packets of duration ~10^-8 s, leading to rapid, random phase shifts.",
+          answerBn: "১. শর্তাবলী: (ক) আলোক উৎস দুটি অবশ্যই সুসঙ্গত (ধ্রুবক দশা পার্থক্যযুক্ত) হতে হবে। (খ) উৎস দুটি থেকে একই তরঙ্গদৈর্ঘ্য ও বিস্তারের আলো নির্গত হতে হবে। (গ) উৎস দুটির মধ্যবর্তী দূরত্ব খুব কম এবং পর্দা দূরে থাকতে হবে।\n২. দুটি স্বতন্ত্র আলোক উৎস সুসঙ্গত উৎস হতে পারে না, কারণ তাদের দশা পার্থক্য সময়ের সাথে নিয়ত পরিবর্তিত হয়। পরমাণু থেকে আলো প্রায় ১০^-৮ সেকেন্ড ধরে অত্যন্ত বিশৃঙ্খলভাবে নির্গত হয়।"
+        }
+      ]
+    },
+    {
+      id: "hs-bio-2021",
+      subjectEn: "Biology",
+      subjectBn: "জীববিজ্ঞান",
+      year: 2021,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "Define Linkage. What is the difference between complete and incomplete linkage?",
+          qBn: "লিংকেজ (Linkage) এর সংজ্ঞা দাও। সম্পূর্ণ ও অসম্পূর্ণ লিংকেজের মধ্যে পার্থক্য কী?",
+          marks: 3,
+          answerEn: "1. Linkage: The tendency of genes located on the same chromosome to stay together during inheritance and pass into the gametes as a unit.\n2. Complete Linkage: Linked genes do not show crossing over and are inherited together for generations, preserving parental traits. Incomplete Linkage: Linked genes tend to separate occasionally due to crossing over, producing new recombinant combinations in offspring.",
+          answerBn: "১. লিংকেজ: একই ক্রোমোজোমে অবস্থিত জিনগুলির বংশানুসরণের সময় একত্রিত থাকার এবং গ্যামেটে একসাথে স্থানান্তরিত হওয়ার প্রবণতাকে লিংকেজ বলে।\n২. সম্পূর্ণ লিংকেজ: লিংকড জিনগুলির মধ্যে ক্রসিং ওভার ঘটে না এবং জিনগুলি জনু জনু ধরে একসাথে সঞ্চারিত হয়ে হুবহু মাতৃবৈশিষ্ট্য বজায় রাখে। অসম্পূর্ণ লিংকেজ: ক্রসিং ওভার ঘটার ফলে লিংকড জিনগুলি মাঝে মাঝে পৃথক হয়ে যায় এবং অপত্য জীবের মধ্যে নতুন চারিত্রিক রিকম্বিনেশন তৈরি করে।"
+        }
+      ]
+    },
+    {
+      id: "hs-eng-2021",
+      subjectEn: "English",
+      subjectBn: "ইংরেজি",
+      year: 2021,
+      board: "WBCHSE",
+      questions: [
+        {
+          qEn: "Describe the narrator's encounter with the girl in 'The Eyes Have It' and the irony at the end.",
+          qBn: "'The Eyes Have It' গল্পে কথকের সাথে তরুণীটির সাক্ষাৎ এবং শেষ মুহূর্তের পরিহাসটি বর্ণনা করো।",
+          marks: 5,
+          answerEn: "The narrator, who was completely blind, was traveling alone in a train compartment when a girl boarded. He tried to hide his blindness from her by engaging in pleasant conversation, describing Mussoorie, and commenting on her face. The girl also conversed smoothly without revealing her visual status. The ultimate irony is revealed after the girl departs and a new passenger enters, informing the narrator that the girl was completely blind as well. Both characters spent the journey pretending to see, hiding their blindness from each other.",
+          answerBn: "সম্পূর্ণ অন্ধ কথক ট্রেনের কামরায় একাকী ভ্রমণ করার সময় একটি মেয়ে কামরায় ওঠে। কথক মেয়েটির কাছে নিজের অন্ধত্ব আড়াল করতে চমৎকার কথোপকথন চালান, মুসৌরির বর্ণনা দেন এবং তার মুখের প্রশংসা করেন। মেয়েটিও নিজের অন্ধত্বের কথা প্রকাশ না করে স্বাভাবিকভাবে কথা বলে চলে। চূড়ান্ত বিদ্রূপ বা পরিহাস প্রকাশ পায় মেয়েটি নেমে যাওয়ার পর, যখন এক নতুন সহযাত্রী এসে কথককে জানান যে মেয়েটিও সম্পূর্ণ অন্ধ ছিলেন। দুজনেই সারা পথ একে অপরের কাছে চোখ থাকার ভান করেছিলেন।"
         }
       ]
     }
@@ -955,7 +1365,7 @@ function RenderMath({ id, formula }: { id: string; formula: string }) {
   }
 }
 
-export default function SchoolSection({ lang, theme, onNavigate }: SchoolSectionProps) {
+export default function SchoolSection({ lang, theme, onNavigate, profile }: SchoolSectionProps) {
   const [selectedClass, setSelectedClass] = useState<"9" | "10" | "11" | "12">("10");
   const [selectedBoard, setSelectedBoard] = useState<string>("madhyamik");
   const [activeTab, setActiveTab] = useState<"notes" | "boardPrep" | "formulas">("notes");
@@ -982,6 +1392,178 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
   const [selectedPYQId, setSelectedPYQId] = useState<string>("");
   const [showAnswerForId, setShowAnswerForId] = useState<string>("");
   
+  // Custom uploaded board papers
+  const [uploadedPapers, setUploadedPapers] = useState<BoardPrepPaper[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  
+  // Local fallback uploaded papers
+  const [localPapers, setLocalPapers] = useState<BoardPrepPaper[]>(() => {
+    const saved = localStorage.getItem("local_board_papers");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Upload form state definitions
+  const [uploadSubjectEn, setUploadSubjectEn] = useState("");
+  const [uploadSubjectBn, setUploadSubjectBn] = useState("");
+  const [uploadYear, setUploadYear] = useState<number>(2024);
+  const [uploadFileUrl, setUploadFileUrl] = useState("");
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [uploadFileType, setUploadFileType] = useState<"pdf" | "image" | "none">("none");
+  const [uploadDragging, setUploadDragging] = useState(false);
+
+  // Load uploaded papers from Firestore in real-time
+  useEffect(() => {
+    if (!profile) return;
+    
+    const q = query(
+      collection(db, "boardPrepPapers"),
+      orderBy("timestamp", "desc")
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const papers: BoardPrepPaper[] = [];
+      snapshot.forEach((docSnap) => {
+        papers.push({ id: docSnap.id, ...docSnap.data() } as BoardPrepPaper);
+      });
+      setUploadedPapers(papers);
+    }, (error) => {
+      console.error("Error listening to board papers: ", error);
+    });
+    
+    return () => unsubscribe();
+  }, [profile]);
+
+  // Process the uploaded file to Base64
+  const processUploadedFile = (file: File) => {
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isImage = file.type.startsWith("image/") || 
+                    file.name.toLowerCase().endsWith(".jpg") || 
+                    file.name.toLowerCase().endsWith(".jpeg") || 
+                    file.name.toLowerCase().endsWith(".png");
+
+    if (!isPdf && !isImage) {
+      alert(lang === "bn" ? "দয়া করে শুধুমাত্র পিডিএফ বা ইমেজ ফাইল আপলোড করুন (PDF, JPG, JPEG, PNG)" : "Please upload PDF or Image files only (PDF, JPG, JPEG, PNG).");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert(lang === "bn" ? "ফাইল সাইজ ৩ মেগাবাইটের বেশি হওয়া যাবে না।" : "File size must be under 3MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadFileUrl(reader.result as string);
+      setUploadFileName(file.name);
+      setUploadFileType(isPdf ? "pdf" : "image");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadPaper = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (profile?.role !== "Admin") {
+      alert(lang === "bn" ? "শুধুমাত্র অ্যাডমিন প্রশ্নপত্র বা নোট আপলোড করতে পারবেন।" : "Only Admins can upload question papers or notes.");
+      return;
+    }
+    if (!uploadSubjectEn.trim() || !uploadSubjectBn.trim()) {
+      alert(lang === "bn" ? "দয়া করে বিষয়ের নাম ইংরেজি ও বাংলায় লিখুন" : "Please enter the subject name in both English and Bengali.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    const paperId = `custom-pyq-${Date.now()}`;
+    const newPaper: BoardPrepPaper = {
+      id: paperId,
+      uploaderEmail: profile?.email || "guest@studyhub.edu",
+      uploaderName: profile?.fullName || "Guest Student",
+      board: selectedBoard,
+      year: Number(uploadYear),
+      subjectEn: uploadSubjectEn,
+      subjectBn: uploadSubjectBn,
+      fileUrl: uploadFileUrl || undefined,
+      fileName: uploadFileName || undefined,
+      fileType: uploadFileType !== "none" ? uploadFileType : undefined,
+      timestamp: new Date().toISOString(),
+      questions: [
+        {
+          qEn: `Board Exam Paper uploaded by student: ${uploadFileName || "Exam_Paper.pdf"}`,
+          qBn: `শিক্ষার্থী দ্বারা আপলোডকৃত বোর্ড পরীক্ষার প্রশ্নপত্র: ${uploadFileName || "Exam_Paper.pdf"}`,
+          marks: 100,
+          answerEn: "Please click 'View Attached Paper' or 'Download' above to see the full document.",
+          answerBn: "অনুগ্রহ করে উপরের 'ফাইল দেখুন' বা 'ডাউনলোড' বাটনে ক্লিক করে সম্পূর্ণ প্রশ্নপত্রটি দেখুন।"
+        }
+      ]
+    };
+
+    try {
+      if (profile) {
+        // Save to Firestore
+        await addDoc(collection(db, "boardPrepPapers"), newPaper);
+      } else {
+        // Save locally to localStorage
+        const updatedLocal = [newPaper, ...localPapers];
+        setLocalPapers(updatedLocal);
+        localStorage.setItem("local_board_papers", JSON.stringify(updatedLocal));
+      }
+
+      alert(lang === "bn" ? "প্রশ্নপত্রটি সফলভাবে আপলোড করা হয়েছে!" : "Board exam paper uploaded successfully!");
+      
+      // Select the uploaded paper
+      setSelectedPYQId(paperId);
+      
+      // Reset upload states
+      setUploadSubjectEn("");
+      setUploadSubjectBn("");
+      setUploadFileUrl("");
+      setUploadFileName("");
+      setUploadFileType("none");
+      setShowUploadForm(false);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert(lang === "bn" ? "আপলোড করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।" : "Error uploading paper. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteUploadedPaper = async (paperId: string) => {
+    if (!window.confirm(lang === "bn" ? "আপনি কি নিশ্চিতভাবে এই প্রশ্নপত্রটি মুছে ফেলতে চান?" : "Are you sure you want to delete this exam paper?")) {
+      return;
+    }
+
+    try {
+      if (profile) {
+        // Find document in firestore and delete it
+        const q = query(collection(db, "boardPrepPapers"), where("id", "==", paperId));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(async (docSnap) => {
+          await deleteDoc(doc(db, "boardPrepPapers", docSnap.id));
+        });
+      } else {
+        // Delete locally
+        const updatedLocal = localPapers.filter(p => p.id !== paperId);
+        setLocalPapers(updatedLocal);
+        localStorage.setItem("local_board_papers", JSON.stringify(updatedLocal));
+      }
+
+      alert(lang === "bn" ? "প্রশ্নপত্রটি মুছে ফেলা হয়েছে!" : "Paper deleted successfully!");
+      
+      // Select the first available paper
+      const nextBoardPapers = boardPrepPYQs.filter(p => p.id !== paperId);
+      if (nextBoardPapers.length > 0) {
+        setSelectedPYQId(nextBoardPapers[0].id);
+      } else {
+        setSelectedPYQId("");
+      }
+    } catch (err) {
+      console.error("Error deleting paper:", err);
+      alert("Failed to delete paper. Please try again.");
+    }
+  };
+  
   // Formulas state
   const [formulaSearch, setFormulaSearch] = useState<string>("");
   const [formulaSubject, setFormulaSubject] = useState<"all" | "math" | "physics" | "chemistry">("all");
@@ -997,12 +1579,13 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
       setSelectedBoard("madhyamik");
     } else {
       setSelectedBoard("hs");
+      setActiveTab("boardPrep");
     }
     // Auto reset selection of subject and chapter
     const firstSubject = SUBJECTS_DATA[selectedClass]?.[0];
     if (firstSubject) {
       setSelectedSubjectId(firstSubject.id);
-      setSelectedChapterId(firstSubject.chapters[0]?.id || "");
+      setSelectedChapterId("all");
     }
   }, [selectedClass]);
 
@@ -1010,7 +1593,7 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
   useEffect(() => {
     const currentSubject = SUBJECTS_DATA[selectedClass]?.find(s => s.id === selectedSubjectId);
     if (currentSubject && currentSubject.chapters.length > 0) {
-      setSelectedChapterId(currentSubject.chapters[0].id);
+      setSelectedChapterId("all");
     } else {
       setSelectedChapterId("");
     }
@@ -1509,18 +2092,41 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
   const currentSubjectObj = availableSubjects.find(s => s.id === selectedSubjectId);
   const currentChapterObj = currentSubjectObj?.chapters.find(c => c.id === selectedChapterId);
 
-  // Get PYQ list for selected board
-  const boardPrepPYQs = PYQS_DATA[selectedBoard] || [];
+  // Get custom papers for selected board (Only for Class 11 and 12)
+  const activeCustomPapers = (selectedClass === "11" || selectedClass === "12")
+    ? (profile ? uploadedPapers : localPapers)
+        .filter(p => p.board === selectedBoard)
+        .map(up => ({
+          id: up.id,
+          subjectEn: up.subjectEn,
+          subjectBn: up.subjectBn,
+          year: up.year,
+          board: up.board,
+          questions: up.questions || [],
+          fileUrl: up.fileUrl,
+          fileName: up.fileName,
+          fileType: up.fileType,
+          uploaderEmail: up.uploaderEmail,
+          uploaderName: up.uploaderName,
+          isCustom: true
+        }))
+    : [];
+
+  // Get PYQ list for selected board (merging uploaded papers)
+  const boardPrepPYQs = [
+    ...activeCustomPapers,
+    ...(PYQS_DATA[selectedBoard] || [])
+  ];
   const activePYQ = boardPrepPYQs.find(p => p.id === selectedPYQId) || boardPrepPYQs[0];
 
-  // Auto set active PYQ if changed board
+  // Auto set active PYQ if changed board or class
   useEffect(() => {
     if (boardPrepPYQs.length > 0) {
       setSelectedPYQId(boardPrepPYQs[0].id);
     } else {
       setSelectedPYQId("");
     }
-  }, [selectedBoard]);
+  }, [selectedBoard, uploadedPapers, localPapers, selectedClass]);
 
   // Syllabus list for selected board
   const boardSyllabus = SYLLABUS_DATA[selectedBoard] || [];
@@ -1584,41 +2190,43 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
       </div>
 
       {/* Main Tab Controls - Responsive grid on mobile, flex on desktop */}
-      <div className="grid grid-cols-3 md:flex gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/80 w-full md:w-auto">
-        <button
-          onClick={() => setActiveTab("notes")}
-          className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
-            activeTab === "notes"
-              ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">{lang === "bn" ? "অধ্যায়" : "Chapters"}</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("boardPrep")}
-          className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
-            activeTab === "boardPrep"
-              ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">{lang === "bn" ? "বোর্ড" : "Board Prep"}</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("formulas")}
-          className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
-            activeTab === "formulas"
-              ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="truncate">{lang === "bn" ? "সূত্র" : "Formula"}</span>
-        </button>
-      </div>
+      {(selectedClass === "9" || selectedClass === "10") && (
+        <div className="grid grid-cols-3 md:flex gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/80 w-full md:w-auto">
+          <button
+            onClick={() => setActiveTab("notes")}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+              activeTab === "notes"
+                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <span className="truncate">{lang === "bn" ? "অধ্যায়" : "Chapters"}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("boardPrep")}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+              activeTab === "boardPrep"
+                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <span className="truncate">{lang === "bn" ? "বোর্ড" : "Board Prep"}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("formulas")}
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+              activeTab === "formulas"
+                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <span className="truncate">{lang === "bn" ? "সূত্র" : "Formula"}</span>
+          </button>
+        </div>
+      )}
 
       {/* RENDER ACTIVE TAB */}
       <AnimatePresence mode="wait">
@@ -1673,6 +2281,17 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                     {lang === "bn" ? "অধ্যায়সমূহ" : "Chapters"}
                   </h4>
                   <div className="flex flex-col sm:flex-row lg:flex-col gap-1.5 pb-2 lg:pb-0 w-full">
+                    <button
+                      onClick={() => setSelectedChapterId("all")}
+                      className={`flex-1 lg:w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-black transition-all ${
+                        selectedChapterId === "all"
+                          ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-l-2 lg:border-l-4 border-emerald-500"
+                          : `${theme.textMain} hover:bg-slate-100 dark:hover:bg-slate-800/50`
+                      }`}
+                    >
+                      {lang === "bn" ? "সব অধ্যায় একসাথে" : "All Chapters Combined"}
+                    </button>
+
                     {currentSubjectObj.chapters.map((ch) => (
                       <button
                         key={ch.id}
@@ -1693,7 +2312,110 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
 
             {/* Content area on the right */}
             <div className="lg:col-span-9">
-              {currentChapterObj ? (
+              {selectedChapterId === "all" && currentSubjectObj && currentSubjectObj.chapters.length > 0 ? (
+                <div className="space-y-8">
+                  {/* Subject Overview Header */}
+                  <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 lg:p-8 space-y-4 shadow-xs`}>
+                    <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-black uppercase tracking-wider mb-2.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        {lang === "bn" ? `${selectedClass}ম শ্রেণীর নোটস` : `Class ${selectedClass} notes`}
+                      </span>
+                      <h2 className={`text-xl md:text-3xl font-black ${theme.textHeading} leading-tight`}>
+                        {lang === "bn" ? `${currentSubjectObj.nameBn} - সকল অধ্যায় একসাথে` : `${currentSubjectObj.nameEn} - All Chapters Combined`}
+                      </h2>
+                      <p className={`text-[11px] md:text-xs ${theme.textMuted} font-semibold mt-1.5`}>
+                        {lang === "bn" ? `মোট অধ্যায়: ${currentSubjectObj.chapters.length} টি` : `Total Chapters: ${currentSubjectObj.chapters.length}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Render list of all chapters */}
+                  {currentSubjectObj.chapters.map((ch, idx) => (
+                    <div 
+                      key={ch.id} 
+                      className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 lg:p-8 space-y-5 md:space-y-6 shadow-xs relative`}
+                    >
+                      <div className="absolute top-4 right-4 text-xs font-black text-slate-300 dark:text-slate-700 select-none">
+                        #{idx + 1}
+                      </div>
+
+                      <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-wider mb-2">
+                          {lang === "bn" ? `অধ্যায় - ০${idx + 1}` : `Chapter - 0${idx + 1}`}
+                        </span>
+                        <h3 className={`text-lg md:text-xl font-black ${theme.textHeading} leading-tight`}>
+                          {lang === "bn" ? ch.chapterNameBn : ch.chapterNameEn}
+                        </h3>
+                      </div>
+
+                      {/* Summary Box */}
+                      <div className="p-4 md:p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+                        <h4 className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${theme.primaryText}`}>
+                          {lang === "bn" ? "অধ্যায় সারসংক্ষেপ" : "Chapter Summary"}
+                        </h4>
+                        <p className={`text-xs md:text-sm ${theme.textMain} leading-relaxed`}>
+                          {lang === "bn" ? ch.summaryBn : ch.summaryEn}
+                        </p>
+                      </div>
+
+                      {/* Detailed Key Points */}
+                      <div className="space-y-3.5">
+                        <h4 className={`text-xs md:text-sm font-black ${theme.textHeading} flex items-center gap-2`}>
+                          <FileCheck className="h-4 w-4 md:h-5 md:w-5 text-emerald-500" />
+                          {lang === "bn" ? "গুরুত্বপূর্ণ সংক্ষিপ্ত আলোচনা ও সূত্র" : "Important Short Concepts & Formulas"}
+                        </h4>
+                        <div className="grid gap-2.5">
+                          {(lang === "bn" ? ch.keyPointsBn : ch.keyPointsEn).map((point, pIdx) => (
+                            <div 
+                              key={pIdx}
+                              className="flex gap-2.5 md:gap-3 p-3.5 md:p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 text-xs md:text-sm font-medium items-start shadow-2xs"
+                            >
+                              <span className="flex-shrink-0 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-[10px] md:text-xs font-black mt-0.5">
+                                {pIdx + 1}
+                              </span>
+                              <span className={`${theme.textMain} leading-relaxed flex-1 min-w-0 break-words`}>{point}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* PDF View & Download Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 mt-6">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-red-500/20 text-red-600 rounded-lg flex items-center justify-center font-bold flex-shrink-0">
+                            PDF
+                          </div>
+                          <div>
+                            <h4 className={`text-xs font-black ${theme.textHeading}`}>
+                              {lang === "bn" 
+                                ? `${ch.chapterNameBn} - সম্পূর্ণ পিডিএফ` 
+                                : `${ch.chapterNameEn} - Complete Chapter PDF`}
+                            </h4>
+                            <p className={`text-[10px] ${theme.textMuted} font-semibold`}>Size: 1.8 MB | Pages: 12</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0">
+                          <button 
+                            onClick={() => setViewingPdfChapter(ch)}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            {lang === "bn" ? "পিডিএফ দেখুন" : "View PDF"}
+                          </button>
+                          <button 
+                            onClick={() => downloadChapterPdfHtml(ch)}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            {lang === "bn" ? "ডাউনলোড করুন" : "Download PDF"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : currentChapterObj ? (
                 <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 lg:p-8 space-y-5 md:space-y-6 shadow-xs`}>
                   <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-black uppercase tracking-wider mb-2.5">
@@ -1892,6 +2614,30 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                     </h4>
                     
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-2 pb-2 lg:pb-0 w-full">
+                      {/* Upload Past Paper button (Only for Class 11 and 12 and Admin) */}
+                      {(selectedClass === "11" || selectedClass === "12") && profile?.role === "Admin" && (
+                        <button
+                          onClick={() => {
+                            setSelectedPYQId("upload_new");
+                          }}
+                          className={`flex-1 lg:w-full p-3.5 rounded-xl lg:rounded-2xl border border-dashed transition-all flex items-center justify-center gap-2 font-sans ${
+                            selectedPYQId === "upload_new"
+                              ? "bg-emerald-600/15 border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                              : `bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 ${theme.textMain} hover:border-emerald-500/50 hover:bg-emerald-500/5`
+                          }`}
+                        >
+                          <Upload className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <div className="text-left">
+                            <span className="text-xs font-black block leading-none">
+                              {lang === "bn" ? "প্রশ্নপত্র আপলোড" : "Upload Past Paper"}
+                            </span>
+                            <span className={`text-[9px] ${theme.textMuted} font-semibold mt-0.5 block leading-none`}>
+                              {lang === "bn" ? "বিগত ৪ বছরের" : "Previous 4 Years"}
+                            </span>
+                          </div>
+                        </button>
+                      )}
+
                       {boardPrepPYQs.map((pyq) => (
                         <button
                           key={pyq.id}
@@ -1926,34 +2672,297 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
 
                   {/* Right questions with expandable answers */}
                   <div className="lg:col-span-8 space-y-4">
-                    {activePYQ ? (
+                    {selectedPYQId === "upload_new" ? (
+                      <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 space-y-6 shadow-xs`}>
+                        <div className="border-b border-slate-150 dark:border-slate-800 pb-4 flex items-center justify-between">
+                          <div>
+                            <h3 className={`text-base md:text-xl font-black ${theme.textHeading}`}>
+                              {lang === "bn" ? "প্রশ্নপত্র আপলোড করুন" : "Upload Past Year Board Paper"}
+                            </h3>
+                            <p className={`text-[11px] md:text-xs ${theme.textMuted} font-semibold mt-1`}>
+                              {lang === "bn" ? "বিগত ৪ বছরের যেকোনো বিষয়ের বোর্ড পরীক্ষার প্রশ্নপত্র পিডিএফ বা ছবি আপলোড করুন।" : "Upload a PDF or image of any official past year board paper."}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPYQId(boardPrepPYQs[0]?.id || "")}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <form onSubmit={handleUploadPaper} className="space-y-4 font-sans">
+                          {/* Subject Input */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className={`text-xs font-black uppercase tracking-wider ${theme.textHeading}`}>
+                                {lang === "bn" ? "বিষয়ের নাম (ইংরেজি):" : "Subject Name (English):"}
+                              </label>
+                              <input
+                                type="text"
+                                value={uploadSubjectEn}
+                                onChange={(e) => setUploadSubjectEn(e.target.value)}
+                                placeholder="e.g. Mathematics, English"
+                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all ${
+                                  theme.isDark 
+                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
+                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                                }`}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className={`text-xs font-black uppercase tracking-wider ${theme.textHeading}`}>
+                                {lang === "bn" ? "বিষয়ের নাম (বাংলায়):" : "Subject Name (Bengali):"}
+                              </label>
+                              <input
+                                type="text"
+                                value={uploadSubjectBn}
+                                onChange={(e) => setUploadSubjectBn(e.target.value)}
+                                placeholder="যেমন: গণিত, ইংরেজি"
+                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all ${
+                                  theme.isDark 
+                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
+                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                                }`}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Year and Board */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className={`text-xs font-black uppercase tracking-wider ${theme.textHeading}`}>
+                                {lang === "bn" ? "পরীক্ষার বছর (বিগত ৪ বছর):" : "Exam Year (Last 4 Years):"}
+                              </label>
+                              <select
+                                value={uploadYear}
+                                onChange={(e) => setUploadYear(Number(e.target.value))}
+                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all cursor-pointer ${
+                                  theme.isDark 
+                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
+                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                                }`}
+                              >
+                                {[2024, 2023, 2022, 2021].map((y) => (
+                                  <option key={y} value={y}>{y}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className={`text-xs font-black uppercase tracking-wider ${theme.textHeading}`}>
+                                {lang === "bn" ? "বোর্ড/পরীক্ষা:" : "Board / Exam:"}
+                              </label>
+                              <input
+                                type="text"
+                                value={selectedBoard.toUpperCase()}
+                                disabled
+                                className="w-full px-4 py-2 rounded-xl text-xs font-bold border bg-slate-100 dark:bg-slate-950/60 text-slate-500 border-slate-200 dark:border-slate-800 cursor-not-allowed"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Drag and Drop File Upload */}
+                          <div className="space-y-1.5">
+                            <label className={`text-xs font-black uppercase tracking-wider ${theme.textHeading}`}>
+                              {lang === "bn" ? "প্রশ্নপত্র ফাইল (পিডিএফ বা ছবি):" : "Question Paper File (PDF or Image):"}
+                            </label>
+                            
+                            <div
+                              onDragOver={(e) => { e.preventDefault(); setUploadDragging(true); }}
+                              onDragLeave={() => setUploadDragging(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setUploadDragging(false);
+                                const file = e.dataTransfer.files?.[0];
+                                if (file) processUploadedFile(file);
+                              }}
+                              onClick={() => document.getElementById("past-paper-file-upload")?.click()}
+                              className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
+                                uploadDragging
+                                  ? "border-emerald-500 bg-emerald-500/10"
+                                  : uploadFileName
+                                    ? "border-emerald-500/50 bg-emerald-500/5"
+                                    : "border-slate-200 dark:border-slate-800 hover:border-emerald-500/30 hover:bg-slate-50/50 dark:hover:bg-slate-900/40"
+                              }`}
+                            >
+                              <input
+                                id="past-paper-file-upload"
+                                type="file"
+                                accept="application/pdf,image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) processUploadedFile(file);
+                                }}
+                                className="hidden"
+                              />
+
+                              {uploadFileName ? (
+                                <>
+                                  <FileCheck className="h-10 w-10 text-emerald-500" />
+                                  <div>
+                                    <p className={`text-xs font-black ${theme.textHeading}`}>{uploadFileName}</p>
+                                    <p className={`text-[10px] ${theme.textMuted} font-semibold uppercase mt-0.5`}>
+                                      {uploadFileType.toUpperCase()} • READY TO UPLOAD
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setUploadFileUrl("");
+                                      setUploadFileName("");
+                                      setUploadFileType("none");
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-600 text-[10px] font-black hover:bg-red-500/20 mt-1 transition-all"
+                                  >
+                                    {lang === "bn" ? "ফাইল পরিবর্তন" : "Change File"}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-10 w-10 text-slate-400 dark:text-slate-600" />
+                                  <div>
+                                    <p className={`text-xs font-black ${theme.textHeading}`}>
+                                      {lang === "bn" ? "এখানে ফাইল ড্র্যাগ অ্যান্ড ড্রপ করুন অথবা ব্রাউজ করুন" : "Drag & drop files here, or click to browse"}
+                                    </p>
+                                    <p className={`text-[10px] ${theme.textMuted} font-semibold mt-1`}>
+                                      Supports PDF, JPG, JPEG, PNG (Max 3MB)
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Submit Actions */}
+                          <div className="flex gap-2 pt-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPYQId(boardPrepPYQs[0]?.id || "")}
+                              className="px-4 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                            >
+                              {lang === "bn" ? "বাতিল করুন" : "Cancel"}
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isUploading}
+                              className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                            >
+                              {isUploading ? (
+                                <>
+                                  <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  <span>{lang === "bn" ? "আপলোড হচ্ছে..." : "Uploading..."}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span>{lang === "bn" ? "প্রশ্নপত্র জমা দিন" : "Submit Paper"}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    ) : activePYQ ? (
                       <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 space-y-5 md:space-y-6 shadow-xs`}>
                         <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div>
-                            <h3 className={`text-base md:text-lg font-black ${theme.textHeading}`}>
-                              {lang === "bn" ? activePYQ.subjectBn : activePYQ.subjectEn} ({activePYQ.year})
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className={`text-base md:text-lg font-black ${theme.textHeading}`}>
+                                {lang === "bn" ? activePYQ.subjectBn : activePYQ.subjectEn} ({activePYQ.year})
+                              </h3>
+                              {activePYQ.isCustom && (
+                                <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                                  {lang === "bn" ? "ছাত্রদের আপলোড" : "Student Upload"}
+                                </span>
+                              )}
+                            </div>
                             <p className={`text-[11px] md:text-xs ${theme.textMuted} font-semibold mt-1`}>
                               Board: {activePYQ.board.toUpperCase()} | {lang === "bn" ? "সম্পূর্ণ প্রশ্ন ও সমাধান গাইড" : "Complete Question & Solution Guide"}
                             </p>
                           </div>
                           <div className="flex gap-2">
-                            <button 
-                              onClick={() => setViewingPdfPYQ(activePYQ)}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-xs active:scale-95"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              {lang === "bn" ? "পিডিএফ দেখুন" : "View PDF"}
-                            </button>
-                            <button 
-                              onClick={() => downloadPyqPdfHtml(activePYQ)}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              {lang === "bn" ? "ডাউনলোড" : "Download PDF"}
-                            </button>
+                            {(!activePYQ.isCustom || activePYQ.fileUrl) && (
+                              <button 
+                                onClick={() => setViewingPdfPYQ(activePYQ)}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer shadow-xs active:scale-95"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                {lang === "bn" ? "পিডিএফ দেখুন" : "View PDF"}
+                              </button>
+                            )}
+                            {!activePYQ.isCustom && (
+                              <button 
+                                onClick={() => downloadPyqPdfHtml(activePYQ)}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                {lang === "bn" ? "ডাউনলোড" : "Download PDF"}
+                              </button>
+                            )}
                           </div>
                         </div>
+
+                        {/* If it's a student uploaded paper, show file info and quick actions card */}
+                        {activePYQ.isCustom && (
+                          <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-500/5 to-emerald-500/5 border border-teal-500/10 space-y-3 font-sans">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 font-extrabold shrink-0 text-xs">
+                                {activePYQ.fileType === "pdf" ? "PDF" : "IMG"}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={`text-xs font-black ${theme.textHeading} truncate`}>
+                                  {activePYQ.fileName || (lang === "bn" ? "পরীক্ষার প্রশ্নপত্র ডকুমেন্ট" : "Question Paper Document")}
+                                </h4>
+                                <p className={`text-[10px] ${theme.textMuted} font-semibold mt-0.5`}>
+                                  {lang === "bn" ? "আপলোড করেছেন:" : "Uploaded by:"} {activePYQ.uploaderName} • {activePYQ.uploaderEmail}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-150 dark:border-slate-800/40">
+                              {activePYQ.fileUrl && (
+                                <button
+                                  onClick={() => setViewingPdfPYQ(activePYQ)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  {lang === "bn" ? "প্রশ্নপত্র দেখুন" : "View Paper File"}
+                                </button>
+                              )}
+                              {activePYQ.fileUrl && (
+                                <button
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = activePYQ.fileUrl;
+                                    link.download = activePYQ.fileName || "exam_paper";
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-opacity-90 transition-all cursor-pointer"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                  {lang === "bn" ? "ডাউনলোড" : "Download File"}
+                                </button>
+                              )}
+                              
+                              {/* Delete Option for author or Admin */}
+                              {(!profile || activePYQ.uploaderEmail === profile?.email || profile?.role === "Admin") && (
+                                <button
+                                  onClick={() => handleDeleteUploadedPaper(activePYQ.id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-all cursor-pointer ml-auto"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  {lang === "bn" ? "প্রশ্নপত্র মুছুন" : "Delete Paper"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Question list */}
                         <div className="space-y-3.5">
@@ -2545,7 +3554,7 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
               {/* PDF Document Container */}
               <div 
                 id="printable-pyq-pdf-document"
-                className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 bg-slate-100 print:bg-white relative font-sans select-text"
+                className="flex-1 overflow-y-auto p-6 md:p-12 space-y-10 bg-slate-100 print:bg-white relative font-sans select-text"
               >
                 {/* Embedded Watermark for PDF Authenticity */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none z-0">
@@ -2554,85 +3563,123 @@ export default function SchoolSection({ lang, theme, onNavigate }: SchoolSection
                   </span>
                 </div>
 
-                {/* PAGE 1: PDF Cover Sheet */}
-                <div className="min-h-[70vh] bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden page-break-after z-10">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-red-600">
-                        STUDYHUB ACADEMY • BOARD PREPARATION
+                {viewingPdfPYQ.isCustom && viewingPdfPYQ.fileUrl ? (
+                  <div className="w-full space-y-6 relative z-10">
+                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800">
+                          {lang === "bn" ? "আপলোডকৃত মূল প্রশ্নপত্র ফাইল" : "Original Uploaded Exam Paper File"}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                          File Name: {viewingPdfPYQ.fileName}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-md">
+                        {viewingPdfPYQ.fileType?.toUpperCase()} Document
                       </span>
                     </div>
-                    
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
-                        PREVIOUS YEAR SOLVED PAPERS
-                      </span>
-                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                        {lang === "bn" ? viewingPdfPYQ.subjectBn : viewingPdfPYQ.subjectEn} ({viewingPdfPYQ.year})
-                      </h1>
-                      <p className="text-sm md:text-base text-slate-500 italic max-w-xl font-medium pt-2 border-t border-slate-150">
-                        {lang === "bn" 
-                          ? `পশ্চিমবঙ্গ এবং মাধ্যমিক/উচ্চমাধ্যমিক পরীক্ষার পূর্ণাঙ্গ প্রশ্নোত্তর ও সমাধান গাইড` 
-                          : `Complete past year paper questions with expert step-by-step solutions for target board exams.`}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                        BOARD / EXAM
-                      </span>
-                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
-                        {viewingPdfPYQ.board.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                        {lang === "bn" ? "পরীক্ষা সাল" : "EXAMINATION YEAR"}
-                      </span>
-                      <span className="text-xs font-bold text-slate-600 bg-amber-500/10 text-amber-700 px-3 py-1 rounded-full">
-                        {viewingPdfPYQ.year}
-                      </span>
-                    </div>
+                    {viewingPdfPYQ.fileType === "pdf" ? (
+                      <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-md bg-white">
+                        <iframe
+                          src={viewingPdfPYQ.fileUrl}
+                          className="w-full h-[65vh] border-none"
+                          title={viewingPdfPYQ.fileName}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex justify-center items-center p-6 bg-white rounded-2xl border border-slate-200 shadow-md">
+                        <img
+                          src={viewingPdfPYQ.fileUrl}
+                          className="max-w-full max-h-[65vh] rounded-xl object-contain"
+                          alt={viewingPdfPYQ.fileName}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* PAGE 2: Question & Solutions List */}
-                <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs space-y-6 md:space-y-8 relative z-10">
-                  <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-red-600 tracking-widest uppercase">
-                      {lang === "bn" ? "প্রশ্নপত্র ও সমাধান" : "Question Paper & Solutions"}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold">SECTION 1 • DETAILED ANSWERS</span>
-                  </div>
-
-                  <div className="space-y-8">
-                    {viewingPdfPYQ.questions.map((q, idx) => (
-                      <div key={idx} className="space-y-3.5 pb-6 border-b border-slate-150 last:border-none last:pb-0">
-                        <div className="flex justify-between items-start gap-4">
-                          <h3 className="text-sm md:text-base font-bold text-slate-900 leading-relaxed flex gap-2">
-                            <span className="text-red-500 shrink-0 font-black">Q{idx + 1}.</span>
-                            <span>{lang === "bn" ? q.qBn : q.qEn}</span>
-                          </h3>
-                          <span className="text-2xs font-extrabold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md shrink-0">
-                            {q.marks} {lang === "bn" ? "নম্বর" : "Marks"}
+                ) : (
+                  <>
+                    {/* PAGE 1: PDF Cover Sheet */}
+                    <div className="min-h-[70vh] bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden page-break-after z-10">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-red-600">
+                            STUDYHUB ACADEMY • BOARD PREPARATION
                           </span>
                         </div>
-
-                        <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-2">
-                          <span className="text-[9px] font-extrabold text-emerald-600 uppercase tracking-widest block">
-                            {lang === "bn" ? "উত্তর / গাণিতিক সমাধান:" : "Step-by-Step Solution:"}
+                        
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
+                            PREVIOUS YEAR SOLVED PAPERS
                           </span>
-                          <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
-                            {lang === "bn" ? q.answerBn : q.answerEn}
+                          <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                            {lang === "bn" ? viewingPdfPYQ.subjectBn : viewingPdfPYQ.subjectEn} ({viewingPdfPYQ.year})
+                          </h1>
+                          <p className="text-sm md:text-base text-slate-500 italic max-w-xl font-medium pt-2 border-t border-slate-150">
+                            {lang === "bn" 
+                              ? `পশ্চিমবঙ্গ এবং মাধ্যমিক/উচ্চমাধ্যমিক পরীক্ষার পূর্ণাঙ্গ প্রশ্নোত্তর ও সমাধান গাণিতিক সমাধান` 
+                              : `Complete past year paper questions with expert step-by-step solutions for target board exams.`}
                           </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+
+                      <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-8">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                            BOARD / EXAM
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                            {viewingPdfPYQ.board.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                            {lang === "bn" ? "পরীক্ষা সাল" : "EXAMINATION YEAR"}
+                          </span>
+                          <span className="text-xs font-bold text-slate-600 bg-amber-500/10 text-amber-700 px-3 py-1 rounded-full">
+                            {viewingPdfPYQ.year}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PAGE 2: Question & Solutions List */}
+                    <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-12 border border-slate-200 shadow-xs space-y-6 md:space-y-8 relative z-10">
+                      <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
+                        <span className="text-xs font-extrabold text-red-600 tracking-widest uppercase">
+                          {lang === "bn" ? "প্রশ্নপত্র ও সমাধান" : "Question Paper & Solutions"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold">SECTION 1 • DETAILED ANSWERS</span>
+                      </div>
+
+                      <div className="space-y-8">
+                        {viewingPdfPYQ.questions.map((q, idx) => (
+                          <div key={idx} className="space-y-3.5 pb-6 border-b border-slate-150 last:border-none last:pb-0">
+                            <div className="flex justify-between items-start gap-4">
+                              <h3 className="text-sm md:text-base font-bold text-slate-900 leading-relaxed flex gap-2">
+                                <span className="text-red-500 shrink-0 font-black">Q{idx + 1}.</span>
+                                <span>{lang === "bn" ? q.qBn : q.qEn}</span>
+                              </h3>
+                              <span className="text-2xs font-extrabold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md shrink-0">
+                                {q.marks} {lang === "bn" ? "নম্বর" : "Marks"}
+                              </span>
+                            </div>
+
+                            <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-2">
+                              <span className="text-[9px] font-extrabold text-emerald-600 uppercase tracking-widest block">
+                                {lang === "bn" ? "উত্তর / গাণিতিক সমাধান:" : "Step-by-Step Solution:"}
+                              </span>
+                              <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+                                {lang === "bn" ? q.answerBn : q.answerEn}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>

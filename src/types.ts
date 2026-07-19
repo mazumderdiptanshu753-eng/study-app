@@ -121,4 +121,25 @@ export interface Notification {
   userEmail?: string;
 }
 
+export interface BoardPrepPaper {
+  id: string;
+  uploaderEmail: string;
+  uploaderName: string;
+  board: string;
+  year: number;
+  subjectEn: string;
+  subjectBn: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: "pdf" | "image" | "none";
+  questions?: {
+    qEn: string;
+    qBn: string;
+    marks: number;
+    answerEn?: string;
+    answerBn?: string;
+  }[];
+  timestamp: string;
+}
+
 

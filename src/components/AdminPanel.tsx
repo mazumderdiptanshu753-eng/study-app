@@ -39,7 +39,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
           setMaintenanceMode(data.maintenanceMode);
         }
       })
-      .catch(e => console.error("Failed to fetch settings", e));
+      .catch(e => console.warn("Failed to fetch settings (transient network or server restart):", e));
   }, []);
 
   // App Release Update states

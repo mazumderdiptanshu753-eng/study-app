@@ -111,5 +111,26 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // 10. Board Preparation Papers Rules
+    match /boardPrepPapers/{paperId} {
+      function isValidBoardPaper(paper) {
+        return paper.id is string && paper.id.size() <= 128
+          && paper.uploaderEmail is string && paper.uploaderEmail.size() <= 256
+          && paper.uploaderName is string && paper.uploaderName.size() <= 200
+          && paper.board is string && paper.board.size() <= 100
+          && paper.year is number
+          && paper.subjectEn is string && paper.subjectEn.size() <= 200
+          && paper.subjectBn is string && paper.subjectBn.size() <= 200;
+      }
+
+      allow read: if true;
+      
+      allow create: if isAdmin()
+        && isValidId(paperId)
+        && isValidBoardPaper(request.resource.data);
+
+      allow update, delete: if isAdmin();
+    }
   }
 }

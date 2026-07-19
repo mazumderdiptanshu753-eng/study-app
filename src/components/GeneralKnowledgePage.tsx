@@ -26,6 +26,7 @@ interface GeneralKnowledgePageProps {
   theme: ThemeConfig;
   lang: Language;
   onBack: () => void;
+  profile?: any;
 }
 
 const TABS = [
@@ -37,13 +38,15 @@ const TABS = [
   { id: "upload", labelEn: "Upload", labelBn: "মেটেরিয়াল আপলোড", icon: Upload },
 ];
 
-export default function GeneralKnowledgePage({ theme, lang, onBack }: GeneralKnowledgePageProps) {
+export default function GeneralKnowledgePage({ theme, lang, onBack, profile }: GeneralKnowledgePageProps) {
   const [activeTab, setActiveTab] = useState("alerts");
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  const visibleTabs = TABS.filter(t => t.id !== "upload" || profile?.role === "Admin");
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -126,7 +129,7 @@ export default function GeneralKnowledgePage({ theme, lang, onBack }: GeneralKno
       {/* Dynamic Grid on Mobile, Flex on Desktop */}
       <div className="relative border-b border-slate-200 dark:border-slate-800 pb-3 -mx-2 px-2 sm:mx-0 sm:px-0">
         <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
-          {TABS.map((t) => {
+          {visibleTabs.map((t) => {
             const Icon = t.icon;
             const isActive = activeTab === t.id;
             return (

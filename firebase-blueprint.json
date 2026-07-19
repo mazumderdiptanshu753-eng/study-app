@@ -34,12 +34,35 @@
         "attachmentType": { "type": "string" }
       },
       "required": ["id", "userEmail", "title", "content", "subject", "timestamp"]
+    },
+    "BoardPrepPaper": {
+      "title": "BoardPrepPaper",
+      "description": "User uploaded board preparation papers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uploaderEmail": { "type": "string" },
+        "uploaderName": { "type": "string" },
+        "board": { "type": "string" },
+        "year": { "type": "number" },
+        "subjectEn": { "type": "string" },
+        "subjectBn": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileType": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uploaderEmail", "uploaderName", "board", "year", "subjectEn", "subjectBn", "timestamp"]
     }
   },
   "firestore": {
     "/notes/{noteId}": {
       "schema": "StudyNote",
       "description": "Personal study notes collection grouped by user identity"
+    },
+    "/boardPrepPapers/{paperId}": {
+      "schema": "BoardPrepPaper",
+      "description": "Collection of previous 4 years board exam papers uploaded by students and admins"
     }
   }
 }

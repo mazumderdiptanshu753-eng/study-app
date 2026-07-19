@@ -39,6 +39,7 @@ import LiveClasses from "./components/LiveClasses";
 import GovtJobNotes from "./components/GovtJobNotes";
 import AIStudyAssistant from "./components/AIStudyAssistant";
 import SchoolSection from "./components/SchoolSection";
+import TechnicalStudies from "./components/TechnicalStudies";
 
 const LazyDashboard = Dashboard;
 const LazyNotesManager = NotesManager;
@@ -62,7 +63,10 @@ export default function App() {
     return (saved as Language) || "en";
   });
 
-  const themeId: ThemeId = "cosmic";
+  const [themeId, setThemeId] = useState<ThemeId>(() => {
+    const saved = localStorage.getItem("app_theme_id");
+    return (saved as ThemeId) || "cosmic";
+  });
   const theme = THEMES[themeId];
 
   const t = TRANSLATIONS[lang];
@@ -116,7 +120,7 @@ export default function App() {
   const [hasStartedWelcome, setHasStartedWelcome] = useState<boolean>(() => {
     return localStorage.getItem("has_started_welcome") === "true";
   });
-  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school">(() => {
+  const [currentTab, _setCurrentTab] = useState<"dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school" | "btech" | "diploma">(() => {
     return (localStorage.getItem("current_tab") as any) || "dashboard";
   });
   const [isPageLoading, setIsPageLoading] = useState(false);
@@ -284,7 +288,7 @@ export default function App() {
         console.error("Failed to fetch settings, status:", res.status);
       }
     } catch (e) {
-      console.error("Failed to fetch settings (exception):", e);
+      console.warn("Failed to fetch settings (transient network or server restart):", e);
     }
   };
 
@@ -393,7 +397,7 @@ export default function App() {
     }
   };
 
-  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school") => {
+  const setCurrentTab = (tab: "dashboard" | "notes" | "chat" | "aiAssistant" | "videos" | "admin" | "gk" | "forum" | "liveClasses" | "govtJobNotes" | "profile" | "school" | "btech" | "diploma") => {
     _setCurrentTab(tab);
     localStorage.setItem("current_tab", tab);
     // Automatically scroll to the top of our main scroll container on tab switches
@@ -917,6 +921,7 @@ export default function App() {
                 {[
                   { id: "dashboard", labelEn: "Dashboard", labelBn: "ড্যাশবোর্ড", icon: GraduationCap },
                   { id: "school", labelEn: "School Academy", labelBn: "স্কুল একাডেমি", icon: BookMarked },
+                  { id: "diploma", labelEn: "Polytechnic Diploma", labelBn: "ডিপ্লোমা কর্নার", icon: Laptop },
                   { id: "notes", labelEn: "Study Notes", labelBn: "অধ্যয়ন নোটস", icon: BookOpen },
                   { id: "chat", labelEn: "Support Chat", labelBn: "শিক্ষক চ্যাট", icon: MessageSquare },
                   { id: "liveClasses", labelEn: "Live Lectures", labelBn: "লাইভ ক্লাস", icon: Radio },
@@ -973,13 +978,39 @@ export default function App() {
                 )}
               </div>
 
-              {/* Sidebar Footer: Language Controls */}
-              <div className="border-t border-slate-200/50 pt-4 mt-auto flex flex-col gap-3">
-                <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                  {lang === "bn" ? "ভাষা পরিবর্তন" : "Language Preferences"}
-                </span>
-                
-                <div className="flex items-center justify-between">
+              {/* Sidebar Footer: Theme & Language Controls */}
+              <div className="border-t border-slate-200/50 pt-4 mt-auto flex flex-col gap-3.5">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
+                    {lang === "bn" ? "থিম পরিবর্তন" : "App Customization"}
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold ${theme.textMain}`}>
+                      {lang === "bn" ? "পছন্দের থিম" : "Visual Theme"}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {(["emerald", "cosmic", "aurora", "sunset"] as ThemeId[]).map((tId) => (
+                        <button
+                          key={tId}
+                          onClick={() => {
+                            setThemeId(tId);
+                            localStorage.setItem("app_theme_id", tId);
+                          }}
+                          className={`h-7 w-7 rounded-xl flex items-center justify-center text-xs transition-all duration-200 active:scale-90 border cursor-pointer ${
+                            themeId === tId
+                              ? `${theme.primaryBg} ${theme.primaryText} ${theme.borderCard} scale-110 shadow-3xs`
+                              : "border-transparent hover:bg-slate-100"
+                          }`}
+                          title={THEMES[tId].nameEn}
+                        >
+                          {THEMES[tId].icon}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-100/70 pt-3">
                   <span className={`text-xs font-bold ${theme.textMain}`}>
                     {lang === "bn" ? "অ্যাপের ভাষা" : "App Language"}
                   </span>
@@ -1115,6 +1146,7 @@ export default function App() {
                   lang={lang}
                   theme={theme}
                   role={profile?.role || "Student"}
+                  profile={profile}
                 />
               )}
               {currentTab === "notes" && (
@@ -1184,16 +1216,28 @@ export default function App() {
                 <SchoolSection
                   lang={lang}
                   theme={theme}
+                  profile={profile}
                   onNavigate={(tab) => {
                     setCurrentTab(tab as any);
                     setSelectedNote(null);
                   }}
                 />
               )}
+              {currentTab === "diploma" && (
+                <TechnicalStudies
+                  lang={lang}
+                  theme={theme}
+                  profile={profile}
+                  initialCourse="diploma"
+                  fixedCourseOnly={true}
+                  onBack={() => setCurrentTab("dashboard")}
+                />
+              )}
               {currentTab === "gk" && (
                 <LazyGeneralKnowledgePage
                   lang={lang}
                   theme={theme}
+                  profile={profile}
                   onBack={() => setCurrentTab("dashboard")}
                 />
               )}
@@ -1212,6 +1256,11 @@ export default function App() {
                   onUpdate={handleUpdateProfile}
                   onClose={() => setCurrentTab("dashboard")}
                   theme={theme}
+                  themeId={themeId}
+                  onThemeChange={(newThemeId: ThemeId) => {
+                    setThemeId(newThemeId);
+                    localStorage.setItem("app_theme_id", newThemeId);
+                  }}
                   onLogout={handleLogout}
                   lang={lang}
                 />

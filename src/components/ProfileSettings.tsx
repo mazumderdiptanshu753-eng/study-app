@@ -5,17 +5,20 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../lib/firebase";
 import { StudentProfile } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
+import { ThemeId, THEMES } from "../lib/themes";
 
 interface ProfileSettingsProps {
   profile: StudentProfile;
   onUpdate: (updatedProfile: StudentProfile) => void;
   onClose: () => void;
   theme: any;
+  themeId: ThemeId;
+  onThemeChange: (newThemeId: ThemeId) => void;
   onLogout: () => void;
   lang: Language;
 }
 
-export default function ProfileSettings({ profile, onUpdate, onClose, theme, onLogout, lang }: ProfileSettingsProps) {
+export default function ProfileSettings({ profile, onUpdate, onClose, theme, themeId, onThemeChange, onLogout, lang }: ProfileSettingsProps) {
   const t = TRANSLATIONS[lang];
   const [fullName, setFullName] = useState(profile.fullName);
   const [age, setAge] = useState(profile.age || "");
@@ -116,6 +119,29 @@ export default function ProfileSettings({ profile, onUpdate, onClose, theme, onL
             onChange={(e) => setInstitution(e.target.value)}
             className={`w-full p-2 rounded-lg border ${theme.borderCard} ${theme.bgPage}`}
           />
+        </div>
+        
+        <div className="space-y-1">
+          <label className={`text-xs font-bold ${theme.textHeading}`}>
+            {lang === "bn" ? "অ্যাপের থিম" : "App Theme"}
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {(["emerald", "cosmic", "aurora", "sunset"] as ThemeId[]).map((tId) => (
+              <button
+                type="button"
+                key={tId}
+                onClick={() => onThemeChange(tId)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black cursor-pointer transition-all duration-200 active:scale-95 ${
+                  themeId === tId
+                    ? `${theme.primaryBg} ${theme.primaryText} ${theme.borderCard} scale-[1.02] shadow-3xs`
+                    : `bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700`
+                }`}
+              >
+                <span>{THEMES[tId].icon}</span>
+                <span>{lang === "bn" ? THEMES[tId].nameBn : THEMES[tId].nameEn.split(" ")[0]}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

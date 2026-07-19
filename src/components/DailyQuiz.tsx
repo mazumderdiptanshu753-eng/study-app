@@ -29,16 +29,32 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
         const response = await fetch("/api/daily-quiz");
         if (response.ok) {
           const data = await response.json();
-          setQuiz(data);
+          if (data && data.question && Array.isArray(data.options) && data.correctAnswer) {
+            setQuiz(data);
+            return;
+          }
         }
+        throw new Error("Invalid response or not ok");
       } catch (error) {
-        console.error("Error fetching daily quiz:", error);
+        console.error("Error fetching daily quiz, using local fallback:", error);
+        setQuiz({
+          question: lang === "bn" 
+            ? "কোষের কোন অঙ্গাণুকে শক্তির ঘর (Powerhouse) বলা হয়?" 
+            : "Which organelle is known as the powerhouse of the cell?",
+          options: lang === "bn"
+            ? ["নিউক্লিয়াস", "মাইটোকন্ড্রিয়া", "রাইবোজোম", "এন্ডোপ্লাজমিক রেটিকুলাম"]
+            : ["Nucleus", "Mitochondria", "Ribosome", "Endoplasmic Reticulum"],
+          correctAnswer: lang === "bn" ? "মাইটোকন্ড্রিয়া" : "Mitochondria",
+          explanation: lang === "bn"
+            ? "মাইটোকন্ড্রিয়া কোষের জৈব রাসায়নিক বিক্রিয়াগুলো পরিচালনা করতে বেশিরভাগ রাসায়নিক শক্তি উৎপাদন করে।"
+            : "Mitochondria generate most of the chemical energy needed to power the cell's biochemical reactions."
+        });
       } finally {
         setLoading(false);
       }
     }
     fetchQuiz();
-  }, []);
+  }, [lang]);
 
   if (loading) {
     return (

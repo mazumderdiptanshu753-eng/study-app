@@ -6,5 +6,7 @@
   "firestoreDatabaseId": "ai-studio-studyhub-df1bb37c-ffbe-4971-861f-73c3fb6b0d0a",
   "storageBucket": "diesel-bison-wlkqp.firebasestorage.app",
   "messagingSenderId": "1071779979064",
-  "measurementId": ""
+  "measurementId": "",
+  "oAuthClientId": "1071779979064-tv83dlvmnqvahpgmicg4ojph1r3sevo5.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }
