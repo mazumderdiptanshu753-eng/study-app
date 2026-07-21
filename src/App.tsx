@@ -880,12 +880,20 @@ export default function App() {
 
               {/* User Profile Summary Card inside Sidebar */}
               <div className={`mb-6 p-4 rounded-2xl border ${theme.borderCard} bg-slate-50 flex flex-col gap-3 relative overflow-hidden group`}>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-lg shadow-md select-none">
-                    {profile.avatarUrl || "🎓"}
+                <div 
+                  onClick={() => setCurrentTab("profile")}
+                  className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 -m-1.5 rounded-xl transition-all duration-200 group/profile-card"
+                  title={lang === "bn" ? "অ্যাকাউন্ট প্রোফাইল দেখুন" : "View Account Profile"}
+                >
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-lg shadow-md select-none group-hover/profile-card:scale-105 transition-transform duration-200 shrink-0">
+                    {profile.avatarUrl && (profile.avatarUrl.startsWith("http") || profile.avatarUrl.startsWith("data:image")) ? (
+                      <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover rounded-xl" referrerPolicy="no-referrer" />
+                    ) : (
+                      profile.avatarUrl || "🎓"
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 leading-tight">
-                    <span className="font-black text-xs sm:text-sm block truncate text-slate-850">
+                    <span className="font-black text-xs sm:text-sm block truncate text-slate-850 group-hover/profile-card:text-emerald-600 dark:group-hover/profile-card:text-emerald-400 transition-colors">
                       {profile.name || profile.fullName}
                     </span>
                     <span className="text-[10px] text-slate-400 font-medium truncate block mt-0.5">
@@ -904,15 +912,27 @@ export default function App() {
                     </span>
                   )}
                   
-                  <motion.button
-                    onClick={handleLogout}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center justify-center h-7 w-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs group/logout"
-                    title={lang === "bn" ? "লগ আউট" : "Sign Out"}
-                  >
-                    <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover/logout:translate-x-0.5" />
-                  </motion.button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <motion.button
+                      onClick={() => setCurrentTab("profile")}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 hover:text-emerald-500 transition-all cursor-pointer shadow-3xs"
+                      title={lang === "bn" ? "অ্যাকাউন্ট সেটিংস" : "Account Settings"}
+                    >
+                      <User className="h-3.5 w-3.5" />
+                    </motion.button>
+
+                    <motion.button
+                      onClick={handleLogout}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs group/logout"
+                      title={lang === "bn" ? "লগ আউট" : "Sign Out"}
+                    >
+                      <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover/logout:translate-x-0.5" />
+                    </motion.button>
+                  </div>
                 </div>
               </div>
 
@@ -1078,9 +1098,13 @@ export default function App() {
                   <NotificationBell profile={profile} lang={lang} theme={theme} />
                   <button 
                     onClick={() => setCurrentTab("profile")}
-                    className="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-sm shadow-xs border border-white/15 cursor-pointer"
+                    className="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-sm shadow-xs border border-white/15 cursor-pointer overflow-hidden"
                   >
-                    {profile.avatarUrl || "🎓"}
+                    {profile.avatarUrl && (profile.avatarUrl.startsWith("http") || profile.avatarUrl.startsWith("data:image")) ? (
+                      <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      profile.avatarUrl || "🎓"
+                    )}
                   </button>
                 </div>
               </header>

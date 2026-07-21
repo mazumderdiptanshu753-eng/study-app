@@ -80,7 +80,7 @@ class AsyncQueue {
     }
   }
 }
-const geminiQueue = new AsyncQueue(1);
+const geminiQueue = new AsyncQueue(8);
 
 async function withRetry(operation, maxRetries = 5) {
   return geminiQueue.add(async () => {
@@ -1048,10 +1048,10 @@ Format the output strictly as a JSON object with a single "questions" array. Eac
 
 Do not output any extra text, only the valid JSON block.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
       },
     });
     const data = parseJsonFromText(response.text) || { questions: [] };
@@ -1125,12 +1125,12 @@ app.get("/api/important-questions", async (req, res) => {
 
     const ai = getGeminiClient();
     const seed = `${now.getFullYear()}-W${weekNumber}-Important`;
-    const prompt = `Generate 100 important, frequently asked one-liner questions and their direct answers for Indian government competitive exams (like UPSC, SSC, Railways, State PSC). 
+    const prompt = `Generate 15 important, frequently asked one-liner questions and their direct answers for Indian government competitive exams (like UPSC, SSC, Railways, State PSC). 
 Make sure to include a good mix of subjects, including some Mathematics/Quantitative Aptitude questions.
 Use the following seed to ensure variety but consistency for this week: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1270,10 +1270,10 @@ Format the output strictly as a JSON object with a single "news" array. Each ite
 
 Do not output any extra text, only the valid JSON block.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
       },
     });
     const data = parseJsonFromText(response.text) || { news: [] };
@@ -1353,10 +1353,10 @@ Format the output strictly as a JSON object with a single "alerts" array. Each i
 
 Do not output any extra text, only the valid JSON block.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
       },
     });
     const data = parseJsonFromText(response.text) || { alerts: [] };
@@ -1406,7 +1406,7 @@ app.get("/api/pyq", async (req, res) => {
 Include the year it was asked. Make sure the questions are relevant to the exam.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2126,9 +2126,9 @@ Release Month: ${nextMonth}
 Ensure the content is detailed, engaging, and covers extremely important topics, short tricks, formulas, or high-yield facts. 
 Write primarily in Bengali, with English translations/terms where appropriate (especially for Math, Science, English, and Economics) so students find it highly practical.
 
-The response MUST match the JSON schema exactly and be comprehensive. Make the 'theoryContent' long and thorough (around 500-1000 words). Include at least 5 high-yield multiple choice questions (MCQs) in the 'mcqs' section with proper explanation of the answers.`;
+The response MUST match the JSON schema exactly and be comprehensive. Make the 'theoryContent' highly structured and thorough (around 300-500 words of core high-yield educational content). Include at least 5 high-yield multiple choice questions (MCQs) in the 'mcqs' section with proper explanation of the answers.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

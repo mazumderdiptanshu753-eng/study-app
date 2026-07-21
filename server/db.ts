@@ -66,28 +66,34 @@ try {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
     const configPath = path.join(process.cwd(), "firebase-applet-config.json");
     let databaseId = undefined;
+    let expectedProjectId = undefined;
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
       databaseId = config.firestoreDatabaseId;
+      expectedProjectId = config.projectId;
     }
     
-    const appsList = getApps();
-    const app = appsList.length === 0 
-      ? initializeApp({ credential: cert(serviceAccount) })
-      : appsList[0];
-    
-    if (databaseId) {
-      firestoreDb = getFirestore(app, databaseId);
-      console.log(`Successfully initialized Firebase Admin for Firestore with databaseId: ${databaseId}`);
+    if (serviceAccount.project_id === "new-project-159c3" || (expectedProjectId && serviceAccount.project_id !== expectedProjectId)) {
+      console.log(`Dummy or mismatched service-account.json found (project_id: ${serviceAccount.project_id}, expected: ${expectedProjectId}). Firestore server-side persistence disabled.`);
     } else {
-      firestoreDb = getFirestore(app);
-      console.log("Successfully initialized Firebase Admin for Firestore (default database)");
+      const appsList = getApps();
+      const app = appsList.length === 0 
+        ? initializeApp({ credential: cert(serviceAccount) })
+        : appsList[0];
+      
+      if (databaseId) {
+        firestoreDb = getFirestore(app, databaseId);
+        console.log(`Successfully initialized Firebase Admin for Firestore with databaseId: ${databaseId}`);
+      } else {
+        firestoreDb = getFirestore(app);
+        console.log("Successfully initialized Firebase Admin for Firestore (default database)");
+      }
     }
   } else {
-    console.warn("No service-account.json found. Firestore server-side persistence disabled.");
+    console.log("No service-account.json found. Firestore server-side persistence disabled.");
   }
 } catch (error) {
-  console.error("Failed to initialize Firebase Admin:", error);
+  console.log("Failed to initialize Firebase Admin:", error);
 }
 
 // Memory-Firestore Synchronizers
@@ -236,9 +242,9 @@ if (databaseUrl) {
   console.log("Found DATABASE_URL. Initializing database pool with optimal serverless limits...");
   pool = new Pool({
     connectionString: databaseUrl,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 3000,
     max: 10,
-    idleTimeoutMillis: 1000,
+    idleTimeoutMillis: 30000,
   });
 
   pool.on("error", (err) => {
@@ -251,9 +257,9 @@ if (databaseUrl) {
     user: process.env.SQL_USER,
     password: process.env.SQL_PASSWORD,
     database: process.env.SQL_DB_NAME,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 3000,
     max: 10,
-    idleTimeoutMillis: 1000,
+    idleTimeoutMillis: 30000,
   });
 
   pool.on("error", (err) => {
@@ -284,9 +290,9 @@ export async function initDatabase(): Promise<boolean> {
       break;
     } catch (err: any) {
       retries--;
-      console.warn(`PostgreSQL connection attempt failed. Retries remaining: ${retries}. Error: ${err.message}`);
+      console.log(`PostgreSQL connection attempt failed. Retries remaining: ${retries}. Error: ${err.message}`);
       if (retries === 0) {
-        console.error("Failed to initialize PostgreSQL after 5 attempts. Keeping pool registered but falling back to local DB for this startup run if necessary.");
+        console.log("Failed to initialize PostgreSQL after 5 attempts. Keeping pool registered but falling back to local DB for this startup run if necessary.");
         return false;
       }
       await new Promise(resolve => setTimeout(resolve, delay));
