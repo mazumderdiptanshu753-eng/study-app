@@ -281,84 +281,6 @@ export default function Dashboard({
         </div>
       </motion.div>
 
-      {/* 2. Interactive Search & Tab Filters */}
-      <motion.div variants={itemVariants} className="w-full">
-        <div className={`p-4 rounded-2xl bg-white border ${theme.borderCard} shadow-3xs flex flex-col md:flex-row md:items-center justify-between gap-4`}>
-          {/* Tab switches */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: "all", label_en: "All Portals", label_bn: "সবগুলো" },
-              { id: "academic", label_en: "Academic Gateways", label_bn: "একাডেমিক বোর্ড" },
-              { id: "prep", label_en: "Preparation & Group", label_bn: "প্রস্তুতি ও আলোচনা" },
-              { id: "tools", label_en: "AI Tools", label_bn: "এআই টুলস" }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActivePortalTab(tab.id as any)}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                  activePortalTab === tab.id
-                    ? `${theme.primaryBg} ${theme.primaryText} shadow-sm scale-102`
-                    : "bg-slate-50 hover:bg-slate-100 text-slate-600"
-                }`}
-              >
-                {lang === "bn" ? tab.label_bn : tab.label_en}
-              </button>
-            ))}
-          </div>
-
-          {/* Mini Search box */}
-          <div className="relative flex-1 md:max-w-xs">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={lang === "bn" ? "সার্চ করুন (যেমন: স্কুল, ডিপ্লোমা...)" : "Filter portals... (e.g. diploma)"}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:border-emerald-500 transition-colors"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-extrabold hover:text-slate-600 cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Render Dynamic Search Results if filtering */}
-      {searchQuery && (
-        <motion.div variants={itemVariants} className="w-full bg-slate-50 border border-slate-150 p-4 rounded-2xl">
-          <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider mb-2.5">
-            Search Results ({filteredPortalItems.length})
-          </h4>
-          {filteredPortalItems.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {filteredPortalItems.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    if (item.action === "calc") setShowCalcModal(true);
-                    else if (item.action === "solve") setShowSolveModal(true);
-                    else if (item.tab) onNavigate(item.tab as any);
-                  }}
-                  className="p-3 bg-white hover:bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between text-left shadow-3xs cursor-pointer"
-                >
-                  <span className="text-xs font-black text-slate-800">
-                    {lang === "bn" ? item.name_bn : item.name_en}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 font-semibold py-2">No matching gateways found. Try searching for "btech", "calculator" or "live".</p>
-          )}
-        </motion.div>
-      )}
-
       {/* 3. Current Affairs & Daily Quiz */}
       <CurrentAffairsTicker theme={theme} lang={lang} />
       <DailyQuiz theme={theme} lang={lang} />
@@ -740,7 +662,7 @@ export default function Dashboard({
       {/* AI Math Solver Modal */}
       <AnimatePresence>
         {showSolveModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 md:p-10">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-0 sm:p-6 md:p-10">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -769,7 +691,7 @@ export default function Dashboard({
       {/* Fullscreen Scientific Calculator Modal */}
       <AnimatePresence>
         {showCalcModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6 md:p-10">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

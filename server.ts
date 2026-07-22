@@ -662,7 +662,7 @@ Explain the answer thoroughly. Follow this strict schema:
   - explanation: A brief 1-2 sentence explanation of why this option is correct.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         systemInstruction,
@@ -727,7 +727,7 @@ Provide a structured response:
 - summaryPoints: An array of key summary bullet points (clear, informative, and concise).
 - tags: An array of 2-4 short, relevant tags/labels for categorizing this note.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -767,7 +767,7 @@ Note Content:
 
 Return a list of flashcards.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -827,7 +827,7 @@ app.post("/api/study-assistant/chat", async (req, res) => {
     }
     chatHistory += "Assistant:";
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: chatHistory,
     });
     if (response.text) {
@@ -858,7 +858,7 @@ You assist B.Tech and Diploma students in studying key engineering disciplines: 
 - Do not output polite intro/outro fluff; get straight to the engineering explanation.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         systemInstruction,
@@ -945,7 +945,7 @@ Language of explanation: ${isBengali ? "Bengali (বাংলা)" : "English"}`
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents,
       config: {
         systemInstruction,
@@ -1214,7 +1214,7 @@ app.get("/api/daily-quiz", async (req, res) => {
 Use the following seed to ensure variety but consistency for today: ${seed}.
 Format the output strictly as JSON following this schema.`;
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.1-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

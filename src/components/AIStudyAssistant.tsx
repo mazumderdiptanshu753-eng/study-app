@@ -191,7 +191,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
         <div ref={messagesEndRef} />
       </div>
 
-      <div className={`p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
+      <div className={`p-4 pb-24 md:pb-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
         <form onSubmit={handleSendMessage} className="flex gap-2 relative">
           <input
             type="file"

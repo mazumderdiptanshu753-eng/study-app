@@ -427,7 +427,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
       </div>
 
       {/* Input Area */}
-      <div className={`p-3 sm:p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
+      <div className={`p-3 pb-6 sm:p-4 border-t ${theme.borderCard} ${theme.bgCard}`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
           {/* Fast Mode Toggle */}
           <button

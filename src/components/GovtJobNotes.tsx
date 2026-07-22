@@ -1051,7 +1051,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
       {/* MODAL: Highly immersive PDF Document Viewer */}
       <AnimatePresence>
         {selectedPdf && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
