@@ -2725,13 +2725,22 @@ app.post("/api/settings", async (req, res) => {
     
 
 
-app.get("*", (req, res) => {
+    app.get("*", (req, res) => {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Global Express Error Handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("[Express Error Handler]:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error", message: err?.message || "Unknown error" });
+    }
+  });
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running at http://0.0.0.0:${PORT}`);
     // Initialize database asynchronously so startup is fast and non-blocking

@@ -13,6 +13,7 @@ import {
 import { Notification, StudentProfile } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
+import { safeFetch } from "../lib/api";
 
 interface NotificationBellProps {
   profile: StudentProfile | null;
@@ -29,32 +30,44 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
 
   // Fetch notifications from backend
   const fetchNotifications = async () => {
-    if (!userEmail) {
-      console.log("Notification fetch skipped: No userEmail");
+    if (!userEmail || document.hidden) {
       return;
     }
-    console.log("Fetching notifications for:", userEmail);
     try {
-      const res = await fetch(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}`, {
+      const res = await safeFetch(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}`, {
         headers: { 'Accept': 'application/json' }
-      });
+      }, 3, 1000);
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
-      } else {
-        const errorText = await res.text();
-        console.warn("Failed to fetch notifications, status:", res.status, "body:", errorText);
+        if (Array.isArray(data)) {
+          setNotifications(data);
+        }
       }
     } catch (e) {
-      console.warn("Failed to fetch notifications (exception):", e);
+      console.warn("Failed to fetch notifications:", e);
     }
   };
 
-  // Poll for notifications every 10 seconds to make it real-time!
+  // Poll for notifications every 20 seconds, pause when hidden
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchNotifications();
+      }
+    }, 20000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setTimeout(fetchNotifications, 1500);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [userEmail]);
 
   // Handle outside click to close dropdown

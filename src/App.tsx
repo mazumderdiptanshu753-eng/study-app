@@ -56,6 +56,7 @@ import ProfileSettings from "./components/ProfileSettings";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
+import { safeFetch } from "./lib/api";
 
 export default function App() {
   const [lang, setLang] = useState<Language>(() => {
@@ -170,8 +171,9 @@ export default function App() {
   };
 
   const checkAppVersion = async () => {
+    if (document.hidden) return;
     try {
-      const res = await fetch("/api/app-version");
+      const res = await safeFetch("/api/app-version", undefined, 3, 1000);
       if (res.ok) {
         const data = await res.json();
         setServerVersionInfo(data);
@@ -210,7 +212,7 @@ export default function App() {
         
         // Notify the user about their device's successful automatic update
         if (profile?.email) {
-          fetch("/api/notifications", {
+          safeFetch("/api/notifications", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -243,10 +245,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Check initially after 4s
     const timer = setTimeout(checkAppVersion, 4000);
-    // Poll every 12s for near real-time reactivity
-    const interval = setInterval(checkAppVersion, 12000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        checkAppVersion();
+      }
+    }, 20000);
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -261,99 +265,100 @@ export default function App() {
     return () => window.removeEventListener("setGovtJobSubject", handleSetSubject);
   }, []);
 
-  // Load users from central backend API
+  // Load settings from backend API
   const fetchSettings = async () => {
-    console.log("Fetching settings...");
+    if (document.hidden) return;
     try {
-      const res = await fetch("/api/settings");
+      const res = await safeFetch("/api/settings", undefined, 3, 1000);
       if (res.ok) {
         const data = await res.json();
         const isMaint = data.maintenanceMode === true;
         setMaintenanceMode(isMaint);
-        
-        // Auto-logout non-admins if maintenance mode is enabled
-        if (isMaint) {
-          const currentProfileStr = localStorage.getItem("student_profile");
-          if (currentProfileStr) {
-             try {
-                const currentProfile = JSON.parse(currentProfileStr);
-                if (currentProfile && currentProfile.role !== "Admin") {
-                   localStorage.removeItem("student_profile");
-                   window.location.reload();
-                }
-             } catch(e) {}
-          }
-        }
-      } else {
-        console.error("Failed to fetch settings, status:", res.status);
       }
     } catch (e) {
-      console.warn("Failed to fetch settings (transient network or server restart):", e);
+      console.warn("Failed to fetch settings:", e);
     }
   };
 
   const fetchUsers = async () => {
+    if (document.hidden) return;
     try {
-      const res = await fetch("/api/users");
+      const res = await safeFetch("/api/users", undefined, 3, 1000);
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
-        localStorage.setItem("registered_users", JSON.stringify(data));
-        
-        // Also update local profile if role has changed on backend
-        if (profile) {
-          const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
-          if (matched) {
-            if (matched.isSuspended) {
-              setProfile(null);
-              localStorage.removeItem("student_profile");
-              alert(lang === "bn" ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাসপেন্ড করা হয়েছে।" : "Your account has been suspended by the admin.");
-              return;
-            }
-            if (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl) {
-              const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
-              setProfile(updatedProfile);
-              localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
-            }
-          } else {
-            if (maintenanceMode && (profile.role !== "Admin")) {
-               setProfile(null);
-               localStorage.removeItem("student_profile");
-               alert(lang === "bn" ? "অ্যাপটিতে বর্তমানে কিছু আপডেট বা রক্ষণাবেক্ষণ চলছে।" : "The app is currently undergoing maintenance or updates.");
-               return;
-            }
-            console.log("Recovering/Syncing existing user profile to PostgreSQL database...");
-            try {
-              const regRes = await fetch("/api/users", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(profile)
-              });
-              if (regRes.ok) {
-                const updatedUsersList = await regRes.json();
-                setUsers(updatedUsersList);
-                localStorage.setItem("registered_users", JSON.stringify(updatedUsersList));
+        if (Array.isArray(data) && data.length > 0) {
+          setUsers(data);
+          localStorage.setItem("registered_users", JSON.stringify(data));
+          
+          if (profile) {
+            const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
+            if (matched) {
+              if (matched.isSuspended) {
+                setProfile(null);
+                localStorage.removeItem("student_profile");
+                alert(lang === "bn" ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাসপেন্ড করা হয়েছে।" : "Your account has been suspended by the admin.");
+                return;
               }
-            } catch (err) {
-              console.error("Failed to recover user profile in database:", err);
+              if (matched.role !== profile.role || matched.avatarUrl !== profile.avatarUrl) {
+                const updatedProfile = { ...profile, role: matched.role, avatarUrl: matched.avatarUrl };
+                setProfile(updatedProfile);
+                localStorage.setItem("student_profile", JSON.stringify(updatedProfile));
+              }
+            } else {
+              // User exists locally in profile, but not in database yet. Post profile to backend to ensure DB is in sync.
+              // NEVER LOGOUT OR ERASE PROFILE HERE!
+              try {
+                const regRes = await safeFetch("/api/users", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(profile)
+                }, 2, 1000);
+                if (regRes.ok) {
+                  const updatedUsersList = await regRes.json();
+                  if (Array.isArray(updatedUsersList) && updatedUsersList.length > 0) {
+                    setUsers(updatedUsersList);
+                    localStorage.setItem("registered_users", JSON.stringify(updatedUsersList));
+                  }
+                }
+              } catch (err) {
+                console.error("Failed to sync user profile in database:", err);
+              }
             }
           }
         }
       }
     } catch (e) {
-      console.warn("Failed to fetch users (transient network or server restart):", e);
+      console.warn("Failed to fetch users:", e);
     }
   };
 
   useEffect(() => {
     fetchUsers();
-    // Poll every 5 seconds for real-time registration visibility
-    const interval = setInterval(() => {
-      fetchUsers();
-      fetchSettings();
-    }, 5000);
     fetchSettings();
-    return () => clearInterval(interval);
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchUsers();
+        fetchSettings();
+      }
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setTimeout(() => {
+          fetchUsers();
+          fetchSettings();
+          checkAppVersion();
+        }, 1500);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [profile?.email]);
 
   useEffect(() => {
