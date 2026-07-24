@@ -53,6 +53,9 @@ const LazyGovtJobNotes = GovtJobNotes;
 const LazyAIStudyAssistant = AIStudyAssistant;
 import NotificationBell from "./components/NotificationBell";
 import ProfileSettings from "./components/ProfileSettings";
+import ServerWakeOverlay from "./components/ServerWakeOverlay";
+import AppUpdateOverlay from "./components/AppUpdateOverlay";
+import OfflineIndicator from "./components/OfflineIndicator";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -864,23 +867,26 @@ export default function App() {
           {profile && (
             <aside className={`hidden md:flex flex-col w-72 shrink-0 border-r ${theme.borderCard} ${theme.bgCard} h-[100vh] sticky top-0 z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden p-5`}>
               {/* Top Brand Area */}
-              <div className={`flex items-center gap-3 pb-6 mb-6 border-b ${theme.borderCard}`}>
-                <div className="relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md">
-                  <GraduationCap className="h-5 w-5 drop-shadow-md" />
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-white" />
-                </div>
-                <div className="leading-none">
-                  <div className="flex items-center gap-1">
-                    <span className="font-black text-sm sm:text-base tracking-tight text-slate-900">
-                      STUDY HUB
-                    </span>
-                    <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+              <div className={`flex items-center justify-between pb-6 mb-6 border-b ${theme.borderCard}`}>
+                <div className="flex items-center gap-3">
+                  <div className="relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md">
+                    <GraduationCap className="h-5 w-5 drop-shadow-md" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-white" />
                   </div>
-                  <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase block mt-1">
-                    {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI SPACE"}
-                  </span>
+                  <div className="leading-none">
+                    <div className="flex items-center gap-1">
+                      <span className="font-black text-sm sm:text-base tracking-tight text-slate-900">
+                        STUDY HUB
+                      </span>
+                      <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+                    </div>
+                    <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase block mt-1">
+                      {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI SPACE"}
+                    </span>
+                  </div>
                 </div>
+                <OfflineIndicator lang={lang} variant="pill" />
               </div>
 
               {/* User Profile Summary Card inside Sidebar */}
@@ -1090,6 +1096,8 @@ export default function App() {
                 </button>
                 
                 <div className="flex items-center gap-2">
+                  <OfflineIndicator lang={lang} variant="pill" />
+
                   {/* Highly Visible Language Toggle */}
                   <button
                     onClick={() => handleLanguageChange(lang === "en" ? "bn" : "en")}
@@ -1114,6 +1122,9 @@ export default function App() {
                 </div>
               </header>
             )}
+
+            {/* Subtle Top Offline Banner Bar */}
+            <OfflineIndicator lang={lang} variant="banner" />
 
             {/* Main Content Area Container */}
             <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-4 pt-6 md:px-8 pb-32" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
@@ -1420,52 +1431,16 @@ export default function App() {
       </AnimatePresence>
 
       {/* Full-screen sleek updating overlay */}
-      {isUpdatingApp && (
-        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-2xl text-white">
-          <div className="w-full max-w-sm px-6 text-center space-y-8">
-            <div className="relative inline-flex items-center justify-center">
-              {/* Rotating outer rings */}
-              <div className="absolute inset-0 rounded-full border-2 border-dashed border-teal-500/30 animate-spin" style={{ animationDuration: "12s" }}></div>
-              <div className="absolute -inset-4 rounded-full border border-teal-500/10 animate-reverse-spin" style={{ animationDuration: "8s" }}></div>
-              
-              <div className="h-20 w-20 rounded-3xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20 shadow-lg shadow-teal-500/10">
-                <GraduationCap className="h-10 w-10 text-teal-400 animate-pulse" />
-              </div>
-            </div>
+      <AppUpdateOverlay
+        isUpdating={isUpdatingApp}
+        targetVersion={serverVersionInfo?.latestVersion}
+        progress={updateProgress}
+        statusStep={updateStatusStep}
+        lang={lang}
+      />
 
-            <div className="space-y-2">
-              <h2 className="text-xl font-black tracking-tight text-slate-100">
-                {lang === "bn" ? "স্টাডি হাব আপডেট হচ্ছে" : "Upgrading STUDY HUB"}
-              </h2>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide min-h-5">
-                {updateStatusStep}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              {/* Progress track */}
-              <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5 p-0.5">
-                <motion.div 
-                  className="h-full bg-gradient-to-r from-teal-500 via-emerald-400 to-teal-400 rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${updateProgress}%` }}
-                  transition={{ ease: "easeInOut", duration: 0.2 }}
-                />
-              </div>
-              <div className="flex justify-between items-center text-[10px] text-slate-500 font-extrabold tracking-wider font-mono uppercase">
-                <span>{lang === "bn" ? "ধাপ" : "STEP"} {updateProgress < 25 ? "1/4" : updateProgress < 50 ? "2/4" : updateProgress < 75 ? "3/4" : "4/4"}</span>
-                <span className="text-teal-400">{updateProgress}%</span>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-              {lang === "bn" 
-                ? "অনুগ্রহ করে অপেক্ষা করুন। আপডেট প্রসেস সম্পূর্ণ হলে অ্যাপটি স্বয়ংক্রিয়ভাবে রিস্টার্ট হবে।" 
-                : "Please do not close or refresh this tab. System will resume automatically."}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Persistent Global Server Wake Loading Overlay */}
+      <ServerWakeOverlay lang={lang} />
 
       {/* Dynamic Update Success Toast */}
       <AnimatePresence>
