@@ -3,6 +3,17 @@ import fs from "fs";
 import path from "path";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { initializeApp as initClientApp, getApps as getClientApps } from "firebase/app";
+import {
+  getFirestore as getClientFirestore,
+  doc as firestoreDoc,
+  setDoc as firestoreSetDoc,
+  getDoc as firestoreGetDoc,
+  deleteDoc as firestoreDeleteDoc,
+  collection as firestoreCollection,
+  getDocs as firestoreGetDocs,
+  Firestore as ClientFirestore
+} from "firebase/firestore";
 
 const { Pool } = pg;
 
@@ -60,7 +71,23 @@ function saveLocalDB() {
 
 // --- Firebase Firestore Initialization ---
 let firestoreDb: Firestore | null = null;
+let firebaseClientDb: ClientFirestore | null = null;
+
 try {
+  const firebaseConfig = {
+    projectId: "diesel-bison-wlkqp",
+    appId: "1:1071779979064:web:0b14420eabbb922961abcd",
+    apiKey: "AIzaSyDELo1hxSTkvTwkcisFn03ACyBsQte2knw",
+    authDomain: "diesel-bison-wlkqp.firebaseapp.com",
+    storageBucket: "diesel-bison-wlkqp.firebasestorage.app",
+    messagingSenderId: "1071779979064",
+    firestoreDatabaseId: "ai-studio-studyhub-df1bb37c-ffbe-4971-861f-73c3fb6b0d0a"
+  };
+
+  const clientApp = getClientApps().length === 0 ? initClientApp(firebaseConfig) : getClientApps()[0];
+  firebaseClientDb = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
+  console.log("Successfully initialized Firebase Client SDK for Firestore cloud persistence!");
+
   const serviceAccountPath = path.join(process.cwd(), "service-account.json");
   if (fs.existsSync(serviceAccountPath)) {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
@@ -74,7 +101,7 @@ try {
     }
     
     if (serviceAccount.project_id === "new-project-159c3" || (expectedProjectId && serviceAccount.project_id !== expectedProjectId)) {
-      console.log(`Dummy or mismatched service-account.json found (project_id: ${serviceAccount.project_id}, expected: ${expectedProjectId}). Firestore server-side persistence disabled.`);
+      console.log("Dummy or mismatched service-account.json found. Using Firebase Client SDK for cloud persistence.");
     } else {
       const appsList = getApps();
       const app = appsList.length === 0 
@@ -89,16 +116,14 @@ try {
         console.log("Successfully initialized Firebase Admin for Firestore (default database)");
       }
     }
-  } else {
-    console.log("No service-account.json found. Firestore server-side persistence disabled.");
   }
 } catch (error) {
-  console.log("Failed to initialize Firebase Admin:", error);
+  console.log("Failed to initialize Firebase:", error);
 }
 
 // Memory-Firestore Synchronizers
 export async function syncToFirestore(): Promise<void> {
-  if (!firestoreDb) return;
+  if (!firestoreDb && !firebaseClientDb) return;
   try {
     console.log("Pushing memory state to Firestore as backup...");
     
@@ -142,7 +167,7 @@ export async function syncToFirestore(): Promise<void> {
 }
 
 export async function syncFromFirestore(): Promise<void> {
-  if (!firestoreDb) return;
+  if (!firestoreDb && !firebaseClientDb) return;
   try {
     console.log("Synchronizing memory state from Firestore...");
     
@@ -162,11 +187,16 @@ export async function syncFromFirestore(): Promise<void> {
     let firestoreEmpty = true;
     for (const col of collections) {
       try {
-        const snapshot = await firestoreDb.collection(col.name).get();
         const items: any[] = [];
-        snapshot.forEach(doc => {
-          items.push(doc.data());
-        });
+        if (firestoreDb) {
+          const snapshot = await firestoreDb.collection(col.name).get();
+          snapshot.forEach(doc => items.push(doc.data()));
+        } else if (firebaseClientDb) {
+          const colRef = firestoreCollection(firebaseClientDb, col.name);
+          const snapshot = await firestoreGetDocs(colRef);
+          snapshot.forEach(doc => items.push(doc.data()));
+        }
+
         if (items.length > 0) {
           firestoreEmpty = false;
           localDB[col.key] = items;
@@ -178,9 +208,16 @@ export async function syncFromFirestore(): Promise<void> {
     }
     
     try {
-      const settingsDoc = await firestoreDb.collection("settings").doc("current").get();
-      if (settingsDoc.exists) {
-        localDB.settings = settingsDoc.data();
+      let sData: any = null;
+      if (firestoreDb) {
+        const settingsDoc = await firestoreDb.collection("settings").doc("current").get();
+        if (settingsDoc.exists) sData = settingsDoc.data();
+      } else if (firebaseClientDb) {
+        const docSnap = await firestoreGetDoc(firestoreDoc(firebaseClientDb, "settings", "current"));
+        if (docSnap.exists()) sData = docSnap.data();
+      }
+      if (sData) {
+        localDB.settings = sData;
         console.log("Synced settings from Firestore.");
         firestoreEmpty = false;
       }
@@ -189,9 +226,16 @@ export async function syncFromFirestore(): Promise<void> {
     }
     
     try {
-      const sysSettingsDoc = await firestoreDb.collection("systemSettings").doc("current").get();
-      if (sysSettingsDoc.exists) {
-        localDB.systemSettings = sysSettingsDoc.data();
+      let sysData: any = null;
+      if (firestoreDb) {
+        const sysSettingsDoc = await firestoreDb.collection("systemSettings").doc("current").get();
+        if (sysSettingsDoc.exists) sysData = sysSettingsDoc.data();
+      } else if (firebaseClientDb) {
+        const docSnap = await firestoreGetDoc(firestoreDoc(firebaseClientDb, "systemSettings", "current"));
+        if (docSnap.exists()) sysData = docSnap.data();
+      }
+      if (sysData) {
+        localDB.systemSettings = sysData;
         console.log("Synced systemSettings from Firestore.");
         firestoreEmpty = false;
       }
@@ -212,22 +256,42 @@ export async function syncFromFirestore(): Promise<void> {
 }
 
 export async function writeToFirestore(collectionName: string, docId: string, data: any, merge: boolean = true) {
-  if (!firestoreDb) return;
-  try {
-    const cleanId = String(docId).trim().replace(/\//g, "_");
-    await firestoreDb.collection(collectionName).doc(cleanId).set(data, { merge });
-  } catch (e) {
-    console.error(`Error writing to Firestore collection ${collectionName}, id ${docId}:`, e);
+  const cleanId = String(docId).trim().replace(/\//g, "_");
+  if (firestoreDb) {
+    try {
+      await firestoreDb.collection(collectionName).doc(cleanId).set(data, { merge });
+      return;
+    } catch (e) {
+      console.error(`Error writing to Firestore Admin collection ${collectionName}, id ${docId}:`, e);
+    }
+  }
+  if (firebaseClientDb) {
+    try {
+      const docRef = firestoreDoc(firebaseClientDb, collectionName, cleanId);
+      await firestoreSetDoc(docRef, data, { merge });
+    } catch (e) {
+      console.error(`Error writing to Firestore Client SDK collection ${collectionName}, id ${docId}:`, e);
+    }
   }
 }
 
 export async function deleteFromFirestore(collectionName: string, docId: string) {
-  if (!firestoreDb) return;
-  try {
-    const cleanId = String(docId).trim().replace(/\//g, "_");
-    await firestoreDb.collection(collectionName).doc(cleanId).delete();
-  } catch (e) {
-    console.error(`Error deleting from Firestore collection ${collectionName}, id ${docId}:`, e);
+  const cleanId = String(docId).trim().replace(/\//g, "_");
+  if (firestoreDb) {
+    try {
+      await firestoreDb.collection(collectionName).doc(cleanId).delete();
+      return;
+    } catch (e) {
+      console.error(`Error deleting from Firestore Admin collection ${collectionName}, id ${docId}:`, e);
+    }
+  }
+  if (firebaseClientDb) {
+    try {
+      const docRef = firestoreDoc(firebaseClientDb, collectionName, cleanId);
+      await firestoreDeleteDoc(docRef);
+    } catch (e) {
+      console.error(`Error deleting from Firestore Client SDK collection ${collectionName}, id ${docId}:`, e);
+    }
   }
 }
 

@@ -3,134 +3,75 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Catch-all safety net: default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
-    
-    // Hardened Global Helpers
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function getUserEmail() {
-      return request.auth.token.email;
-    }
-    
-    function isAdmin() {
-      return isSignedIn() && (getUserEmail() == "mazumderdiptanshu753@gmail.com");
-    }
-    
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // 1. Personal Study Notes Rules (Student owned)
-    match /notes/{noteId} {
-      function isValidNote(note) {
-        return note.id is string && note.id.size() <= 128
-          && note.title is string && note.title.size() <= 200
-          && note.content is string && note.content.size() <= 50000
-          && note.subject is string && note.subject.size() <= 100
-          && note.userEmail is string && note.userEmail.size() <= 256;
-      }
-
-      allow create: if isSignedIn() 
-        && isValidId(noteId)
-        && isValidNote(request.resource.data)
-        && request.resource.data.userEmail == getUserEmail();
-
-      allow read, update, delete: if isSignedIn()
-        && (resource.data.userEmail == getUserEmail() || isAdmin());
-    }
-    
-    // 2. Chat Messages Rules (Student & Admin)
-    match /chatMessages/{msgId} {
-      function isValidChatMessage(msg) {
-        return msg.id is string && msg.id.size() <= 128
-          && msg.message is string && msg.message.size() <= 5000
-          && msg.studentEmail is string && msg.studentEmail.size() <= 256
-          && msg.studentName is string && msg.studentName.size() <= 200;
-      }
-
-      allow create: if isSignedIn()
-        && isValidId(msgId)
-        && isValidChatMessage(request.resource.data)
-        && (request.resource.data.senderEmail == getUserEmail() || isAdmin());
-
-      allow read: if isSignedIn()
-        && (resource.data.studentEmail == getUserEmail() || isAdmin());
-        
-      allow update, delete: if isAdmin();
-    }
-    
-    // 3. Community Forum Posts Rules
-    match /forumPosts/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && isValidId(postId)
-        && request.resource.data.authorEmail == getUserEmail();
-      allow update, delete: if isSignedIn()
-        && (resource.data.authorEmail == getUserEmail() || isAdmin());
-    }
-    
-    // 4. Live Classes Rules
-    match /liveClasses/{classId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    // 5. Registered Student Profiles
+    // Registered Student Profiles
     match /users/{emailKey} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && emailKey.lower() == getUserEmail().lower());
+      allow read, write: if true;
     }
     
-    // 6. Activity Logs
-    match /activityLogs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userEmail == getUserEmail();
-      allow update, delete: if false;
+    // Personal Study Notes
+    match /notes/{noteId} {
+      allow read, write: if true;
     }
-    
-    // 7. Govt Job Notes Rules
+
+    // Chat Messages
+    match /chatMessages/{msgId} {
+      allow read, write: if true;
+    }
+
+    // Forum Posts
+    match /forumPosts/{postId} {
+      allow read, write: if true;
+    }
+
+    // Live Classes
+    match /liveClasses/{classId} {
+      allow read, write: if true;
+    }
+
+    // Govt Job Notes
     match /govtJobNotes/{noteId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
-    // 8. Video Lectures Rules
+    // Activity Logs
+    match /activityLogs/{logId} {
+      allow read, write: if true;
+    }
+
+    // Video Lectures
     match /videos/{videoId} {
-      allow read: if isSignedIn();
-      allow create, delete: if isAdmin();
-      allow update: if isSignedIn();
+      allow read, write: if true;
     }
 
-    // 9. AI PDF Notes Rules
+    // AI PDF Notes
     match /aiPdfNotes/{noteId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
-    // 10. Board Preparation Papers Rules
+    // Board Prep Papers
     match /boardPrepPapers/{paperId} {
-      function isValidBoardPaper(paper) {
-        return paper.id is string && paper.id.size() <= 128
-          && paper.uploaderEmail is string && paper.uploaderEmail.size() <= 256
-          && paper.uploaderName is string && paper.uploaderName.size() <= 200
-          && paper.board is string && paper.board.size() <= 100
-          && paper.year is number
-          && paper.subjectEn is string && paper.subjectEn.size() <= 200
-          && paper.subjectBn is string && paper.subjectBn.size() <= 200;
-      }
+      allow read, write: if true;
+    }
 
-      allow read: if true;
-      
-      allow create: if isAdmin()
-        && isValidId(paperId)
-        && isValidBoardPaper(request.resource.data);
+    // System Notifications
+    match /notifications/{notifId} {
+      allow read, write: if true;
+    }
 
-      allow update, delete: if isAdmin();
+    // App Settings
+    match /settings/{docId} {
+      allow read, write: if true;
+    }
+
+    // System Settings
+    match /systemSettings/{docId} {
+      allow read, write: if true;
+    }
+
+    // Catch-all
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
+

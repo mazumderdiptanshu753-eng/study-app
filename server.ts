@@ -277,7 +277,7 @@ function getGeminiClient() {
       );
     }
     rawClient.models.generateContent = async function (...args: any[]) {
-      const modelsToTry = ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-latest"];
+      const modelsToTry = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
       const originalModel = args[0]?.model;
       if (originalModel && modelsToTry.includes(originalModel)) {
         const index = modelsToTry.indexOf(originalModel);
@@ -324,14 +324,27 @@ function getGeminiClient() {
           } catch (error: any) {
             lastError = error;
             const errorMessage = error?.message || "";
+            const status = error?.status || error?.statusCode || error?.response?.status;
+
+            // Check for auth failure (401 / UNAUTHENTICATED) or quota exhaustion (429)
+            if (
+              status === 401 ||
+              errorMessage.includes("401") ||
+              errorMessage.includes("UNAUTHENTICATED") ||
+              errorMessage.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") ||
+              errorMessage.includes("API_KEY_SERVICE_BLOCKED") ||
+              errorMessage.includes("invalid authentication credentials")
+            ) {
+              console.log(`[Gemini Interceptor] API Key / Token unauthenticated (401). Switching to dynamic fallback.`);
+              break;
+            }
             
-            // Check for quota exhaustion
             if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
               console.log(`[Gemini Interceptor] Quota exhausted (429). Aborting fallbacks.`);
               break;
             }
 
-            console.log(`[Gemini Interceptor] Model ${model} failed: ${errorMessage}. Trying next fallback...`);
+            console.log(`[Gemini Interceptor] Model ${model} failed. Trying next fallback...`);
           }
         }
       }
