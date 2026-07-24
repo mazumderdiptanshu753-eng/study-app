@@ -1,31 +1,352 @@
 {
   "users": [
     {
-      "email": "mazumderdiptanshu753@gmail.com",
-      "fullName": "Diptanshu",
+      "preferredSubject": "Mathematics",
+      "email": "MAZDIP@GMAIL.COM",
+      "institution": "RANHT",
+      "role": "Student",
+      "fullName": "dIP",
+      "registeredAt": "2026-07-17T07:49:02.855Z",
+      "avatarUrl": "🎓",
+      "grade": "High School",
+      "age": "22"
+    },
+    {
+      "avatarUrl": "👑",
       "grade": "High School",
       "preferredSubject": "Mathematics",
-      "registeredAt": "2026-07-15T09:45:48.143Z",
-      "avatarUrl": "👑",
       "role": "Admin",
-      "isSuspended": false
+      "email": "anwitchaki@gmail.com",
+      "fullName": "Dip",
+      "registeredAt": "2026-07-20T07:17:22.847Z"
+    },
+    {
+      "role": "Admin",
+      "preferredSubject": "Mathematics",
+      "registeredAt": "2026-07-04T09:33:18.472Z",
+      "fullName": "Diptanshu Mazumder",
+      "email": "Mazumderdiptanshu753@gmail.com",
+      "avatarUrl": "👑",
+      "grade": "High School"
+    },
+    {
+      "fullName": "Nandana Pal",
+      "email": "Palnandana2005@gmail.com",
+      "registeredAt": "2026-07-04T09:33:14.160Z",
+      "role": "Student",
+      "preferredSubject": "Mathematics",
+      "grade": "High School",
+      "avatarUrl": "🎓"
+    },
+    {
+      "name": "Test"
+    },
+    {
+      "registeredAt": "2026-07-03T16:40:05.796Z",
+      "email": "tuhinaaaaa2929@gmail.com",
+      "fullName": "Tuhina Roy",
+      "role": "Student",
+      "preferredSubject": "Mathematics",
+      "grade": "High School",
+      "avatarUrl": "🎓"
     }
   ],
-  "chatMessages": [],
-  "activityLogs": [],
+  "chatMessages": [
+    {
+      "studentName": "Tuhina Roy",
+      "message": "Hello Tuhina Roy! Welcome to STUDY HUB. I am the administrator of this workspace. How can I assist you with your Mathematics study notes today?",
+      "studentEmail": "tuhinaaaaa2929@gmail.com",
+      "senderName": "Admin (Diptanshu)",
+      "senderRole": "Admin",
+      "id": "welcome-1783096847084",
+      "senderEmail": "mazumderdiptanshu753@gmail.com",
+      "timestamp": "2026-07-03T16:40:47.084Z"
+    }
+  ],
+  "activityLogs": [
+    {
+      "action": "Login",
+      "userEmail": "test@test.com",
+      "id": "log-1783068123592-m12a0513a",
+      "timestamp": "2026-07-03T08:42:03.592Z",
+      "userName": "Test"
+    },
+    {
+      "id": "log-1783068309699-oootyfqbf",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "fhgfhfh",
+      "timestamp": "2026-07-03T08:45:05.393Z"
+    },
+    {
+      "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783070941447-i22z48rev",
+      "userName": "sgdfgh",
+      "timestamp": "2026-07-03T09:28:56.400Z"
+    },
+    {
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783072941387-j3o41ogoq",
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-03T10:02:21.189Z"
+    },
+    {
+      "userName": "Diptanshu",
+      "timestamp": "2026-07-03T10:03:01.078Z",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
+      "id": "log-1783072985895-c5sj6glil"
+    },
+    {
+      "timestamp": "2026-07-03T10:03:25.316Z",
+      "userName": "Diptanshu Mazumder",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login",
+      "id": "log-1783073005483-6x48uglce"
+    },
+    {
+      "userEmail": "anwitchaki@gmail.com",
+      "action": "Login",
+      "id": "log-1783073037320-ea7ku6im7",
+      "userName": "Anwit Chaki",
+      "timestamp": "2026-07-03T10:03:52.520Z"
+    },
+    {
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-03T15:39:34.978Z",
+      "id": "log-1783093175133-q432oz6vh",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "timestamp": "2026-07-03T15:40:06.158Z",
+      "userName": "ANWIT CHAKI",
+      "userEmail": "anwitchaki@gmail.com",
+      "action": "Login",
+      "id": "log-1783093206354-0rsy4lomm"
+    },
+    {
+      "userEmail": "anwitchaki@gmail.com",
+      "action": "Logout",
+      "id": "log-1783093213536-ti5hv3l9v",
+      "userName": "ANWIT CHAKI",
+      "timestamp": "2026-07-03T15:40:13.353Z"
+    },
+    {
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-03T15:40:38.789Z",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login",
+      "id": "log-1783093238966-7dcifwhdy"
+    },
+    {
+      "userName": "Anwit Chaki",
+      "timestamp": "2026-07-03T16:03:09.142Z",
+      "userEmail": "anwitchaki@gmail.com",
+      "action": "Login",
+      "id": "log-1783094589841-s240lye0h"
+    },
+    {
+      "userName": "Tuhina Roy",
+      "timestamp": "2026-07-03T16:40:05.798Z",
+      "action": "Login",
+      "userEmail": "tuhinaaaaa2929@gmail.com",
+      "id": "log-1783096806204-d0711ydvk"
+    },
+    {
+      "action": "Login",
+      "userEmail": "rajudas@gmail.com",
+      "id": "log-1783099644431-ng5dh0qvi",
+      "timestamp": "2026-07-03T17:27:24.313Z",
+      "userName": "রাজু Das"
+    },
+    {
+      "id": "log-1783103211645-1iylnnqxb",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "timestamp": "2026-07-03T18:26:51.526Z",
+      "userName": "sgdfgh"
+    },
+    {
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-03T18:28:04.767Z",
+      "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783103284933-cg26c6bur"
+    },
+    {
+      "id": "log-1783103295536-tz3ckvcqn",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-03T18:28:15.409Z"
+    },
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login",
+      "id": "log-1783132168722-hr2exc497",
+      "userName": "Dip",
+      "timestamp": "2026-07-04T02:29:28.642Z"
+    },
+    {
+      "userName": "Dip",
+      "timestamp": "2026-07-04T02:40:49.985Z",
+      "id": "log-1783132850049-roir4i7b9",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "timestamp": "2026-07-04T02:41:18.957Z",
+      "userName": "raju das",
+      "userEmail": "rajudas@gmail.com",
+      "action": "Login",
+      "id": "log-1783132879033-qkvvi1lmp"
+    },
+    {
+      "userName": "raju das",
+      "timestamp": "2026-07-04T02:41:47.924Z",
+      "id": "log-1783132908228-ujdktx9cw",
+      "action": "Logout",
+      "userEmail": "rajudas@gmail.com"
+    },
+    {
+      "userName": "raju das",
+      "timestamp": "2026-07-04T02:42:18.093Z",
+      "action": "Login",
+      "userEmail": "rajudas@gmail.com",
+      "id": "log-1783132938160-4uusjlcs8"
+    },
+    {
+      "userEmail": "rajudas@gmail.com",
+      "action": "Logout",
+      "id": "log-1783132998238-b30olkh25",
+      "userName": "raju das",
+      "timestamp": "2026-07-04T02:43:18.166Z"
+    },
+    {
+      "timestamp": "2026-07-04T02:43:29.345Z",
+      "userName": "gip",
+      "id": "log-1783133009538-dwkppsy5e",
+      "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783134685124-erh860hih",
+      "timestamp": "2026-07-04T03:11:25.004Z",
+      "userName": "gip"
+    },
+    {
+      "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783134750573-p5ji4rhvw",
+      "timestamp": "2026-07-04T03:12:30.465Z",
+      "userName": "Diptanshu Mazumder"
+    },
+    {
+      "timestamp": "2026-07-04T03:48:52.989Z",
+      "userName": "Diptanshu Mazumder",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
+      "id": "log-1783136933115-jsl7tu823"
+    },
+    {
+      "id": "log-1783140455029-eqr8diu3u",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login",
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-04T04:47:34.375Z"
+    },
+    {
+      "timestamp": "2026-07-04T04:48:57.127Z",
+      "userName": "Diptanshu Mazumder",
+      "id": "log-1783140537758-hvo0e08d9",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout"
+    },
+    {
+      "userName": "dip",
+      "timestamp": "2026-07-04T05:24:21.245Z",
+      "id": "log-1783142661892-afoxqa2ep",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login"
+    },
+    {
+      "timestamp": "2026-07-04T05:24:36.725Z",
+      "userName": "dip",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1783142677375-pn9cg0xhp"
+    },
+    {
+      "id": "log-1783143793710-wf8z4agrj",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Login",
+      "userName": "dip",
+      "timestamp": "2026-07-04T05:43:13.000Z"
+    },
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
+      "id": "log-1783143806763-ialzqz3q4",
+      "timestamp": "2026-07-04T05:43:26.091Z",
+      "userName": "dip"
+    },
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
+      "id": "log-1783144767609-6w07ex71e",
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-04T05:59:27.413Z"
+    },
+    {
+      "userName": "Nandana Pal",
+      "timestamp": "2026-07-04T09:33:14.161Z",
+      "userEmail": "Palnandana2005@gmail.com",
+      "action": "Login",
+      "id": "log-1783157594351-rs29w5pki"
+    },
+    {
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-07-04T09:33:18.473Z",
+      "action": "Login",
+      "userEmail": "Mazumderdiptanshu753@gmail.com",
+      "id": "log-1783157598653-n5duupr2x"
+    },
+    {
+      "id": "log-1784531842854-ep85qo286",
+      "action": "Login",
+      "userEmail": "anwitchaki@gmail.com",
+      "userName": "Dip",
+      "timestamp": "2026-07-20T07:17:22.848Z"
+    }
+  ],
   "forumPosts": [],
   "liveClasses": [],
   "govtJobNotes": [],
   "aiPdfNotes": [],
   "studyNotes": [],
   "videoLectures": [],
-  "notifications": [],
+  "notifications": [
+    {
+      "message": "প্রিয় শিক্ষার্থী, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!",
+      "isRead": false,
+      "userEmail": "mazdip@gmail.com",
+      "title": "স্টাডি হাবে স্বাগতম! 🎉",
+      "id": "notif-1784900466262-o9ytwn6y5",
+      "type": "info",
+      "timestamp": "2026-07-24T13:41:06.262Z"
+    }
+  ],
   "settings": {
-    "maintenanceMode": false
+    "maintenanceMode": true
   },
   "systemSettings": {
     "app_version": {
-      "latestVersion": "2.6.5",
+      "latestVersion": "2.6.6",
       "changelogEn": "Initial Release of Study Hub Portal with dynamic interactive animations.",
       "changelogBn": "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     }

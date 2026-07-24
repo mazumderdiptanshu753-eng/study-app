@@ -136,7 +136,7 @@ export default function App() {
 
   // App Update states
   const [currentClientVersion, setCurrentClientVersion] = useState<string>(() => {
-    return localStorage.getItem("client_app_version") || "2.6.5";
+    return localStorage.getItem("client_app_version") || "2.6.6";
   });
   const [serverVersionInfo, setServerVersionInfo] = useState<{
     latestVersion: string;
@@ -208,7 +208,7 @@ export default function App() {
         clearInterval(interval);
         
         // Persist the updated version code in localStorage
-        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.5";
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.6";
         localStorage.setItem("client_app_version", versionToSave);
         localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
@@ -1303,6 +1303,9 @@ export default function App() {
                   }}
                   onLogout={handleLogout}
                   lang={lang}
+                  currentVersion={currentClientVersion}
+                  latestVersion={serverVersionInfo?.latestVersion}
+                  onTriggerUpdate={() => startUpdateProcess(serverVersionInfo?.latestVersion || "2.7.0")}
                 />
               )}
               </React.Suspense>

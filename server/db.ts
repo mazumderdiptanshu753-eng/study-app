@@ -38,7 +38,7 @@ let localDB: any = {
   settings: { maintenanceMode: false },
   systemSettings: {
     app_version: {
-      latestVersion: "2.6.5",
+      latestVersion: "2.6.6",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     }
@@ -1392,7 +1392,7 @@ export async function getAppVersion(): Promise<any> {
   }
   if (!localDB.systemSettings.app_version) {
     localDB.systemSettings.app_version = {
-      latestVersion: "2.6.5",
+      latestVersion: "2.6.6",
       changelogEn: "Initial Release of Study Hub Portal with dynamic interactive animations.",
       changelogBn: "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
     };
