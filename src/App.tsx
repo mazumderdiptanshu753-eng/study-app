@@ -1305,7 +1305,6 @@ export default function App() {
                   lang={lang}
                   currentVersion={currentClientVersion}
                   latestVersion={serverVersionInfo?.latestVersion}
-                  onTriggerUpdate={() => startUpdateProcess(serverVersionInfo?.latestVersion || "2.7.0")}
                 />
               )}
               </React.Suspense>

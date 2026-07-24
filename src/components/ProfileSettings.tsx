@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Save, X, LogOut, RefreshCw, Cpu, Sparkles } from "lucide-react";
+import { Save, X, LogOut, Cpu } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeId, THEMES } from "../lib/themes";
@@ -16,7 +16,6 @@ interface ProfileSettingsProps {
   lang: Language;
   currentVersion?: string;
   latestVersion?: string;
-  onTriggerUpdate?: () => void;
 }
 
 const MALE_AVATARS = ["🧑‍🎓", "👨‍💻", "🧑‍🔬", "👦", "🧔", "👨", "👨‍🏫", "🧙‍♂️", "🕵️‍♂️"];
@@ -32,8 +31,7 @@ export default function ProfileSettings({
   onLogout,
   lang,
   currentVersion = "2.6.6",
-  latestVersion,
-  onTriggerUpdate
+  latestVersion
 }: ProfileSettingsProps) {
   const t = TRANSLATIONS[lang];
   const [fullName, setFullName] = useState(profile.fullName);
@@ -187,9 +185,9 @@ export default function ProfileSettings({
             </div>
           </div>
 
-          {/* Version & System Upgrade Box */}
+          {/* Version & System Info Box */}
           <div className="pt-2">
-            <div className="p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-2 shadow-md">
+            <div className="p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-1.5 shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-teal-400" />
@@ -201,21 +199,11 @@ export default function ProfileSettings({
                   v{currentVersion}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                 {lang === "bn"
-                  ? "সর্বশেষ সিস্টেম আপডেট ও ফুলস্ক্রিন আপগ্রেড অ্যানিমেশন চেক করুন।"
-                  : "Check system upgrade status or launch upgrade animation."}
+                  ? "নতুন আপডেট প্রকাশের সাথে সাথে স্বয়ংক্রিয়ভাবে ফুলস্ক্রিন আপগ্রেড অ্যানিমেশন চালু হবে।"
+                  : "System updates automatically run the upgrade screen whenever a new release is deployed."}
               </p>
-              {onTriggerUpdate && (
-                <button
-                  type="button"
-                  onClick={onTriggerUpdate}
-                  className="w-full mt-1 py-2 px-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: "4s" }} />
-                  <span>{lang === "bn" ? "ফুলস্ক্রিন আপডেট স্ক্রিন চালু করুন" : "Launch Fullscreen Upgrade Screen"}</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
