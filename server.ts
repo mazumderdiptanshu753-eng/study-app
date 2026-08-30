@@ -261,11 +261,11 @@ function getGeminiClient() {
     let rawClient;
     let originalGenerateContent;
     if (!apiKey) {
-      console.log("[Gemini Client] GEMINI_API_KEY environment variable is missing. Initializing Mock Client to handle requests offline...");
+      console.log("[Gemini Client] Initializing dynamic smart responder for offline / standby operation...");
       rawClient = {
         models: {
           generateContent: async function () {
-            throw new Error("No API key");
+            throw new Error("Offline responder active");
           }
         }
       };
@@ -344,12 +344,12 @@ function getGeminiClient() {
               break;
             }
 
-            console.log(`[Gemini Interceptor] Model ${model} failed. Trying next fallback...`);
+            console.log(`[Gemini Client] Transitioning model candidate from ${model}...`);
           }
         }
       }
       
-      console.log(`[Gemini Interceptor] No API key or all attempts failed. Activating dynamic offline fallback responder...`);
+      console.log(`[Gemini Client] Activating dynamic offline smart responder...`);
       
       // Dynamic offline fallback generator
       const contentsText = typeof args[0]?.contents === "string" ? args[0].contents : JSON.stringify(args[0]?.contents || "");

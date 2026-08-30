@@ -22,8 +22,10 @@ import {
   Users,
   Award,
   ChevronUp,
-  BookMarked
+  BookMarked,
+  Search
 } from "lucide-react";
+import GlobalSearchModal from "./components/GlobalSearchModal";
 import Dashboard from "./components/Dashboard";
 import NotesManager from "./components/NotesManager";
 import SupportChat from "./components/SupportChat";
@@ -72,6 +74,8 @@ export default function App() {
     return (saved as ThemeId) || "cosmic";
   });
   const theme = THEMES[themeId];
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const t = TRANSLATIONS[lang];
 
@@ -949,6 +953,19 @@ export default function App() {
 
               {/* Navigation Items List */}
               <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto pr-1">
+                {/* Global Search Quick Trigger Bar */}
+                <button
+                  type="button"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="w-full mb-1 px-3.5 py-2.5 rounded-xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 flex items-center justify-between text-xs font-black text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer shadow-3xs group active:scale-98"
+                >
+                  <div className="flex items-center gap-2">
+                    <Search className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
+                    <span>{lang === "bn" ? "খুঁজুন (নোটস, জিকে, প্রশ্ন)" : "Search Anything..."}</span>
+                  </div>
+                  <kbd className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-[10px] font-mono border border-indigo-500/30">⌘K</kbd>
+                </button>
+
                 {[
                   { id: "dashboard", labelEn: "Dashboard", labelBn: "ড্যাশবোর্ড", icon: GraduationCap },
                   { id: "school", labelEn: "School Academy", labelBn: "স্কুল একাডেমি", icon: BookMarked },
@@ -1097,6 +1114,15 @@ export default function App() {
                 
                 <div className="flex items-center gap-2">
                   <OfflineIndicator lang={lang} variant="pill" />
+
+                  {/* Global Search Mobile Trigger */}
+                  <button
+                    onClick={() => setIsSearchOpen(true)}
+                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 transition-all cursor-pointer shadow-3xs active:scale-95"
+                    title={lang === "bn" ? "সার্চ করুন" : "Global Search"}
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
 
                   {/* Highly Visible Language Toggle */}
                   <button
@@ -1324,94 +1350,45 @@ export default function App() {
 
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
-        <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
-          <div className={`flex justify-around items-center w-full max-w-lg mx-auto h-16 px-1 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl pointer-events-auto ${theme.isDark ? 'bg-slate-900/80 border border-white/10' : 'bg-white/90 border border-black/5'}`}>
-          <button
-            onClick={() => {
-              setCurrentTab("dashboard");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
-              currentTab === "dashboard"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <GraduationCap className="h-5 w-5 mb-1" style={{ color: currentTab === "dashboard" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
-              {lang === "bn" ? "ড্যাশবোর্ড" : "Dashboard"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentTab("notes");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
-              currentTab === "notes"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <BookOpen className="h-5 w-5 mb-1" style={{ color: currentTab === "notes" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
-              {lang === "bn" ? "নোটস" : "Notes"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentTab("chat");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
-              currentTab === "chat"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <MessageSquare className="h-5 w-5 mb-1" style={{ color: currentTab === "chat" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
-              {lang === "bn" ? "সহায়তা" : "Support"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCurrentTab("liveClasses");
-              setSelectedNote(null);
-            }}
-            className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
-              currentTab === "liveClasses"
-                ? `${theme.primaryText} font-bold`
-                : `${theme.textMuted} font-medium`
-            }`}
-          >
-            <Radio className="h-5 w-5 mb-1" style={{ color: currentTab === "liveClasses" ? "currentColor" : "#94a3b8" }} />
-            <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
-              {lang === "bn" ? "লাইভ ক্লাস" : "Live"}
-            </span>
-          </button>
-
-          {profile.role === "Admin" && (
-            <button
-              onClick={() => {
-                setCurrentTab("admin");
-                setSelectedNote(null);
-              }}
-              className={`flex flex-col items-center justify-center flex-1 px-0.5 h-full transition-all android-ripple ${
-                currentTab === "admin"
-                  ? "text-amber-500 font-bold"
-                  : `${theme.textMuted} font-medium`
-              }`}
-            >
-              <Shield className="h-5 w-5 mb-1" style={{ color: currentTab === "admin" ? "#d97706" : "#94a3b8" }} />
-              <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
-                {lang === "bn" ? "অ্যাডমিন" : "Admin"}
-              </span>
-            </button>
-          )}
+        <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
+          <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-[1.75rem] shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-2xl pointer-events-auto bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800">
+          {[
+            { id: "dashboard", labelEn: "Dashboard", labelBn: "ড্যাশবোর্ড", icon: GraduationCap },
+            { id: "notes", labelEn: "Notes", labelBn: "নোটস", icon: BookOpen },
+            { id: "school", labelEn: "School", labelBn: "স্কুল", icon: BookMarked },
+            { id: "chat", labelEn: "Support", labelBn: "সহায়তা", icon: MessageSquare },
+            { id: "liveClasses", labelEn: "Live", labelBn: "লাইভ", icon: Radio },
+            ...(profile.role === "Admin" ? [{ id: "admin", labelEn: "Admin", labelBn: "অ্যাডমিন", icon: Shield }] : [])
+          ].map((item) => {
+            const IconComp = item.icon;
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setCurrentTab(item.id as any);
+                  setSelectedNote(null);
+                }}
+                className={`relative flex flex-col items-center justify-center flex-1 py-1.5 h-full transition-all cursor-pointer ${
+                  isActive
+                    ? `${item.id === "admin" ? "text-amber-500 font-black" : `${theme.primaryText} font-black`}`
+                    : "text-slate-400 dark:text-slate-500 hover:text-slate-600 font-semibold"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-dock-pill"
+                    className="absolute inset-x-1 inset-y-1.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 -z-10"
+                    transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                  />
+                )}
+                <IconComp className={`h-5 w-5 mb-0.5 transition-transform ${isActive ? "scale-110" : ""}`} />
+                <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
+                  {lang === "bn" ? item.labelBn : item.labelEn}
+                </span>
+              </button>
+            );
+          })}
           </div>
         </div>
       )}
@@ -1483,6 +1460,23 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        lang={lang}
+        theme={theme}
+        userNotes={notes}
+        onNavigate={(tab, extraData) => {
+          setCurrentTab(tab as any);
+          if (extraData?.noteData) {
+            setSelectedNote(extraData.noteData);
+          } else {
+            setSelectedNote(null);
+          }
+        }}
+      />
 
     </motion.div>
     )}
