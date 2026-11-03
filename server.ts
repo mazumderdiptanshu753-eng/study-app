@@ -1509,21 +1509,6 @@ app.get("/api/chat/messages", async (req, res) => {
       (a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
-    if (role !== "Admin" && messages.length === 0 && name && email) {
-      const studentEmail = (email as string).trim().toLowerCase();
-      const welcomeMsg = {
-        id: `welcome-${Date.now()}`,
-        senderName: "Admin (Diptanshu)",
-        senderEmail: "mazumderdiptanshu753@gmail.com",
-        senderRole: "Admin",
-        message: `Hello ${name}! Welcome to the Direct Chat Portal. I am the Admin/Teacher of this workspace. How can I assist you with your studies today?`,
-        timestamp: new Date().toISOString(),
-        studentEmail,
-        studentName: name,
-      };
-      await saveChatMessage(welcomeMsg);
-      return res.json([welcomeMsg]);
-    }
     return res.json(messages);
   } catch (error) {
     console.error("Error fetching chat messages:", error);

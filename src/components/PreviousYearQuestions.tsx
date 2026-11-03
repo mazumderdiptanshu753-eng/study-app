@@ -119,17 +119,17 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
       ) : (
         <div className="space-y-6 mt-4">
           {questions.map((q, qIndex) => (
-            <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-900 shadow-3xs`}>
+            <div key={qIndex} className={`p-5 rounded-2xl border ${theme.borderCard} bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 shadow-xs`}>
               <div className="flex gap-2 mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200/60 shadow-2xs">
                   {q.subject}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60 shadow-2xs">
                   {q.year}
                 </span>
               </div>
               <p className={`font-semibold ${theme.textHeading} text-xs sm:text-sm mb-4 leading-relaxed`}>
-                <span className={`text-amber-500 mr-2`}>Q{qIndex + 1}.</span>
+                <span className={`text-amber-500 mr-2 font-black`}>Q{qIndex + 1}.</span>
                 {q.question}
               </p>
               
@@ -138,29 +138,29 @@ export default function PreviousYearQuestions({ theme, lang }: PYQProps) {
                   const isSelected = selectedAnswers[qIndex] === optIndex;
                   const isCorrect = opt === q.correctAnswer;
                   
-                  let optStyle = `border ${theme.borderCard} bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 text-black dark:text-slate-300 font-semibold`;
+                  let optStyle = `border ${theme.borderCard} bg-white hover:bg-indigo-50/60 text-slate-850 font-semibold shadow-2xs`;
                   if (isSelected) {
-                    optStyle = `border border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 font-bold shadow-3xs`;
+                    optStyle = `border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs ring-2 ring-emerald-500/30`;
                   }
                   if (showResults) {
                     if (isCorrect) {
-                      optStyle = `border border-green-500 bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-300 font-semibold`;
+                      optStyle = `border border-green-500 bg-green-50 text-green-950 font-bold shadow-xs`;
                     } else if (isSelected && !isCorrect) {
-                      optStyle = `border border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-900 dark:text-rose-300 font-semibold`;
+                      optStyle = `border border-rose-500 bg-rose-50 text-rose-950 font-bold shadow-xs`;
                     } else {
-                      optStyle = `border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400`;
+                      optStyle = `border ${theme.borderCard} opacity-60 bg-white text-slate-500 font-medium`;
                     }
                   }
 
                   // Dynamic badge style for A, B, C, D circles
-                  let badgeStyle = "bg-slate-150 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                  let badgeStyle = "bg-indigo-50 text-indigo-700 border border-indigo-200/70";
                   if (showResults) {
                     if (isCorrect) badgeStyle = "bg-green-600 text-white";
                     else if (isSelected) badgeStyle = "bg-red-600 text-white";
                   } else {
                     badgeStyle = isSelected 
-                      ? "bg-emerald-600 text-white" 
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/50 dark:border-slate-750";
+                      ? "bg-emerald-600 text-white shadow-xs" 
+                      : "bg-indigo-50 text-indigo-700 border border-indigo-200/70";
                   }
 
                   return (

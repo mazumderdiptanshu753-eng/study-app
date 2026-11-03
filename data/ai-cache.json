@@ -1,1 +1,47 @@
-{}
+{
+  "ca-2026-11-03": {
+    "news": [
+      {
+        "headline": "India's space agency successfully launches new communication satellite",
+        "description": "ISRO has successfully placed a new advanced communication satellite into geostationary orbit, boosting the country's telecommunication infrastructure.",
+        "category": "Science & Technology",
+        "date": "2026-11-03"
+      },
+      {
+        "headline": "Government announces new economic package for MSMEs",
+        "description": "The Finance Ministry has rolled out a comprehensive stimulus package aimed at revitalizing Micro, Small, and Medium Enterprises.",
+        "category": "Economy",
+        "date": "2026-11-03"
+      },
+      {
+        "headline": "International summit on climate change begins in New Delhi",
+        "description": "Delegates from over 50 countries have convened to discuss actionable strategies for reducing global carbon emissions.",
+        "category": "Environment",
+        "date": "2026-11-03"
+      },
+      {
+        "headline": "Prominent sportsperson wins gold at international championship",
+        "description": "Bringing laurels to the nation, an Indian athlete secured the gold medal in the 100m sprint at the World Athletics Championship.",
+        "category": "Sports",
+        "date": "2026-11-03"
+      },
+      {
+        "headline": "Parliament passes new bill on data privacy",
+        "description": "A landmark bill aiming to secure user data and establish guidelines for tech companies has been passed by both houses of Parliament.",
+        "category": "Polity",
+        "date": "2026-11-03"
+      }
+    ]
+  },
+  "quiz-2026-11-03": {
+    "question": "An important practice question?",
+    "options": [
+      "Correct Option",
+      "Incorrect Option 1",
+      "Incorrect Option 2",
+      "Incorrect Option 3"
+    ],
+    "correctAnswer": "Correct Option",
+    "explanation": "This is the detailed explanation for the correct option."
+  }
+}

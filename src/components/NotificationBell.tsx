@@ -159,11 +159,7 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className={`relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl border transition-all cursor-pointer ${
-          theme.isDark 
-            ? "bg-slate-900/60 hover:bg-slate-900/90 border-white/[0.08] text-slate-200 hover:text-white" 
-            : "bg-slate-100/60 hover:bg-slate-100/90 border-black/[0.06] text-slate-700 hover:text-slate-900"
-        }`}
+        className={`relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl border border-indigo-200/80 bg-white/90 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-950 shadow-xs transition-all cursor-pointer`}
         id="btn-notification-bell"
         title={lang === "bn" ? "বিজ্ঞপ্তি সমূহ" : "Notifications"}
       >
@@ -176,7 +172,7 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-950"
+              className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white ring-2 ring-white shadow-xs"
             >
               {unreadCount}
             </motion.span>
@@ -192,16 +188,12 @@ export default function NotificationBell({ profile, lang, theme }: NotificationB
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
-            className={`fixed sm:absolute top-16 sm:top-auto right-4 sm:right-0 left-4 sm:left-auto mt-2 sm:mt-2.5 w-auto sm:w-96 rounded-2xl border shadow-xl z-50 overflow-hidden ${
-              theme.isDark 
-                ? "bg-slate-950/95 border-white/[0.08] backdrop-blur-xl" 
-                : "bg-white/95 border-black/[0.06] backdrop-blur-xl"
-            }`}
+            className={`fixed sm:absolute top-16 sm:top-auto right-4 sm:right-0 left-4 sm:left-auto mt-2 sm:mt-2.5 w-auto sm:w-96 rounded-2xl border border-indigo-200/80 bg-white/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden`}
           >
             {/* Header */}
-            <div className={`flex items-center justify-between px-4 py-3 border-b ${theme.isDark ? "border-white/[0.08]" : "border-black/[0.06]"}`}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-pink-50/40">
               <div className="flex items-center gap-1.5">
-                <span className={`font-extrabold text-xs sm:text-sm ${theme.isDark ? "text-white" : "text-slate-900"}`}>
+                <span className="font-extrabold text-xs sm:text-sm text-indigo-950">
                   {lang === "bn" ? "বিজ্ঞপ্তি হাব" : "Notifications Hub"}
                 </span>
                 {unreadCount > 0 && (

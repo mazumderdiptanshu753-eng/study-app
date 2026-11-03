@@ -2191,38 +2191,38 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
 
       {/* Main Tab Controls - Responsive grid on mobile, flex on desktop */}
       {(selectedClass === "9" || selectedClass === "10") && (
-        <div className="grid grid-cols-3 md:flex gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/80 w-full md:w-auto">
+        <div className="grid grid-cols-3 md:flex gap-1.5 p-1.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 shadow-2xs w-full md:w-auto">
           <button
             onClick={() => setActiveTab("notes")}
-            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 px-2 py-2 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
               activeTab === "notes"
-                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                ? "bg-white text-emerald-700 shadow-sm border border-emerald-200"
+                : "text-slate-600 hover:text-indigo-900 hover:bg-white/50"
             }`}
           >
-            <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-emerald-600" />
             <span className="truncate">{lang === "bn" ? "অধ্যায়" : "Chapters"}</span>
           </button>
           <button
             onClick={() => setActiveTab("boardPrep")}
-            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 px-2 py-2 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
               activeTab === "boardPrep"
-                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                ? "bg-white text-emerald-700 shadow-sm border border-emerald-200"
+                : "text-slate-600 hover:text-indigo-900 hover:bg-white/50"
             }`}
           >
-            <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-amber-500" />
             <span className="truncate">{lang === "bn" ? "বোর্ড" : "Board Prep"}</span>
           </button>
           <button
             onClick={() => setActiveTab("formulas")}
-            className={`flex flex-col sm:flex-row items-center justify-center gap-1 px-1 py-2 sm:px-5 sm:py-3.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
+            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 px-2 py-2 sm:px-5 sm:py-3 rounded-xl text-[10px] sm:text-xs md:text-sm font-black transition-all cursor-pointer ${
               activeTab === "formulas"
-                ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/40 dark:border-slate-700/50"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                ? "bg-white text-emerald-700 shadow-sm border border-emerald-200"
+                : "text-slate-600 hover:text-indigo-900 hover:bg-white/50"
             }`}
           >
-            <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+            <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-indigo-500" />
             <span className="truncate">{lang === "bn" ? "সূত্র" : "Formula"}</span>
           </button>
         </div>
@@ -2266,7 +2266,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                 ))}
                 
                 {availableSubjects.length === 0 && (
-                  <div className={`p-4 text-center rounded-xl border ${theme.borderCard} bg-slate-50/50 dark:bg-slate-900/30 w-full`}>
+                  <div className={`p-4 text-center rounded-xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/50 via-purple-50/40 to-pink-50/30 w-full shadow-xs`}>
                     <p className={`text-xs ${theme.textMuted} font-bold`}>
                       {lang === "bn" ? "এই ক্লাসের জন্য কোনো বিষয় এখনও যুক্ত হয়নি।" : "No subjects loaded for this class."}
                     </p>
@@ -2350,7 +2350,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       </div>
 
                       {/* Summary Box */}
-                      <div className="p-4 md:p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+                      <div className="p-4 md:p-5 bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-indigo-50/40 rounded-2xl border border-emerald-200/70 space-y-2 shadow-xs">
                         <h4 className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${theme.primaryText}`}>
                           {lang === "bn" ? "অধ্যায় সারসংক্ষেপ" : "Chapter Summary"}
                         </h4>
@@ -2369,7 +2369,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                           {(lang === "bn" ? ch.keyPointsBn : ch.keyPointsEn).map((point, pIdx) => (
                             <div 
                               key={pIdx}
-                              className="flex gap-2.5 md:gap-3 p-3.5 md:p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 text-xs md:text-sm font-medium items-start shadow-2xs"
+                              className="flex gap-2.5 md:gap-3 p-3.5 md:p-4 bg-white/95 rounded-xl border border-emerald-100 text-xs md:text-sm font-medium items-start shadow-xs hover:border-emerald-300 transition-all"
                             >
                               <span className="flex-shrink-0 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-[10px] md:text-xs font-black mt-0.5">
                                 {pIdx + 1}
@@ -2405,7 +2405,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                           </button>
                           <button 
                             onClick={() => downloadChapterPdfHtml(ch)}
-                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all cursor-pointer shadow-sm active:scale-95"
                           >
                             <Download className="h-3.5 w-3.5" />
                             {lang === "bn" ? "ডাউনলোড করুন" : "Download PDF"}
@@ -2417,7 +2417,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                 </div>
               ) : currentChapterObj ? (
                 <div className={`rounded-2xl md:rounded-3xl border ${theme.borderCard} ${theme.bgCard} p-4 md:p-6 lg:p-8 space-y-5 md:space-y-6 shadow-xs`}>
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div className="border-b border-indigo-100 pb-4">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-black uppercase tracking-wider mb-2.5">
                       <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                       {lang === "bn" ? `${selectedClass}ম শ্রেণীর নোটস` : `Class ${selectedClass} notes`}
@@ -2431,8 +2431,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                   </div>
 
                   {/* Summary Box */}
-                  <div className="p-4 md:p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
-                    <h3 className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${theme.primaryText}`}>
+                  <div className="p-4 md:p-5 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-indigo-50/30 rounded-2xl border border-emerald-100 space-y-2 shadow-2xs">
+                    <h3 className={`text-[10px] md:text-xs font-black uppercase tracking-widest text-emerald-700`}>
                       {lang === "bn" ? "অধ্যায় সারসংক্ষেপ" : "Chapter Summary"}
                     </h3>
                     <p className={`text-xs md:text-sm ${theme.textMain} leading-relaxed`}>
@@ -2450,7 +2450,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       {(lang === "bn" ? currentChapterObj.keyPointsBn : currentChapterObj.keyPointsEn).map((point, idx) => (
                         <div 
                           key={idx}
-                          className="flex gap-2.5 md:gap-3 p-3.5 md:p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 text-xs md:text-sm font-medium items-start shadow-2xs"
+                          className="flex gap-2.5 md:gap-3 p-3.5 md:p-4 bg-white rounded-xl border border-indigo-100/80 text-xs md:text-sm font-medium items-start shadow-2xs hover:border-indigo-300 transition-all"
                         >
                           <span className="flex-shrink-0 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-[10px] md:text-xs font-black mt-0.5">
                             {idx + 1}
@@ -2462,7 +2462,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                   </div>
 
                   {/* PDF View & Download Actions */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 mt-6 md:mt-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-indigo-500/10 border border-emerald-500/20 mt-6 md:mt-8 shadow-xs">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-red-500/20 text-red-600 rounded-lg flex items-center justify-center font-bold flex-shrink-0">
                         PDF
@@ -2486,7 +2486,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       </button>
                       <button 
                         onClick={() => downloadChapterPdfHtml(currentChapterObj)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-sm active:scale-95"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all cursor-pointer shadow-sm active:scale-95"
                       >
                         <Download className="h-3.5 w-3.5" />
                         {lang === "bn" ? "ডাউনলোড করুন" : "Download PDF"}
@@ -2495,8 +2495,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                   </div>
                 </div>
               ) : (
-                <div className={`rounded-2xl md:rounded-3xl border border-dashed ${theme.borderCard} p-8 md:p-12 text-center bg-slate-50/50 dark:bg-slate-900/20`}>
-                  <BookOpen className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+                <div className={`rounded-2xl md:rounded-3xl border border-dashed border-indigo-200/80 p-8 md:p-12 text-center bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/30 shadow-xs`}>
+                  <BookOpen className="h-8 w-8 md:h-10 md:w-10 text-indigo-400 mx-auto mb-3" />
                   <p className={`text-xs md:text-sm font-bold ${theme.textMuted}`}>
                     {lang === "bn" ? "অনুগ্রহ করে বামদিকের তালিকা থেকে একটি বিষয় ও অধ্যায় নির্বাচন করুন।" : "Please select a subject and chapter from the sidebar to view notes."}
                   </p>
@@ -2516,9 +2516,9 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
             className="space-y-4 md:space-y-6"
           >
             {/* Board Selector & Mode selector combined */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-3.5 md:p-4 bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-pink-50/50 rounded-2xl border border-indigo-100 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
-                <span className={`text-xs font-black uppercase tracking-wider ${theme.textMuted} flex-shrink-0`}>
+                <span className={`text-xs font-black uppercase tracking-wider text-indigo-900 flex-shrink-0`}>
                   {lang === "bn" ? "পরীক্ষা/বোর্ড:" : "Exam/Board:"}
                 </span>
                 
@@ -2528,20 +2528,20 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                     <>
                       <button
                         onClick={() => setSelectedBoard("madhyamik")}
-                        className={`flex-1 sm:flex-initial px-3 py-2 rounded-lg text-xs font-black transition-all ${
+                        className={`flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                           selectedBoard === "madhyamik"
-                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                            : `bg-white dark:bg-slate-800 ${theme.textMain} border ${theme.borderCard} hover:bg-slate-100`
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : `bg-white/90 ${theme.textMain} border border-indigo-100 hover:bg-indigo-50/60`
                         }`}
                       >
                         {lang === "bn" ? "WBBSE মাধ্যমিক" : "WBBSE Madhyamik"}
                       </button>
                       <button
                         onClick={() => setSelectedBoard("cbse10")}
-                        className={`flex-1 sm:flex-initial px-3 py-2 rounded-lg text-xs font-black transition-all ${
+                        className={`flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                           selectedBoard === "cbse10"
-                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                            : `bg-white dark:bg-slate-800 ${theme.textMain} border ${theme.borderCard} hover:bg-slate-100`
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : `bg-white/90 ${theme.textMain} border border-indigo-100 hover:bg-indigo-50/60`
                         }`}
                       >
                         CBSE Class 10
@@ -2551,10 +2551,10 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                     <>
                       <button
                         onClick={() => setSelectedBoard("hs")}
-                        className={`flex-1 sm:flex-initial px-3 py-2 rounded-lg text-xs font-black transition-all ${
+                        className={`flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                           selectedBoard === "hs"
-                            ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                            : `bg-white dark:bg-slate-800 ${theme.textMain} border ${theme.borderCard} hover:bg-slate-100`
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : `bg-white/90 ${theme.textMain} border border-indigo-100 hover:bg-indigo-50/60`
                         }`}
                       >
                         {lang === "bn" ? "WBCHSE উচ্চ মাধ্যমিক" : "WBCHSE HS"}
@@ -2565,7 +2565,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
               </div>
 
               {/* Sub tabs: PYQs, Syllabus, Suggestions - 3-column grid on mobile, flex on desktop */}
-              <div className="grid grid-cols-3 lg:flex gap-1 rounded-xl bg-slate-200/50 dark:bg-slate-800 p-1 border border-slate-200/50 dark:border-slate-700 w-full lg:w-auto">
+              <div className="grid grid-cols-3 lg:flex gap-1.5 rounded-xl bg-white/80 p-1 border border-indigo-100/80 shadow-2xs w-full lg:w-auto">
                 <button
                   onClick={() => setSelectedPrepSubTab("pyqs")}
                   className={`px-1 sm:px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
@@ -2622,8 +2622,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                           }}
                           className={`flex-1 lg:w-full p-3.5 rounded-xl lg:rounded-2xl border border-dashed transition-all flex items-center justify-center gap-2 font-sans ${
                             selectedPYQId === "upload_new"
-                              ? "bg-emerald-600/15 border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                              : `bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 ${theme.textMain} hover:border-emerald-500/50 hover:bg-emerald-500/5`
+                              ? "bg-emerald-600/15 border-emerald-500 text-emerald-600 font-bold"
+                              : `bg-white/90 border-emerald-200/80 ${theme.textMain} hover:border-emerald-500 hover:bg-emerald-50/60 shadow-xs`
                           }`}
                         >
                           <Upload className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -2704,11 +2704,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                 value={uploadSubjectEn}
                                 onChange={(e) => setUploadSubjectEn(e.target.value)}
                                 placeholder="e.g. Mathematics, English"
-                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all ${
-                                  theme.isDark 
-                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
-                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
-                                }`}
+                                className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-indigo-200/80 bg-white text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-hidden transition-all"
                                 required
                               />
                             </div>
@@ -2721,11 +2717,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                 value={uploadSubjectBn}
                                 onChange={(e) => setUploadSubjectBn(e.target.value)}
                                 placeholder="যেমন: গণিত, ইংরেজি"
-                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all ${
-                                  theme.isDark 
-                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
-                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
-                                }`}
+                                className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-indigo-200/80 bg-white text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-hidden transition-all"
                                 required
                               />
                             </div>
@@ -2740,11 +2732,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                               <select
                                 value={uploadYear}
                                 onChange={(e) => setUploadYear(Number(e.target.value))}
-                                className={`w-full px-4 py-2 rounded-xl text-xs font-bold border outline-hidden transition-all cursor-pointer ${
-                                  theme.isDark 
-                                    ? "bg-slate-950 border-slate-800 text-white focus:border-emerald-500" 
-                                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
-                                }`}
+                                className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-indigo-200/80 bg-white text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-hidden transition-all cursor-pointer"
                               >
                                 {[2024, 2023, 2022, 2021].map((y) => (
                                   <option key={y} value={y}>{y}</option>
@@ -2759,7 +2747,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                 type="text"
                                 value={selectedBoard.toUpperCase()}
                                 disabled
-                                className="w-full px-4 py-2 rounded-xl text-xs font-bold border bg-slate-100 dark:bg-slate-950/60 text-slate-500 border-slate-200 dark:border-slate-800 cursor-not-allowed"
+                                className="w-full px-4 py-2 rounded-xl text-xs font-bold border bg-indigo-50/50 text-indigo-900 border-indigo-200/80 cursor-not-allowed"
                               />
                             </div>
                           </div>
@@ -2785,7 +2773,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                   ? "border-emerald-500 bg-emerald-500/10"
                                   : uploadFileName
                                     ? "border-emerald-500/50 bg-emerald-500/5"
-                                    : "border-slate-200 dark:border-slate-800 hover:border-emerald-500/30 hover:bg-slate-50/50 dark:hover:bg-slate-900/40"
+                                    : "border-indigo-200 hover:border-emerald-500 hover:bg-emerald-50/40"
                               }`}
                             >
                               <input
@@ -2897,7 +2885,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                             {!activePYQ.isCustom && (
                               <button 
                                 onClick={() => downloadPyqPdfHtml(activePYQ)}
-                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95"
                               >
                                 <Download className="h-3.5 w-3.5" />
                                 {lang === "bn" ? "ডাউনলোড" : "Download PDF"}
@@ -2923,7 +2911,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-150 dark:border-slate-800/40">
+                            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-150">
                               {activePYQ.fileUrl && (
                                 <button
                                   onClick={() => setViewingPdfPYQ(activePYQ)}
@@ -2943,7 +2931,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                     link.click();
                                     document.body.removeChild(link);
                                   }}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-opacity-90 transition-all cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95"
                                 >
                                   <Download className="h-3.5 w-3.5" />
                                   {lang === "bn" ? "ডাউনলোড" : "Download File"}
@@ -2969,27 +2957,27 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                           {activePYQ.questions.map((q, qidx) => (
                             <div 
                               key={qidx}
-                              className="p-4 md:p-5 bg-slate-50 dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 md:space-y-4"
+                              className="p-4 md:p-5 bg-gradient-to-br from-white via-emerald-50/25 to-teal-50/20 rounded-xl md:rounded-2xl border border-emerald-100 space-y-3 md:space-y-4 shadow-xs"
                             >
                               <div className="flex flex-col sm:flex-row justify-between items-start gap-2.5 sm:gap-3">
                                 <div className="flex items-start gap-2 flex-1">
-                                  <span className="text-xs md:text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0">
+                                  <span className="text-xs md:text-sm font-black text-emerald-600 mt-0.5 shrink-0">
                                     Q{qidx + 1}.
                                   </span>
                                   <p className={`text-xs md:text-sm font-bold ${theme.textHeading} leading-relaxed`}>
                                     {lang === "bn" ? q.qBn : q.qEn}
                                   </p>
                                 </div>
-                                <span className="text-[10px] md:text-xs font-black bg-slate-200 dark:bg-slate-800 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 self-start sm:self-auto shrink-0">
+                                <span className="text-[10px] md:text-xs font-black bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md border border-emerald-200/70 self-start sm:self-auto shrink-0 shadow-2xs">
                                   {q.marks} {lang === "bn" ? "নম্বর" : "Marks"}
                                 </span>
                               </div>
 
                               {/* Action buttons */}
-                              <div className="flex gap-2 justify-end pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
+                              <div className="flex gap-2 justify-end pt-2 border-t border-emerald-100">
                                 <button
                                   onClick={() => setShowAnswerForId(showAnswerForId === `${activePYQ.id}-${qidx}` ? "" : `${activePYQ.id}-${qidx}`)}
-                                  className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                   {showAnswerForId === `${activePYQ.id}-${qidx}` 
@@ -3005,9 +2993,9 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: "auto" }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="p-3.5 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-[11px] md:text-xs font-medium space-y-2 overflow-hidden"
+                                    className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-[11px] md:text-xs font-medium space-y-2 overflow-hidden"
                                   >
-                                    <h5 className="font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-[9px] md:text-[10px]">
+                                    <h5 className="font-black text-emerald-700 uppercase tracking-widest text-[9px] md:text-[10px]">
                                       {lang === "bn" ? "উত্তর / গাণিতিক সমাধান:" : "Step-by-Step Solution:"}
                                     </h5>
                                     <p className={`${theme.textMain} leading-relaxed whitespace-pre-wrap`}>
@@ -3021,8 +3009,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                         </div>
                       </div>
                     ) : (
-                      <div className={`rounded-2xl md:rounded-3xl border border-dashed ${theme.borderCard} p-8 md:p-12 text-center bg-slate-50/50 dark:bg-slate-900/20`}>
-                        <HelpCircle className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+                      <div className={`rounded-2xl md:rounded-3xl border border-dashed border-emerald-200 p-8 md:p-12 text-center bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-cyan-50/30 shadow-xs`}>
+                        <HelpCircle className="h-8 w-8 md:h-10 md:w-10 text-emerald-400 mx-auto mb-3" />
                         <p className={`text-xs md:text-sm font-bold ${theme.textMuted}`}>
                           {lang === "bn" ? "বামদিক বা উপর থেকে একটি প্রশ্নপত্র নির্বাচন করুন।" : "Please select a question set from the options."}
                         </p>
@@ -3055,24 +3043,24 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       {boardSyllabus.map((syll, idx) => (
                         <div 
                           key={idx}
-                          className="p-4 md:p-5 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 shadow-2xs hover:border-emerald-500/20 transition-all"
+                          className="p-4 md:p-5 bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 rounded-2xl border border-indigo-150 space-y-3 shadow-xs hover:border-indigo-400 hover:shadow-sm transition-all"
                         >
-                          <div className="flex justify-between items-start border-b border-slate-200/50 dark:border-slate-800/50 pb-2 gap-2">
+                          <div className="flex justify-between items-start border-b border-indigo-100 pb-2 gap-2">
                             <h4 className={`text-xs md:text-sm font-black ${theme.textHeading} leading-tight`}>
                               {lang === "bn" ? syll.topicBn : syll.topicEn}
                             </h4>
-                            <span className="text-[10px] md:text-xs font-black bg-emerald-500 text-white px-2.5 py-1 rounded-lg flex-shrink-0">
+                            <span className="text-[10px] md:text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2.5 py-1 rounded-lg flex-shrink-0 shadow-xs">
                               {syll.marks} {lang === "bn" ? "নম্বর" : "Marks"}
                             </span>
                           </div>
 
                           <div className="space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Chapters included</span>
+                            <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest block">Chapters included</span>
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               {syll.chapters.map((ch, cidx) => (
                                 <span 
                                   key={cidx}
-                                  className="text-[10px] md:text-[11px] font-bold px-2 py-0.5 md:py-1 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-md text-slate-600 dark:text-slate-400"
+                                  className="text-[10px] md:text-[11px] font-bold px-2 py-0.5 md:py-1 bg-white border border-indigo-200/80 rounded-md text-indigo-900 shadow-2xs"
                                 >
                                   {ch}
                                 </span>
@@ -3109,22 +3097,22 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       {SUGGESTIONS_DATA.map((sug) => (
                         <div 
                           key={sug.id}
-                          className="p-4 md:p-5 bg-white dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-800/80 space-y-3 shadow-2xs hover:shadow-sm"
+                          className="p-4 md:p-5 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 rounded-2xl border border-amber-200/80 space-y-3 shadow-xs hover:border-amber-400 hover:shadow-sm transition-all"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded">
+                              <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200/60 shadow-2xs">
                                 {lang === "bn" ? sug.subjectBn : sug.subjectEn}
                               </span>
-                              <span className="text-[10px] font-extrabold uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                              <span className="text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200/60 shadow-2xs">
                                 {sug.type.toUpperCase()}
                               </span>
                             </div>
 
                             <span className={`text-[9px] md:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 md:py-1 rounded-full ${
                               sug.importance === "critical" 
-                                ? "bg-red-500/10 text-red-600 animate-pulse border border-red-500/20" 
-                                : "bg-amber-500/10 text-amber-600"
+                                ? "bg-red-500/15 text-red-700 animate-pulse border border-red-500/30 font-bold" 
+                                : "bg-amber-500/15 text-amber-800 border border-amber-500/30 font-bold"
                             }`}>
                               ⚠️ {sug.importance === "critical" ? (lang === "bn" ? "১০০% কমন উপযোগী" : "CRITICAL IMPORTANCE") : (lang === "bn" ? "অতি গুরুত্বপূর্ণ" : "HIGHLY PROBABLE")}
                             </span>
@@ -3135,8 +3123,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                           </p>
 
                           {sug.hintEn && (
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px] md:text-[11px] leading-relaxed">
-                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-1">
+                            <div className="p-3 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-yellow-50/50 rounded-xl border border-amber-200/80 text-[10px] md:text-[11px] leading-relaxed shadow-2xs">
+                              <span className="font-extrabold text-amber-800 uppercase tracking-widest block mb-1">
                                 {lang === "bn" ? "হিন্ট / উত্তর সংকেত:" : "Answer Hint:"}
                               </span>
                               <p className={`${theme.textMain}`}>{lang === "bn" ? sug.hintBn : sug.hintEn}</p>
@@ -3162,16 +3150,16 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
             className="space-y-4 md:space-y-6"
           >
             {/* Search, Categorize, Favourites header bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 md:p-4 bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-cyan-50/60 rounded-2xl border border-emerald-200/80 shadow-xs">
               {/* Search bar */}
               <div className="relative w-full sm:w-64 md:w-72">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600" />
                 <input
                   type="text"
                   placeholder={lang === "bn" ? "সূত্র সার্চ করুন..." : "Search formula..."}
                   value={formulaSearch}
                   onChange={(e) => setFormulaSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-emerald-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 shadow-2xs"
                 />
               </div>
 
@@ -3257,7 +3245,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                       </div>
 
                       {/* Actual Equation Showcase Box */}
-                      <div className="p-3.5 md:p-4 bg-slate-900 text-white rounded-xl text-center flex flex-col items-center justify-center min-h-[68px] font-mono font-medium text-xs md:text-sm border border-slate-800 shadow-inner select-all relative group overflow-hidden w-full">
+                      <div className="p-3.5 md:p-4 bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-950 rounded-xl text-center flex flex-col items-center justify-center min-h-[68px] font-mono font-bold text-xs md:text-sm border border-indigo-200/80 shadow-inner select-all relative group overflow-hidden w-full">
                         <RenderMath id={f.id} formula={f.formula} />
                       </div>
 
@@ -3269,8 +3257,8 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
 
                       {/* Example if exists */}
                       {f.exampleEn && (
-                        <div className="p-2.5 md:p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] leading-relaxed">
-                          <strong className="font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-0.5">Example</strong>
+                        <div className="p-2.5 md:p-3 bg-indigo-50/40 rounded-lg border border-indigo-100 text-[10px] leading-relaxed">
+                          <strong className="font-extrabold text-indigo-700 uppercase tracking-widest block mb-0.5">Example</strong>
                           <p className={`${theme.textMain}`}>{lang === "bn" ? f.exampleBn : f.exampleEn}</p>
                         </div>
                       )}
@@ -3281,7 +3269,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
 
               {filteredFormulas.length === 0 && (
                 <div className="col-span-full py-12 text-center">
-                  <Calculator className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+                  <Calculator className="h-8 w-8 md:h-10 md:w-10 text-slate-300 mx-auto mb-3" />
                   <p className={`text-xs md:text-sm font-bold ${theme.textMuted}`}>
                     {lang === "bn" ? "কোনো সূত্র পাওয়া যায়নি।" : "No formulas found matching your search."}
                   </p>
@@ -3295,15 +3283,15 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
       {/* MODAL: Highly immersive PDF Document Viewer */}
       <AnimatePresence>
         {viewingPdfChapter && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/25 backdrop-blur-md p-4 md:p-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 h-[90vh] relative"
+              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-indigo-100 h-[90vh] relative"
             >
               {/* PDF Top Bar */}
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center z-10">
+              <div className="px-6 py-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-pink-50/40 flex justify-between items-center z-10">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 bg-rose-500 rounded-lg flex items-center justify-center text-white font-extrabold text-xs">
                     PDF
@@ -3423,12 +3411,12 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                 </div>
 
                 {/* PAGE 3: Final back cover */}
-                <div className="bg-slate-800 text-white rounded-2xl md:rounded-3xl p-8 md:p-12 text-center space-y-4 print:bg-white print:text-slate-800 print:border-t print:pt-6">
-                  <Award className="h-10 w-10 mx-auto text-amber-400" />
-                  <h4 className="font-bold text-sm tracking-widest uppercase">
+                <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-2xl md:rounded-3xl p-8 md:p-12 text-center space-y-4 shadow-xl border border-indigo-400/30 print:bg-white print:text-slate-800 print:border-t print:pt-6">
+                  <Award className="h-10 w-10 mx-auto text-amber-300" />
+                  <h4 className="font-black text-sm tracking-widest uppercase">
                     STUDY HUB ACADEMY
                   </h4>
-                  <p className="text-xs text-slate-400 print:text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-indigo-100 print:text-slate-500 max-w-sm mx-auto leading-relaxed">
                     {lang === "bn" 
                       ? "আপনার স্বপ্ন ছোঁয়ার যাত্রায় আমরা সর্বদা আপনার সাথে আছি। নিয়মিত পড়াশোনা করুন এবং সফল হোন।" 
                       : "We are with you at every step of your preparation. Keep practicing and keep moving towards your dream."}
@@ -3443,15 +3431,15 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
       {/* MODAL: Help / Print & Download Options */}
       <AnimatePresence>
         {showPrintModal && viewingPdfChapter && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-indigo-950/25 backdrop-blur-md p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className={`${theme.bgCard} text-slate-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border ${theme.borderCard} p-6 space-y-6 relative`}
+              className={`${theme.bgCard} text-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-indigo-100 p-6 space-y-6 relative`}
             >
               <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
+                <div className="flex items-center gap-2 text-teal-600">
                   <Printer className="h-5 w-5" />
                   <h3 className={`text-base font-bold ${theme.textHeading}`}>
                     {lang === "bn" ? "প্রিন্ট এবং পিডিএফ ডাউনলোড অপশন" : "Print & PDF Download Options"}
@@ -3459,7 +3447,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                 </div>
                 <button
                   onClick={() => setShowPrintModal(false)}
-                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-all text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -3475,7 +3463,7 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
                 <div className="space-y-3">
                   <div className={`p-4 rounded-2xl border border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10 transition-all flex flex-col gap-2`}>
                     <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                      <div className="h-8 w-8 rounded-lg bg-teal-500/20 text-teal-600 flex items-center justify-center shrink-0">
                         <Download className="h-4 w-4" />
                       </div>
                       <div>
@@ -3510,15 +3498,15 @@ export default function SchoolSection({ lang, theme, onNavigate, profile }: Scho
       {/* MODAL: Highly immersive PYQ PDF Document Viewer */}
       <AnimatePresence>
         {viewingPdfPYQ && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-950/25 backdrop-blur-md p-4 md:p-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 h-[90vh] relative"
+              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-indigo-100 h-[90vh] relative"
             >
               {/* PDF Top Bar */}
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center z-10">
+              <div className="px-6 py-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-pink-50/40 flex justify-between items-center z-10">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 bg-rose-500 rounded-lg flex items-center justify-center text-white font-extrabold text-xs">
                     PDF

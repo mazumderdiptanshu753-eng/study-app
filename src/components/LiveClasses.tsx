@@ -210,9 +210,9 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
                   </div>
                 </div>
                 
-                <div className={`p-4 border-t ${theme.borderCard} bg-slate-50/50 dark:bg-slate-900/30`}>
+                <div className={`p-4 border-t ${theme.borderCard} bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-indigo-50/30`}>
                   {cls.status === "Completed" ? (
-                    <button disabled className={`w-full py-2.5 rounded-xl font-bold text-sm bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed`}>
+                    <button disabled className={`w-full py-2.5 rounded-xl font-bold text-sm bg-slate-100 text-slate-500 border border-slate-200/80 cursor-not-allowed`}>
                       {lang === "bn" ? "ক্লাস শেষ হয়েছে" : "Class Completed"}
                     </button>
                   ) : (
@@ -247,7 +247,7 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCreating(false)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer"
+              className="absolute inset-0 bg-indigo-950/25 backdrop-blur-md cursor-pointer"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -263,31 +263,31 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
               <div className="space-y-4">
                 <div>
                   <label className={`block text-sm font-bold ${theme.textHeading} mb-1.5`}>Class Title</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="e.g. Current Affairs Masterclass" />
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className={`w-full p-3 rounded-xl border border-indigo-100 bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="e.g. Current Affairs Masterclass" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={`block text-sm font-bold ${theme.textHeading} mb-1.5`}>Subject/Topic</label>
-                    <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="e.g. General Knowledge" />
+                    <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} className={`w-full p-3 rounded-xl border border-indigo-100 bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="e.g. General Knowledge" />
                   </div>
                   <div>
                     <label className={`block text-sm font-bold ${theme.textHeading} mb-1.5`}>Instructor</label>
-                    <input type="text" value={instructor} onChange={(e) => setInstructor(e.target.value)} className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} />
+                    <input type="text" value={instructor} onChange={(e) => setInstructor(e.target.value)} className={`w-full p-3 rounded-xl border border-indigo-100 bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} />
                   </div>
                 </div>
                 <div>
                   <label className={`block text-sm font-bold ${theme.textHeading} mb-1.5`}>Date & Time</label>
-                  <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} />
+                  <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className={`w-full p-3 rounded-xl border border-indigo-100 bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-bold ${theme.textHeading} mb-1.5`}>Meeting Link (Google Meet / YouTube)</label>
-                  <input type="url" value={link} onChange={(e) => setLink(e.target.value)} className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="https://meet.google.com/..." />
+                  <input type="url" value={link} onChange={(e) => setLink(e.target.value)} className={`w-full p-3 rounded-xl border border-indigo-100 bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-rose-500/50`} placeholder="https://meet.google.com/..." />
                 </div>
               </div>
 
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setIsCreating(false)} className={`flex-1 py-3 rounded-xl font-bold border ${theme.borderCard} ${theme.textMain} hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}>Cancel</button>
-                <button onClick={handleCreate} disabled={!title.trim() || !link.trim() || !scheduledTime} className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${title.trim() && link.trim() && scheduledTime ? 'bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-md cursor-pointer' : 'bg-rose-400 dark:bg-rose-800 cursor-not-allowed opacity-70'}`}>Schedule</button>
+                <button onClick={() => setIsCreating(false)} className={`flex-1 py-3 rounded-xl font-bold border ${theme.borderCard} ${theme.textMain} hover:bg-slate-100 transition-colors cursor-pointer`}>Cancel</button>
+                <button onClick={handleCreate} disabled={!title.trim() || !link.trim() || !scheduledTime} className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${title.trim() && link.trim() && scheduledTime ? 'bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-md cursor-pointer' : 'bg-rose-300 cursor-not-allowed opacity-70'}`}>Schedule</button>
               </div>
             </motion.div>
           </div>

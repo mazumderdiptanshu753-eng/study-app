@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, Star, Ban, ArrowUpCircle, RefreshCcw, CheckCircle } from "lucide-react";
+import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, Star, Ban, ArrowUpCircle, RefreshCcw, RefreshCw, Sparkles, CheckCircle, Rocket, Zap } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
@@ -26,7 +26,7 @@ interface ActivityLog {
 
 export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSuspendUser, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "settings" | "analytics" | "moderation">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "logs" | "settings" | "analytics" | "moderation" | "updates">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -98,9 +98,17 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         setUpdateMessage({
           type: "success",
           text: isBengali 
-            ? `সংস্করণ v${newVersion} সফলভাবে প্রকাশ করা হয়েছে! সব শিক্ষার্থীর ডিভাইস স্বয়ংক্রিয়ভাবে আপডেট হবে।`
-            : `Version v${newVersion} released successfully! All users will be automatically updated.`
+            ? `সংস্করণ v${newVersion} সফলভাবে প্রকাশ করা হয়েছে! সব শিক্ষার্থীর ডিভাইসে ফুল-স্ক্রিন স্প্ল্যাশ স্ক্রিন চলে আসবে।`
+            : `Version v${newVersion} released successfully! All users will see the full-screen splash update screen.`
         });
+        window.dispatchEvent(new CustomEvent("studyhub_trigger_update", {
+          detail: {
+            targetVersion: newVersion.trim(),
+            changelogBn: changelogBn.trim(),
+            changelogEn: changelogEn.trim(),
+            isTest: false
+          }
+        }));
         setNewVersion("");
         setChangelogEn("");
         setChangelogBn("");
@@ -270,6 +278,15 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         >
           <ShieldAlert className="h-4 w-4" />
           {isBengali ? "মডারেশন" : "Moderation"}
+        </button>
+        <button
+          onClick={() => setActiveTab("updates")}
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer ${
+            activeTab === "updates" ? `${theme.bgCard} ${theme.textHeading} shadow-sm border border-indigo-200 text-indigo-700` : `${theme.textMuted} hover:${theme.textHeading}`
+          }`}
+        >
+          <Rocket className="h-4 w-4 text-indigo-600" />
+          {isBengali ? "সিস্টেম আপডেট" : "App Updates"}
         </button>
       </motion.div>
 
@@ -739,6 +756,190 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
             >
               {maintenanceMode ? (isBengali ? "বন্ধ করুন" : "Disable") : (isBengali ? "চালু করুন" : "Enable")}
             </button>
+          </div>
+        </motion.div>
+      )}
+
+      {activeTab === "updates" && (
+        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden p-5 sm:p-7 space-y-6`}>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+                  <Rocket className="h-5 w-5" />
+                </div>
+                <h2 className={`text-lg font-black ${theme.textHeading}`}>
+                  {isBengali ? "ফুল-স্ক্রিন সিস্টেম আপডেট কন্ট্রোল সেন্টার" : "Full-Screen App Update Center"}
+                </h2>
+              </div>
+              <p className={`text-xs ${theme.textMuted} mt-1 font-medium`}>
+                {isBengali 
+                  ? "নতুন সংস্করণ প্রকাশ করুন। প্রকাশের সাথে সাথে সকল শিক্ষার্থীর ডিভাইসে পুরো স্ক্রিন জুড়ে স্প্ল্যাশ আপডেট স্ক্রিন চলে আসবে এবং স্বয়ংক্রিয়ভাবে আপডেট হবে।" 
+                  : "Release new updates. When published, all connected users will instantly see the full-screen splash update screen and automatically upgrade."}
+              </p>
+            </div>
+            
+            {/* Current Active Live Version Pill */}
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold shrink-0">
+              <span className="text-slate-500">{isBengali ? "বর্তমান সংস্করণ:" : "Live Version:"}</span>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white font-mono font-black">
+                v{currentAppVersion || "2.6.6"}
+              </span>
+            </div>
+          </div>
+
+          {/* Update Message Alert if present */}
+          {updateMessage && (
+            <div className={`p-4 rounded-xl border flex items-start gap-3 text-xs font-semibold ${
+              updateMessage.type === "success" 
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                : "bg-rose-50 text-rose-800 border-rose-200"
+            }`}>
+              {updateMessage.type === "success" ? <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" /> : <ShieldAlert className="h-5 w-5 shrink-0 text-rose-600" />}
+              <div>{updateMessage.text}</div>
+            </div>
+          )}
+
+          {/* Form to release update */}
+          <form onSubmit={handlePublishUpdate} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>{isBengali ? "নতুন সংস্করণ নম্বর (Version Code) *" : "New Version Code *"}</span>
+                  <span className="text-[10px] text-slate-400 font-normal">যেমন: 2.6.7 বা 2.7.0</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="2.6.7"
+                    value={newVersion}
+                    onChange={(e) => setNewVersion(e.target.value)}
+                    className={`flex-1 ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`}
+                  />
+                  {/* Quick Increment Buttons */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = currentAppVersion || "2.6.6";
+                      const parts = cur.split(".").map(Number);
+                      parts[2] = (parts[2] || 0) + 1;
+                      setNewVersion(parts.join("."));
+                    }}
+                    className="px-2.5 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                    title="Auto increment patch version (+0.0.1)"
+                  >
+                    + Patch
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = currentAppVersion || "2.6.6";
+                      const parts = cur.split(".").map(Number);
+                      parts[1] = (parts[1] || 0) + 1;
+                      parts[2] = 0;
+                      setNewVersion(parts.join("."));
+                    }}
+                    className="px-2.5 py-2.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                    title="Auto increment minor version (+0.1.0)"
+                  >
+                    + Minor
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  {isBengali ? "আপডেটের বিবরণ / চেঞ্জলগ (বাংলা) *" : "Changelog (Bengali) *"}
+                </label>
+                <input
+                  type="text"
+                  placeholder="যেমন: ফুল-স্ক্রিন স্প্ল্যাশ আপডেট ও ইন্টারফেসের গতি বৃদ্ধি করা হয়েছে।"
+                  value={changelogBn}
+                  onChange={(e) => setChangelogBn(e.target.value)}
+                  className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">
+                {isBengali ? "আপডেটের বিবরণ / চেঞ্জলগ (English - Optional)" : "Changelog (English - Optional)"}
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Added immersive full-screen splash update screen and performance optimizations."
+                value={changelogEn}
+                onChange={(e) => setChangelogEn(e.target.value)}
+                className={`w-full ${theme.bgPage} px-3.5 py-2.5 rounded-xl border ${theme.borderCard} text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`}
+              />
+            </div>
+
+            {/* Action buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="submit"
+                disabled={isPublishing}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isPublishing ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>{isBengali ? "সম্প্রচার হচ্ছে..." : "Broadcasting..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="h-4 w-4" />
+                    <span>{isBengali ? "🚀 সব ডিভাইসে আপডেট সম্প্রচার করুন" : "🚀 Broadcast Update to All Devices"}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Test Splash Preview Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("studyhub_trigger_update", {
+                    detail: {
+                      targetVersion: newVersion.trim() || "2.6.7 (প্রিভিউ)",
+                      changelogBn: changelogBn.trim() || "নতুন ফুল-স্ক্রিন স্প্ল্যাশ স্ক্রিন সিস্টেম সফলভাবে অ্যাক্টিভ হয়েছে!",
+                      changelogEn: changelogEn.trim() || "Full-screen splash update preview.",
+                      isTest: true
+                    }
+                  }));
+                }}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+              >
+                <Sparkles className="h-4 w-4 text-emerald-600" />
+                <span>{isBengali ? "স্প্ল্যাশ আপডেট স্ক্রিন টেস্ট প্রিভিউ" : "Test Splash Screen Preview"}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Visual Information Card */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-200/70 text-xs space-y-2">
+            <h4 className="font-black text-indigo-950 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              {isBengali ? "ফুল-স্ক্রিন স্প্ল্যাশ আপডেট যেভাবে কাজ করে:" : "How the Full-Screen Splash Update Works:"}
+            </h4>
+            <ul className="list-disc pl-5 space-y-1 text-slate-700 leading-relaxed font-medium">
+              <li>
+                {isBengali 
+                  ? "অ্যাডমিন নতুন ভার্সন প্রকাশ করার সাথে সাথেই সকল কানেক্টেড ছাত্র-ছাত্রীর ব্রাউজারে স্বয়ংক্রিয়ভাবে পুরো স্ক্রিন জুড়ে স্প্ল্যাশ স্ক্রিন ফুটে উঠবে।"
+                  : "As soon as you publish a new version, every connected student's browser immediately displays the full-screen splash update screen."}
+              </li>
+              <li>
+                {isBengali 
+                  ? "ইউজার যে পেজেই থাকুক না কেন (লগইন, ওয়েলকাম, নোটস, বা ড্যাশবোর্ড), পুরো স্ক্রিন জুড়ে স্প্ল্যাশ প্রগ্রেস বার ও চেঞ্জলগ লাইভ চলবে।"
+                  : "Regardless of what page the user is on (Welcome, Notes, or Dashboard), the splash screen takes over the entire viewport with live progress."}
+              </li>
+              <li>
+                {isBengali 
+                  ? "১০০% ইন্সটল হওয়া মাত্র স্বয়ংক্রিয়ভাবে পেজ রিলোড হয়ে নতুন ফিচার ও ইন্টারফেস সরাসরি সামনে চলে আসবে।"
+                  : "Once reaching 100%, the app cleanly reloads and presents all the latest features seamlessly."}
+              </li>
+            </ul>
           </div>
         </motion.div>
       )}

@@ -86,64 +86,72 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`mt-6 p-4 sm:p-6 rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-sm relative overflow-hidden`}
+      className={`p-5 sm:p-6 rounded-3xl border ${theme.borderCard} ${theme.bgCard} shadow-sm relative overflow-hidden transition-all`}
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/5 rounded-bl-full -z-10 blur-2xl pointer-events-none"></div>
-      
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${theme.textHeading}`}>
-          <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-500">
-            <HelpCircle className="w-5 h-5" />
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <HelpCircle className="w-4.5 h-4.5" />
           </div>
-          {lang === "bn" ? "দৈনিক কুইজ (Question of the Day)" : "Question of the Day"}
-        </h3>
+          <div>
+            <h3 className={`text-sm sm:text-base font-black ${theme.textHeading} tracking-tight`}>
+              {lang === "bn" ? "দৈনিক কুইজ" : "Question of the Day"}
+            </h3>
+            <span className="text-[10px] font-bold text-slate-400 block">
+              {lang === "bn" ? "প্রতিদিনের চ্যালেঞ্জ ও তাৎক্ষণিক ব্যাখ্যা" : "Daily Challenge & Concept Check"}
+            </span>
+          </div>
+        </div>
         
-        {points > 0 && (
+        {points > 0 ? (
           <motion.div
-            initial={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold shadow-md"
+            className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-black"
           >
-            <Award className="w-4 h-4" />
-            +10 Points
+            <Award className="w-3.5 h-3.5" />
+            <span>+10 PTS</span>
           </motion.div>
+        ) : (
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+            10 PTS
+          </span>
         )}
       </div>
 
-      <div className={`text-base sm:text-lg font-black mb-5 ${theme.textHeading} leading-relaxed pl-1 whitespace-normal break-words`}>
+      <div className={`text-sm sm:text-base font-bold mb-5 ${theme.textHeading} leading-relaxed pl-0.5`}>
         {quiz.question}
       </div>
 
-      <div className="space-y-2.5 sm:space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
         {quiz.options.map((option, idx) => {
           const isSelected = selectedAnswer === option;
           const isCorrect = option === quiz.correctAnswer;
           const showStatus = selectedAnswer !== null;
 
-          let optionStyle = `border ${theme.borderCard} bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-black dark:text-slate-300 font-semibold`;
+          let optionStyle = `border ${theme.borderCard} bg-slate-50/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-400 text-slate-900 dark:text-slate-100 font-bold`;
           let icon = null;
 
           if (showStatus) {
             if (isCorrect) {
-              optionStyle = "bg-green-50 dark:bg-green-950/30 border border-green-500 text-green-800 dark:text-green-300 shadow-sm font-bold";
-              icon = <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 ml-2" />;
+              optionStyle = "bg-emerald-500/10 border-emerald-500 text-emerald-900 dark:text-emerald-300 font-black shadow-xs";
+              icon = <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 ml-2" />;
             } else if (isSelected && !isCorrect) {
-              optionStyle = "bg-red-50 dark:bg-red-950/30 border border-red-500 text-red-800 dark:text-red-300 font-bold";
-              icon = <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 ml-2" />;
+              optionStyle = "bg-rose-500/10 border-rose-500 text-rose-900 dark:text-rose-300 font-black";
+              icon = <XCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 ml-2" />;
             } else {
-              optionStyle = `opacity-60 border ${theme.borderCard} text-slate-500 dark:text-slate-400 font-medium`;
+              optionStyle = "opacity-45 border-slate-200 dark:border-slate-800 text-slate-400 font-medium";
             }
           } else if (isSelected) {
-            optionStyle = `border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 font-bold shadow-3xs`;
+            optionStyle = `border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 font-black shadow-xs`;
           }
 
-          // Dynamic badge style for A, B, C, D circles
-          let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+          let badgeStyle = "bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600";
           if (showStatus) {
-            if (isCorrect) badgeStyle = "bg-green-600 text-white";
-            else if (isSelected && !isCorrect) badgeStyle = "bg-red-600 text-white";
+            if (isCorrect) badgeStyle = "bg-emerald-600 text-white border-transparent";
+            else if (isSelected && !isCorrect) badgeStyle = "bg-rose-600 text-white border-transparent";
           } else if (isSelected) {
-            badgeStyle = "bg-emerald-600 text-white";
+            badgeStyle = "bg-emerald-600 text-white border-transparent";
           }
 
           return (
@@ -151,13 +159,13 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
               key={idx}
               onClick={() => handleSelect(option)}
               disabled={selectedAnswer !== null}
-              className={`w-full text-left p-3.5 sm:p-4 rounded-xl transition-all duration-300 flex items-start justify-between ${optionStyle} cursor-pointer`}
+              className={`text-left p-3.5 rounded-2xl transition-all duration-200 flex items-center justify-between ${optionStyle} cursor-pointer active:scale-98`}
             >
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-black shrink-0 mt-0.5 ${badgeStyle}`}>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <span className={`flex items-center justify-center w-6 h-6 rounded-lg text-xs font-black shrink-0 ${badgeStyle}`}>
                   {String.fromCharCode(65 + idx)}
                 </span>
-                <span className="font-medium whitespace-normal break-words flex-1 mt-0.5 leading-snug">{option}</span>
+                <span className="text-xs sm:text-sm whitespace-normal break-words flex-1 leading-snug">{option}</span>
               </div>
               {icon}
             </button>
@@ -169,22 +177,26 @@ export default function DailyQuiz({ theme, lang }: DailyQuizProps) {
         {showExplanation && (
           <motion.div
             initial={{ opacity: 0, height: 0, marginTop: 0 }}
-            animate={{ opacity: 1, height: "auto", marginTop: 20 }}
-            className={`p-4 sm:p-5 rounded-xl text-sm sm:text-base border ${theme.isDark ? "bg-slate-800/80 border-slate-700" : "bg-slate-50 border-slate-200"} relative`}
+            animate={{ opacity: 1, height: "auto", marginTop: 16 }}
+            className={`p-4 rounded-2xl text-xs sm:text-sm border ${
+              selectedAnswer === quiz.correctAnswer
+                ? "bg-emerald-500/5 border-emerald-500/20"
+                : "bg-rose-500/5 border-rose-500/20"
+            } relative`}
           >
-            
-            <div className={`mb-3 font-bold ${selectedAnswer === quiz.correctAnswer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-               {selectedAnswer === quiz.correctAnswer ? 
-                  (lang === "bn" ? "সঠিক উত্তর!" : "Correct Answer!") :
-                  (lang === "bn" ? `ভুল উত্তর। সঠিক উত্তর হলো: ${quiz.correctAnswer}` : `Wrong Answer. The correct answer is: ${quiz.correctAnswer}`)
-               }
+            <div className={`mb-2 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 ${
+              selectedAnswer === quiz.correctAnswer ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+            }`}>
+              <ArrowRight className="w-3.5 h-3.5" />
+              <span>
+                {selectedAnswer === quiz.correctAnswer 
+                  ? (lang === "bn" ? "সঠিক উত্তর!" : "Correct Answer!")
+                  : (lang === "bn" ? `ভুল উত্তর। সঠিক উত্তর: ${quiz.correctAnswer}` : `Incorrect. Correct Answer: ${quiz.correctAnswer}`)
+                }
+              </span>
             </div>
 
-            <h4 className={`font-bold mb-2 flex items-center gap-2 ${theme.isDark ? "text-slate-200" : "text-black font-extrabold"}`}>
-              <ArrowRight className="w-4 h-4 text-amber-500" />
-              {lang === "bn" ? "ব্যাখ্যা:" : "Explanation:"}
-            </h4>
-            <p className={`whitespace-normal break-words leading-relaxed ${theme.isDark ? "text-slate-300" : "text-black font-semibold"}`}>
+            <p className={`whitespace-normal break-words leading-relaxed text-slate-700 dark:text-slate-300 font-semibold`}>
               {quiz.explanation}
             </p>
           </motion.div>

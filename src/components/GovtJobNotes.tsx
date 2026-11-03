@@ -976,7 +976,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                   </div>
 
                   {/* Comments Section Toggle */}
-                  <div className={`border-t ${theme.borderCard} bg-slate-50/50 dark:bg-slate-900/50`}>
+                  <div className={`border-t ${theme.borderCard} bg-gradient-to-r from-emerald-50/50 via-teal-50/30 to-indigo-50/30`}>
                     <button
                       onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}
                       className={`w-full px-6 py-3 flex items-center justify-between text-xs font-bold ${theme.textMuted} hover:${theme.textHeading} transition-colors`}
@@ -1051,15 +1051,15 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
       {/* MODAL: Highly immersive PDF Document Viewer */}
       <AnimatePresence>
         {selectedPdf && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 overflow-y-auto">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/25 backdrop-blur-md p-4 md:p-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 h-[90vh] relative"
+              className="bg-white text-slate-900 rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden border border-indigo-100 h-[90vh] relative"
             >
               {/* PDF Top Bar */}
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center z-10">
+              <div className="px-6 py-4 border-b border-indigo-100 bg-gradient-to-r from-teal-50/80 via-emerald-50/60 to-indigo-50/50 flex justify-between items-center z-10">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 bg-rose-500 rounded-lg flex items-center justify-center text-white font-extrabold text-xs">
                     PDF
@@ -1085,7 +1085,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                   </button>
                   <button
                     onClick={() => setSelectedPdf(null)}
-                    className="p-1.5 hover:bg-slate-200 rounded-lg transition-all text-slate-500 hover:text-slate-800"
+                    className="p-1.5 hover:bg-slate-200 rounded-lg transition-all text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </button>
@@ -1095,7 +1095,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
               {/* PDF Document Container */}
               <div 
                 id="printable-pdf-document"
-                className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 bg-slate-100 print:bg-white relative font-serif select-text"
+                className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 bg-gradient-to-b from-indigo-50/20 via-white to-purple-50/20 print:bg-white relative font-serif select-text"
               >
                 {/* Embedded Watermark for PDF Authenticity */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] print:opacity-[0.04] pointer-events-none select-none z-0">
@@ -1106,12 +1106,12 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                 </div>
 
                 {/* PAGE 1: PDF Cover Sheet */}
-                <div className="min-h-[750px] flex flex-col justify-between bg-white border border-slate-200 p-12 shadow-lg rounded-2xl print:border-none print:shadow-none print:p-0 relative z-10">
-                  <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4">
-                    <div className="font-sans font-bold text-lg text-slate-900 tracking-wider">
+                <div className="min-h-[750px] flex flex-col justify-between bg-white border border-indigo-100 p-12 shadow-lg rounded-2xl print:border-none print:shadow-none print:p-0 relative z-10">
+                  <div className="flex justify-between items-start border-b-2 border-indigo-500/30 pb-4">
+                    <div className="font-sans font-black text-lg text-indigo-900 tracking-wider">
                       STUDY HUB ACADEMY
                     </div>
-                    <div className="font-sans font-bold text-xs px-3 py-1 bg-slate-900 text-white rounded-md">
+                    <div className="font-sans font-bold text-xs px-3 py-1 bg-indigo-600 text-white rounded-lg">
                       {selectedPdf.month} EDITION
                     </div>
                   </div>
@@ -1253,12 +1253,12 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                 </div>
 
                 {/* Back Cover / Insignia */}
-                <div className="bg-slate-800 text-white rounded-2xl p-10 text-center space-y-4 print:bg-white print:text-slate-800 print:border-t print:pt-6">
-                  <Award className="h-10 w-10 mx-auto text-amber-400" />
-                  <h4 className="font-bold text-sm tracking-widest uppercase">
+                <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-2xl p-10 text-center space-y-4 shadow-xl border border-indigo-400/30 print:bg-white print:text-slate-800 print:border-t print:pt-6">
+                  <Award className="h-10 w-10 mx-auto text-amber-300" />
+                  <h4 className="font-black text-sm tracking-widest uppercase">
                     STUDY HUB ACADEMY
                   </h4>
-                  <p className="text-xs text-slate-400 print:text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  <p className="text-xs text-indigo-100 print:text-slate-500 max-w-sm mx-auto leading-relaxed">
                     {isBengali 
                       ? "আপনার স্বপ্ন ছোঁয়ার যাত্রায় আমরা সর্বদা আপনার সাথে আছি। নিয়মিত পড়াশোনা করুন এবং সফল হোন।" 
                       : "We are with you at every step of your preparation. Keep practicing and keep moving towards your dream."}
@@ -1273,12 +1273,12 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
       {/* MODAL: Help / Print & Download Options */}
       <AnimatePresence>
         {showPrintModal && selectedPdf && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-indigo-950/25 backdrop-blur-md p-4 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className={`${theme.bgCard} text-slate-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border ${theme.borderCard} p-6 space-y-6 relative`}
+              className={`${theme.bgCard} text-slate-900 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-indigo-100 p-6 space-y-6 relative`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
@@ -1336,7 +1336,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                   </div>
 
                   {/* OPTION 2: Open in new tab */}
-                  <div className={`p-4 rounded-2xl border ${theme.borderCard} bg-slate-50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-all flex flex-col gap-2`}>
+                  <div className={`p-4 rounded-2xl border ${theme.borderCard} bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/30 hover:border-indigo-400 hover:shadow-xs transition-all flex flex-col gap-2`}>
                     <div className="flex items-start gap-3">
                       <div className="h-8 w-8 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                         <Printer className="h-4 w-4" />

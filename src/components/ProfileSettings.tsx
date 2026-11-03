@@ -187,19 +187,19 @@ export default function ProfileSettings({
 
           {/* Version & System Info Box */}
           <div className="pt-2">
-            <div className="p-3.5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-1.5 shadow-md">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 via-purple-50/60 to-pink-50/60 border border-indigo-100 space-y-1.5 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-teal-400" />
-                  <span className="text-xs font-black tracking-wide text-slate-200 uppercase">
+                  <Cpu className="w-4 h-4 text-indigo-600" />
+                  <span className="text-xs font-black tracking-wide text-indigo-950 uppercase">
                     {lang === "bn" ? "স্টাডি হাব ভার্সন" : "System Version"}
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 text-[11px] font-mono font-bold">
+                <span className="px-2.5 py-0.5 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-800 text-[11px] font-mono font-black">
                   v{currentVersion}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+              <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                 {lang === "bn"
                   ? "নতুন আপডেট প্রকাশের সাথে সাথে স্বয়ংক্রিয়ভাবে ফুলস্ক্রিন আপগ্রেড অ্যানিমেশন চালু হবে।"
                   : "System updates automatically run the upgrade screen whenever a new release is deployed."}

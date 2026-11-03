@@ -203,7 +203,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${theme.textMuted}`}
+            className={`p-2 rounded-full hover:bg-indigo-50 transition-colors ${theme.textMuted}`}
             disabled={isUploading}
           >
             {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
@@ -213,7 +213,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={isBengali ? "আপনার প্রশ্ন লিখুন..." : "Ask your question..."}
-            className={`flex-1 rounded-full border ${theme.isDark ? 'bg-slate-900 border-slate-700 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 focus:border-indigo-500'} px-5 py-3 text-sm focus:outline-none transition-colors shadow-inner`}
+            className="flex-1 rounded-full border border-indigo-200 bg-white px-5 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-inner"
           />
           <button
             type="submit"

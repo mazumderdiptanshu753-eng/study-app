@@ -872,8 +872,8 @@ export default function TechnicalStudies({
                       onClick={() => setSelectedSem(sem)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         selectedSem === sem 
-                          ? "bg-slate-900 text-white shadow-xs" 
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          ? "bg-indigo-600 text-white shadow-sm" 
+                          : "bg-indigo-50/70 border border-indigo-100 text-indigo-900 hover:bg-indigo-100"
                       }`}
                     >
                       {sem}
@@ -1260,40 +1260,40 @@ export default function TechnicalStudies({
                   </div>
 
                   {/* Programmer base numeric converter utility */}
-                  <div className="bg-slate-900 text-slate-100 rounded-2xl p-5 space-y-4 border border-slate-800 mt-4">
+                  <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 text-white rounded-3xl p-5 space-y-4 border border-indigo-500/30 shadow-xl mt-4">
                     <div className="flex items-center gap-2">
                       <Terminal className="h-5 w-5 text-emerald-400" />
-                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-300">
                         {lang === "bn" ? "প্রোগ্রামার বেস কনভার্টার" : "Base Numeric & Bitwise Converter"}
                       </h4>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Decimal (10)</label>
+                        <label className="block text-[10px] text-indigo-200 font-extrabold uppercase mb-1">Decimal (10)</label>
                         <input
                           type="number"
                           value={numDecimal}
                           onChange={(e) => handleDecimalChange(e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-200 focus:outline-none focus:border-emerald-400"
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs font-black text-white focus:outline-none focus:border-emerald-400"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Binary (2)</label>
+                        <label className="block text-[10px] text-indigo-200 font-extrabold uppercase mb-1">Binary (2)</label>
                         <input
                           type="text"
                           value={numBinary}
                           readOnly
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-black text-slate-300 cursor-not-allowed"
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs font-mono font-black text-emerald-300 cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-slate-400 font-extrabold uppercase mb-1">Hexadecimal (16)</label>
+                        <label className="block text-[10px] text-indigo-200 font-extrabold uppercase mb-1">Hexadecimal (16)</label>
                         <input
                           type="text"
                           value={numHex}
                           readOnly
-                          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-black text-slate-300 cursor-not-allowed"
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs font-mono font-black text-cyan-300 cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1481,11 +1481,11 @@ export default function TechnicalStudies({
                     <div 
                       className={`max-w-[85%] rounded-2xl p-4.5 text-xs font-semibold leading-relaxed shadow-3xs ${
                         msg.role === "user" 
-                          ? "bg-slate-900 text-white rounded-tr-none" 
-                          : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
+                          ? "bg-indigo-600 text-white rounded-tr-none shadow-sm" 
+                          : "bg-white border border-indigo-100 text-slate-800 rounded-tl-none"
                       }`}
                     >
-                      <span className="block text-[9px] font-black uppercase text-slate-400 mb-1">
+                      <span className="block text-[9px] font-black uppercase text-indigo-200 mb-1">
                         {msg.role === "user" ? "You" : "Engineering Lab Assistant"}
                       </span>
                       <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -1495,8 +1495,8 @@ export default function TechnicalStudies({
 
                 {isAiLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-4 text-xs font-semibold text-slate-400 flex items-center gap-2">
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    <div className="bg-white border border-indigo-100 rounded-2xl rounded-tl-none p-4 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600" />
                       <span>{lang === "bn" ? "এআই চিন্তা করছে..." : "Generating response..."}</span>
                     </div>
                   </div>
@@ -1514,7 +1514,7 @@ export default function TechnicalStudies({
                   <button
                     key={idx}
                     onClick={() => setAiPrompt(lang === "bn" ? chip.bn : chip.en)}
-                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors border border-slate-200/50"
+                    className="px-2.5 py-1.5 rounded-xl text-[10px] font-black bg-indigo-50 hover:bg-indigo-100 text-indigo-800 cursor-pointer transition-colors border border-indigo-100"
                   >
                     {lang === "bn" ? chip.bn : chip.en}
                   </button>
@@ -1529,12 +1529,12 @@ export default function TechnicalStudies({
                   onChange={(e) => setAiPrompt(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleAskAi(); }}
                   placeholder={lang === "bn" ? "প্রকৌশল বিষয়ক প্রশ্ন এখানে টাইপ করুন..." : "Enter your engineering/technical question here..."}
-                  className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 bg-white"
+                  className="flex-1 rounded-xl border border-indigo-200 px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 bg-white"
                 />
                 <button
                   onClick={handleAskAi}
                   disabled={isAiLoading}
-                  className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                  className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
                 >
                   {lang === "bn" ? "জিজ্ঞেস করুন" : "Send Query"}
                 </button>

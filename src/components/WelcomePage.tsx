@@ -46,10 +46,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
 
   return (
     <div 
-      style={{
-        background: "radial-gradient(circle at 50% 50%, #0b1528 0%, #030712 100%)"
-      }}
-      className="flex-1 min-h-[100dvh] w-full relative bg-slate-950 text-white flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 md:px-8 py-8 sm:py-12 touch-scroll"
+      className="flex-1 min-h-[100dvh] w-full relative bg-gradient-to-br from-indigo-50/90 via-sky-50/70 to-rose-50/80 text-slate-800 flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 md:px-8 py-8 sm:py-12 touch-scroll"
       id="welcome-page-container"
     >
       {/* Background Decorative Elements with Real Framer Motion Orbit & Drift Animations */}
@@ -65,7 +62,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-indigo-900/30"
+          className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-indigo-200/50"
         />
         <motion.div 
           animate={{
@@ -78,7 +75,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute top-[20%] right-[-10%] w-[60%] h-[60%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-fuchsia-900/30"
+          className="absolute top-[20%] right-[-10%] w-[60%] h-[60%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-pink-200/50"
         />
         <motion.div 
           animate={{
@@ -91,7 +88,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-cyan-900/30"
+          className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 bg-teal-200/50"
         />
       </div>
 
@@ -110,7 +107,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             key={idx}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ 
-              opacity: [0.08, 0.28, 0.08],
+              opacity: [0.15, 0.35, 0.15],
               scale: item.scale,
               y: [0, -12, 0],
               rotate: [0, 180, 360]
@@ -122,7 +119,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               rotate: { duration: 22 + idx * 4, repeat: Infinity, ease: "linear" },
             }}
             style={{ top: item.top, left: item.left }}
-            className="absolute font-mono font-black text-lg sm:text-2xl text-slate-500/20"
+            className="absolute font-mono font-black text-lg sm:text-2xl text-indigo-400/30"
           >
             {item.icon}
           </motion.div>
@@ -134,7 +131,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="absolute top-4 right-4 z-50 flex items-center gap-1 bg-slate-900/80 border-slate-800 border rounded-full p-1.5 backdrop-blur-md shadow-sm"
+        className="absolute top-4 right-4 z-50 flex items-center gap-1 bg-white/90 border-slate-200 border rounded-full p-1.5 backdrop-blur-md shadow-xs"
       >
         <motion.button
           whileHover={{ scale: 1.04 }}
@@ -143,8 +140,8 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
           id="btn-lang-welcome-en"
           className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase transition-all duration-200 cursor-pointer ${
             lang === "en" 
-              ? "bg-emerald-500 text-white shadow-sm font-bold"
-              : "text-slate-400 hover:text-emerald-400"
+              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xs font-bold"
+              : "text-slate-500 hover:text-slate-800"
           }`}
         >
           English
@@ -156,8 +153,8 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
           id="btn-lang-welcome-bn"
           className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase transition-all duration-200 cursor-pointer ${
             lang === "bn" 
-              ? "bg-emerald-500 text-white shadow-sm font-bold"
-              : "text-slate-400 hover:text-emerald-400"
+              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xs font-bold"
+              : "text-slate-500 hover:text-slate-800"
           }`}
         >
           বাংলা
@@ -201,7 +198,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               duration: 0.6,
               scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-2 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-2 rounded-full bg-emerald-500/15 text-emerald-700 text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-xs border border-emerald-500/30"
           >
             <Sparkles className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 animate-spin" style={{ animationDuration: "12s" }} />
             {t.welcomeSubtitle}
@@ -214,7 +211,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               transition={{ duration: 0.6, delay: 0.15 }}
               className="text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.15] lg:leading-[1.1]"
             >
-              <span className="block text-white">{t.welcomeTitlePrefix}</span>
+              <span className="block text-slate-900">{t.welcomeTitlePrefix}</span>
               <motion.span 
                 animate={{
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
@@ -227,7 +224,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
                 style={{
                   backgroundSize: "200% auto",
                 }}
-                className="bg-gradient-to-r from-teal-500 via-amber-500 to-rose-500 bg-clip-text text-transparent inline-block pb-1 sm:pb-2"
+                className="bg-gradient-to-r from-teal-600 via-indigo-600 to-rose-600 bg-clip-text text-transparent inline-block pb-1 sm:pb-2"
               >
                 {t.welcomeTitleAccent}
               </motion.span>
@@ -237,7 +234,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-slate-400 text-xs sm:text-base max-w-md sm:max-w-xl font-medium leading-relaxed px-2 sm:px-0"
+              className="text-slate-600 text-xs sm:text-base max-w-md sm:max-w-xl font-medium leading-relaxed px-2 sm:px-0"
             >
               {lang === "bn" 
                 ? "আমরা অধ্যয়নের নোটগুলি সংগঠিত করি, তাৎক্ষণিকভাবে এআই-চালিত সারাংশ, পিডিএফ নোট এবং ভিডিও লেকচার তৈরি করি।"
@@ -388,9 +385,9 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             {/* CENTRAL GLASS CORE NODE */}
             <motion.div
               style={{ transform: "translateZ(60px)" }}
-              className="absolute w-60 h-60 rounded-full bg-slate-900/85 border-slate-800/90 shadow-[0_0_50px_rgba(20,184,166,0.18)] border flex flex-col items-center justify-center p-4 backdrop-blur-xl transition-all duration-300"
+              className="absolute w-60 h-60 rounded-full bg-white/95 border-indigo-200 shadow-[0_15px_50px_rgba(99,102,241,0.18)] border flex flex-col items-center justify-center p-4 backdrop-blur-xl transition-all duration-300"
             >
-              <div className="absolute inset-2 rounded-full border border-emerald-500/20 opacity-40 animate-ping" style={{ animationDuration: "3s" }}></div>
+              <div className="absolute inset-2 rounded-full border border-indigo-300/40 opacity-40 animate-ping" style={{ animationDuration: "3s" }}></div>
               <motion.div 
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -398,7 +395,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               >
                 <AppLogo size="xxl" />
               </motion.div>
-              <span className="text-[12px] font-black tracking-widest uppercase mt-4.5 text-white drop-shadow-sm">
+              <span className="text-[12px] font-black tracking-widest uppercase mt-4.5 text-slate-900 drop-shadow-xs">
                 {t.brandName}
               </span>
               <div className="flex gap-1.5 mt-2">
@@ -422,17 +419,17 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="absolute w-36 p-3 rounded-2xl bg-[#0f172a]/95 border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.35)] border text-left backdrop-blur-md transition-all duration-300"
+              className="absolute w-36 p-3 rounded-2xl bg-white/95 border-teal-200 shadow-[0_8px_30px_rgba(20,184,166,0.16)] border text-left backdrop-blur-md transition-all duration-300"
             >
               <div className="flex items-center gap-1.5 mb-1.5">
-                <div className="h-5 w-5 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-500">
+                <div className="h-5 w-5 rounded-lg bg-teal-500/15 flex items-center justify-center text-teal-600">
                   <Sparkles className="h-3 w-3 animate-pulse" />
                 </div>
-                <span className="text-[8px] font-extrabold tracking-wider text-teal-600 uppercase">AI Solver</span>
+                <span className="text-[8px] font-extrabold tracking-wider text-teal-700 uppercase">AI Solver</span>
               </div>
-              <div className="font-mono text-[8.5px] leading-tight text-slate-500 space-y-0.5 select-none">
-                <div className="text-teal-500 font-bold">f(x) = ∫ x² dx</div>
-                <div className="text-slate-400 dark:text-slate-400 font-black">= x³/3 + C</div>
+              <div className="font-mono text-[8.5px] leading-tight text-slate-600 space-y-0.5 select-none">
+                <div className="text-teal-700 font-bold">f(x) = ∫ x² dx</div>
+                <div className="text-slate-800 font-black">= x³/3 + C</div>
               </div>
             </motion.div>
 
@@ -456,22 +453,22 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
                 className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${isFlipped ? "rotate-y-180" : ""}`}
               >
                 {/* Front Side */}
-                <div className="absolute inset-0 backface-hidden p-3 rounded-2xl bg-slate-900/95 border-slate-800 border flex flex-col justify-between shadow-lg">
+                <div className="absolute inset-0 backface-hidden p-3 rounded-2xl bg-white/95 border-indigo-200 border flex flex-col justify-between shadow-[0_8px_30px_rgba(99,102,241,0.16)]">
                   <div className="flex justify-between items-center">
-                    <span className="text-[7px] font-black tracking-widest text-indigo-500 uppercase">Card #12</span>
-                    <Brain className="h-2.5 w-2.5 text-indigo-500" />
+                    <span className="text-[7px] font-black tracking-widest text-indigo-600 uppercase">Card #12</span>
+                    <Brain className="h-2.5 w-2.5 text-indigo-600" />
                   </div>
-                  <div className="text-[9px] font-black leading-tight text-white truncate">
+                  <div className="text-[9px] font-black leading-tight text-slate-900 truncate">
                     Euler's Formula?
                   </div>
                 </div>
                 {/* Back Side */}
-                <div className="absolute inset-0 backface-hidden rotate-y-180 p-3 rounded-2xl bg-[#0f172a]/95 border-indigo-500/30 border flex flex-col justify-between shadow-lg">
+                <div className="absolute inset-0 backface-hidden rotate-y-180 p-3 rounded-2xl bg-white/95 border-indigo-300 border flex flex-col justify-between shadow-[0_8px_30px_rgba(99,102,241,0.16)]">
                   <div className="flex justify-between items-center">
-                    <span className="text-[7px] font-black tracking-widest text-indigo-400 uppercase">Answer</span>
-                    <Brain className="h-2.5 w-2.5 text-indigo-400 fill-indigo-500/20" />
+                    <span className="text-[7px] font-black tracking-widest text-indigo-700 uppercase">Answer</span>
+                    <Brain className="h-2.5 w-2.5 text-indigo-600 fill-indigo-500/20" />
                   </div>
-                  <div className="text-[8px] font-mono font-black text-indigo-400 leading-tight">
+                  <div className="text-[8px] font-mono font-black text-indigo-700 leading-tight">
                     e^(iπ) + 1 = 0
                   </div>
                 </div>
@@ -492,26 +489,26 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="absolute w-36 p-3 rounded-2xl bg-[#0f172a]/95 border-slate-800 shadow-[0_8px_30px_rgba(0,0,0,0.35)] border text-left backdrop-blur-md transition-all duration-300"
+              className="absolute w-36 p-3 rounded-2xl bg-white/95 border-amber-200 shadow-[0_8px_30px_rgba(245,158,11,0.16)] border text-left backdrop-blur-md transition-all duration-300"
             >
               <div className="flex items-center gap-1.5 mb-1.5">
-                <div className="h-5 w-5 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <div className="h-5 w-5 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600">
                   <BookOpen className="h-3 w-3" />
                 </div>
-                <span className="text-[8px] font-extrabold tracking-wider text-amber-600 uppercase">Formulas</span>
+                <span className="text-[8px] font-extrabold tracking-wider text-amber-700 uppercase">Formulas</span>
               </div>
               <div className="space-y-1">
-                <div className="text-[8px] font-bold text-white truncate">Physics Revision</div>
-                <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
+                <div className="text-[8px] font-bold text-slate-900 truncate">Physics Revision</div>
+                <div className="w-full bg-amber-100 rounded-full h-1 overflow-hidden">
                   <motion.div 
                     animate={{ width: ["10%", "85%", "85%"] }}
                     transition={{ duration: 3, repeat: Infinity, repeatDelay: 1.5 }}
                     className="bg-amber-500 h-full rounded-full"
                   />
                 </div>
-                <div className="flex justify-between items-center text-[6.5px] font-extrabold text-slate-400">
+                <div className="flex justify-between items-center text-[6.5px] font-extrabold text-slate-500">
                   <span>85% READY</span>
-                  <span className="text-amber-500 font-black">12 NOTES</span>
+                  <span className="text-amber-600 font-black">12 NOTES</span>
                 </div>
               </div>
             </motion.div>
@@ -530,17 +527,17 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="absolute w-36 p-2.5 rounded-2xl bg-slate-900 border-white/5 shadow-xl border text-left backdrop-blur-md transition-all duration-300"
+              className="absolute w-36 p-2.5 rounded-2xl bg-white/95 border-emerald-200 shadow-[0_8px_30px_rgba(16,185,129,0.16)] border text-left backdrop-blur-md transition-all duration-300"
             >
               <div className="flex items-center gap-1.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[7px] font-black tracking-widest text-emerald-400 uppercase">SYSTEM ACTIVE</span>
+                <span className="text-[7px] font-black tracking-widest text-emerald-700 uppercase">SYSTEM ACTIVE</span>
               </div>
               <div className="mt-1">
-                <div className="text-[8px] font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-amber-300 to-rose-300 truncate">
+                <div className="text-[8px] font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 via-indigo-600 to-rose-600 truncate">
                   Diptanshu Mazumder
                 </div>
-                <div className="text-[6px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                <div className="text-[6px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
                   Lead Developer
                 </div>
               </div>
@@ -562,7 +559,7 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
         }}
         className="absolute bottom-4 left-0 right-0 text-center lg:hidden z-20"
       >
-        <span className="inline-block px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase border border-slate-800/40 backdrop-blur-md bg-slate-900/40 text-slate-400 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+        <span className="inline-block px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase border border-indigo-100 backdrop-blur-md bg-white/80 text-slate-600 shadow-xs">
           Developed By: Diptanshu Mazumder
         </span>
       </motion.div>

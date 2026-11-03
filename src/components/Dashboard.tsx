@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Sparkles, 
   BookOpen, 
-  MessageSquare, 
   ArrowRight, 
   ChevronRight, 
   Calculator, 
@@ -11,22 +10,16 @@ import {
   CheckSquare as BookOpenCheck,
   TrendingUp,
   Award,
-  Users,
-  Radio,
   Quote,
   RefreshCw,
-  Zap,
   GraduationCap,
   Laptop,
   Cpu,
-  Clock,
   FileText,
-  Search,
   BookMarked,
+  ArrowUpRight,
   Flame,
-  Star,
-  Layers,
-  ArrowUpRight
+  MessageCircle
 } from "lucide-react";
 import { StudyNote, UserStats, StudentProfile } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
@@ -62,23 +55,6 @@ export default function Dashboard({
   const [showCalcModal, setShowCalcModal] = useState(false);
   const [showSolveModal, setShowSolveModal] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
-  const [activePortalTab, setActivePortalTab] = useState<"all" | "academic" | "prep" | "tools">("all");
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (lang === "bn") {
-      if (hour >= 5 && hour < 12) return "শুভ সকাল";
-      if (hour >= 12 && hour < 16) return "শুভ দুপুর";
-      if (hour >= 16 && hour < 18) return "শুভ বিকেল";
-      if (hour >= 18 && hour < 22) return "শুভ সন্ধ্যা";
-      return "শুভ রাত্রি";
-    } else {
-      if (hour >= 5 && hour < 12) return "Good Morning";
-      if (hour >= 12 && hour < 17) return "Good Afternoon";
-      if (hour >= 17 && hour < 21) return "Good Evening";
-      return "Good Night";
-    }
-  };
 
   const studyAdvice = [
     {
@@ -107,6 +83,13 @@ export default function Dashboard({
     setQuoteIdx((prev) => (prev + 1) % studyAdvice.length);
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return lang === "bn" ? "শুভ সকাল" : "Good Morning";
+    if (hour < 17) return lang === "bn" ? "শুভ দুপুর" : "Good Afternoon";
+    return lang === "bn" ? "শুভ সন্ধ্যা" : "Good Evening";
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -127,161 +110,227 @@ export default function Dashboard({
       initial="hidden"
       animate="show"
     >
-      {/* 1. Modern Bento Hero Header */}
-      <motion.div 
-        variants={itemVariants} 
-        className={`relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${theme.heroGradient} p-6 sm:p-8 lg:p-10 text-slate-900 dark:text-white shadow-xl border border-white/60 dark:border-white/10 group`}
-      >
-        {/* Soft Ambient Background Glows */}
-        <div className="absolute top-0 right-0 -mr-24 -mt-24 h-96 w-96 rounded-full bg-emerald-400/20 dark:bg-emerald-500/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-indigo-400/20 dark:bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+      {/* Real-time Current Affairs Ticker */}
+      <motion.div variants={itemVariants}>
+        <CurrentAffairsTicker theme={theme} lang={lang} />
+      </motion.div>
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Hero Details */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 dark:bg-slate-900/80 px-3.5 py-1 text-xs font-black tracking-wider uppercase backdrop-blur-md text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-spin" style={{ animationDuration: "8s" }} />
-                {lang === "bn" ? "স্টাডি হাব ৩.০ স্মার্ট লার্নিং" : "Study Hub 3.0 Smart Learning"}
-              </span>
+      {/* 🌟 Top Hero Welcome & Motivation Bento Card (ওপরের হিরো কার্ড) */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="relative overflow-hidden rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-6 sm:p-8 shadow-xl">
+          {/* Background Ambient Glows */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 -mb-12 w-48 h-48 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            {/* Left side: Greetings + Student Info + Streak */}
+            <div className="space-y-3.5 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-xs font-bold backdrop-blur-md shadow-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>{getGreeting()}, {profile?.fullName || (lang === "bn" ? "শিক্ষার্থী" : "Student")}!</span>
+                </span>
+                
+                {/* 5-Day Study Streak Badge */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-black shadow-md border border-amber-300/40 animate-pulse">
+                  <Flame className="w-4 h-4 text-yellow-200" />
+                  <span>{lang === "bn" ? "৫-দিনের স্ট্রিক 🔥" : "5-Day Streak 🔥"}</span>
+                </span>
 
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                <Flame className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                <span>{lang === "bn" ? "৫ দিনের স্টাডি স্ট্রিক!" : "5-Day Study Streak!"}</span>
-              </span>
+                {profile?.role === "Admin" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 text-2xs font-black uppercase tracking-wider shadow-xs">
+                    👑 ADMIN
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white drop-shadow-xs leading-tight">
+                  {lang === "bn" ? "স্টাডি হাবে স্বাগতম!" : "Welcome to STUDY HUB!"}
+                </h1>
+                <p className="text-xs sm:text-sm text-indigo-100 font-semibold mt-1 leading-relaxed">
+                  {lang === "bn"
+                    ? "পশ্চিমবঙ্গ বোর্ড, উচ্চ মাধ্যমিক, পলিটেকনিক ও সরকারি চাকরির সর্বাঙ্গীন প্রস্তুতি পোর্টাল।"
+                    : "Your all-in-one preparation portal for School Boards, Higher Secondary, Technical Studies & Govt Exams."}
+                </p>
+              </div>
+
+              {/* Smart Study Guidance / Daily Tip */}
+              <div className="flex items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/15 border border-white/20 backdrop-blur-md">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <Quote className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-white/95 leading-relaxed">
+                    "{lang === "bn" ? studyAdvice[quoteIdx].bn : studyAdvice[quoteIdx].en}"
+                  </p>
+                </div>
+                <button
+                  onClick={rotateQuote}
+                  className="p-1.5 hover:bg-white/20 rounded-xl transition-colors text-white/80 hover:text-white shrink-0 cursor-pointer"
+                  title="Next Advice"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-slate-950 dark:text-white">
-                {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 dark:from-emerald-400 dark:via-teal-300 dark:to-indigo-400">{profile?.fullName || (lang === "bn" ? "শিক্ষার্থী বন্ধু!" : "Scholar!")}</span>
-              </h1>
-              
-              <p className="text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300 font-semibold max-w-xl">
-                {lang === "bn"
-                   ? "স্মার্ট স্টাডি নোটস, প্রিভিয়াস ইয়ার প্রশ্নপত্র, ভিডিও লেকচার ও এআই ডাউট সলভারের সাথে আপনার পরীক্ষা প্রস্তুতি আরও সহজ ও দ্রুত করুন।"
-                   : "Your all-in-one portal for curriculum notes, previous year question banks, live lectures, and instant AI homework assistance."}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <a 
-                href="https://whatsapp.com/channel/0029VbD7Yyt3AzNVccgfh93K" 
-                target="_blank" 
+            {/* Right side: WhatsApp Channel Gateway & Quick Action Hub */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              {/* WhatsApp Official Channel Gateway */}
+              <a
+                href="https://whatsapp.com/channel/0029Vb1P2j7I7Be9V3bV0g0Z"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="relative overflow-hidden inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-[#25D366] via-[#1ea851] to-[#128C7E] text-white rounded-2xl font-black text-xs sm:text-sm transition-all shadow-[0_8px_25px_rgba(37,211,102,0.35)] hover:shadow-[0_12px_35px_rgba(37,211,102,0.5)] hover:scale-[1.02] active:scale-95 border border-white/20 text-center group cursor-pointer"
+                className="group flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer border border-emerald-300/40"
               >
-                <svg className="w-4.5 h-4.5 shrink-0 fill-current" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 00-5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                </svg>
-                <span>{lang === "bn" ? "হোয়াটসঅ্যাপ চ্যানেল" : "WhatsApp Channel"}</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <MessageCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[11px] font-black uppercase tracking-wider text-emerald-100">
+                      {lang === "bn" ? "অফিসিয়াল চ্যানেল" : "Official Channel"}
+                    </span>
+                    <span className="block text-xs font-black">
+                      {lang === "bn" ? "হোয়াটসঅ্যাপে যুক্ত হোন" : "Join on WhatsApp"}
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-emerald-100 group-hover:translate-x-1 transition-transform" />
               </a>
 
-              <button 
-                onClick={() => onNavigate("notes")}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-slate-100 rounded-2xl font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-              >
-                <BookMarked className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
-                <span>{lang === "bn" ? "অধ্যয়ন শুরু করুন" : "Start Learning Now"}</span>
-              </button>
+              {/* Quick Actions Shortcuts */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowCalcModal(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{lang === "bn" ? "ক্যালকুলেটর" : "Calculator"}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowSolveModal(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>{lang === "bn" ? "এআই সলভ" : "AI Solver"}</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigate("notes")}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>{lang === "bn" ? "নতুন নোট" : "Write Note"}</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigate("liveClasses")}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping mr-0.5" />
+                  <span>{lang === "bn" ? "লাইভ ক্লাস" : "Live Class"}</span>
+                </button>
+              </div>
             </div>
           </div>
-          
-          {/* Right Bento Gateways Grid */}
-          <div className="lg:col-span-5 w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-white/80 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <Layers className="h-4 w-4 text-indigo-500" />
-                {lang === "bn" ? "কুইক গেটওয়ে পোর্টাল" : "Quick Portals"}
-              </span>
-              <span className="text-[10px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full font-black">
-                PRO 3.0
-              </span>
+
+          {/* Quick Metrics Counter Bar at bottom of Hero Card */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-6 pt-5 border-t border-white/20">
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <BookOpen className="w-4 h-4 text-white" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-wider block truncate">
+                  {lang === "bn" ? "মোট নোটস" : "Total Notes"}
+                </span>
+                <span className="text-base sm:text-lg font-black font-mono text-white">
+                  {totalNotes}
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Card 1: Notes Room */}
-              <button 
-                onClick={() => onNavigate("notes")}
-                className="group p-4 bg-white dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-left transition-all hover:border-emerald-400 hover:-translate-y-0.5 shadow-3xs cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300 mb-2.5 transition-transform group-hover:scale-110">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white">{lang === "bn" ? "নোটস রুম" : "Notes Room"}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">{lang === "bn" ? "হাতে লেখা নোট ও পিডিএফ" : "Handwritten guides & PDF"}</p>
-              </button>
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
+                <Award className="w-4 h-4 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-wider block truncate">
+                  {lang === "bn" ? "ডাউট সলভড" : "Doubts Solved"}
+                </span>
+                <span className="text-base sm:text-lg font-black font-mono text-amber-300">
+                  {stats.doubtsSolved || 14}
+                </span>
+              </div>
+            </div>
 
-              {/* Card 2: Live Classes */}
-              <button 
-                onClick={() => onNavigate("liveClasses")}
-                className="group p-4 bg-white dark:bg-slate-800/80 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-left transition-all hover:border-rose-400 hover:-translate-y-0.5 shadow-3xs cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-xl bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center text-rose-700 dark:text-rose-300 mb-2.5 transition-transform group-hover:scale-110">
-                  <Radio className="h-5 w-5" />
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white">{lang === "bn" ? "লাইভ ক্লাস" : "Live Classes"}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">{lang === "bn" ? "অনলাইন লেকচার" : "Live stream sessions"}</p>
-              </button>
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-400/20 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4 text-emerald-300" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-wider block truncate">
+                  {lang === "bn" ? "অধ্যয়ন সময়" : "Study Minutes"}
+                </span>
+                <span className="text-base sm:text-lg font-black font-mono text-emerald-300">
+                  {stats.studyMinutes || 120}m
+                </span>
+              </div>
+            </div>
 
-              {/* Card 3: Support Chat */}
-              <button 
-                onClick={() => onNavigate("chat")}
-                className="group p-4 bg-white dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-left transition-all hover:border-blue-400 hover:-translate-y-0.5 shadow-3xs cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-300 mb-2.5 transition-transform group-hover:scale-110">
-                  <MessageSquare className="h-5 w-5" />
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white">{lang === "bn" ? "শিক্ষক চ্যাট" : "Ask Faculty"}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">{lang === "bn" ? "ডাউট ও পরামর্শ" : "Direct teacher chat"}</p>
-              </button>
-
-              {/* Card 4: Community Forum */}
-              <button 
-                onClick={() => onNavigate("forum")}
-                className="group p-4 bg-white dark:bg-slate-800/80 hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-left transition-all hover:border-purple-400 hover:-translate-y-0.5 shadow-3xs cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-700 dark:text-purple-300 mb-2.5 transition-transform group-hover:scale-110">
-                  <Users className="h-5 w-5" />
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white">{lang === "bn" ? "আলোচনা সভা" : "Discussion"}</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">{lang === "bn" ? "প্রশ্নোত্তর ও ফোরাম" : "Q&A Forum & board"}</p>
-              </button>
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-pink-400/20 flex items-center justify-center shrink-0">
+                <Laptop className="w-4 h-4 text-pink-200" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-wider block truncate">
+                  {lang === "bn" ? "ভিডিও লেকচার" : "Lectures"}
+                </span>
+                <span className="text-base sm:text-lg font-black font-mono text-pink-200">
+                  {stats.videosUploaded || 8}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* 2. Real-time Current Affairs Ticker & Daily Quiz Banner */}
-      <CurrentAffairsTicker theme={theme} lang={lang} />
-      <DailyQuiz theme={theme} lang={lang} />
+      {/* Daily Quiz Banner */}
+      <motion.div variants={itemVariants}>
+        <DailyQuiz theme={theme} lang={lang} />
+      </motion.div>
 
-      {/* 3. Bento Category Sections */}
+      {/* Bento Category Sections */}
       <div className="space-y-8">
         
         {/* School Academy (Class 9-12) */}
-        <div className="space-y-4">
+        <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                  <GraduationCap className="h-5 w-5" />
-                </div>
-                <span>{lang === "bn" ? "স্কুল একাডেমি ও বোর্ড পরীক্ষা (৯ম - ১২শ শ্রেণি)" : "School Academy (Class 9-12)"}</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                {lang === "bn" ? "পশ্চিমবঙ্গ মাধ্যমিক ও উচ্চ মাধ্যমিক বোর্ড সিলেবাসের সম্পূর্ণ সমাধান ও চ্যাপ্টার নোট।" : "Complete syllabus summaries, interactive practice & board guidelines."}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <span>{lang === "bn" ? "স্কুল একাডেমি ও বোর্ড পরীক্ষা" : "School Academy & Board Prep"}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                    {lang === "bn" ? "৯ম - ১২শ শ্রেণি" : "Class 9 - 12"}
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  {lang === "bn" ? "পশ্চিমবঙ্গ মাধ্যমিক ও উচ্চ মাধ্যমিক বোর্ড সিলেবাসের সম্পূর্ণ সমাধান ও চ্যাপ্টার নোট।" : "Complete syllabus summaries, board exam question banks & chapter notes."}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             {[
-              { id: "9", name_bn: "৯ম শ্রেণি", name_en: "Class 9", desc_en: "Science & Arts basis", desc_bn: "বেসিক ফাউন্ডেশন নোটস", icon: "🎒", color: "from-blue-500/10 to-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-              { id: "10", name_bn: "১০ম শ্রেণি", name_en: "Class 10 (মাধ্যমিক)", desc_en: "Madhyamik Special", desc_bn: "মাধ্যমিক স্পেশাল ও মক টেস্ট", icon: "🏫", color: "from-emerald-500/10 to-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" },
-              { id: "11", name_bn: "১১শ শ্রেণি", name_en: "Class 11", desc_en: "Core Stream Blueprints", desc_bn: "বিজ্ঞান ও কলা বিভাগ", icon: "📚", color: "from-purple-500/10 to-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30" },
-              { id: "12", name_bn: "১২শ শ্রেণি", name_en: "Class 12 (উচ্চ মাধ্যমিক)", desc_en: "HS Exam Preparation", desc_bn: "এইচএস ফাইনাল সাজেশন", icon: "🎓", color: "from-amber-500/10 to-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30" }
+              { id: "9", name_bn: "৯ম শ্রেণি", name_en: "Class 9", board_bn: "WBBSE ফাউন্ডেশন", board_en: "WBBSE Foundation", desc_en: "Science & Arts Basis", desc_bn: "বেসিক ফাউন্ডেশন নোটস", icon: "🎒", accent: "from-blue-500/10 to-indigo-500/5 hover:border-blue-500/50" },
+              { id: "10", name_bn: "১০ম শ্রেণি (মাধ্যমিক)", name_en: "Class 10 (Madhyamik)", board_bn: "মাধ্যমিক স্পেশাল", board_en: "Board Examination", desc_en: "Madhyamik Mock Tests", desc_bn: "মাধ্যমিক স্পেশাল ও মক টেস্ট", icon: "🏫", accent: "from-emerald-500/10 to-teal-500/5 hover:border-emerald-500/50" },
+              { id: "11", name_bn: "১১শ শ্রেণি", name_en: "Class 11", board_bn: "WBCHSE সেমিস্টার", board_en: "Core Stream Curricula", desc_en: "Science & Arts Streams", desc_bn: "বিজ্ঞান ও কলা বিভাগ", icon: "📚", accent: "from-purple-500/10 to-pink-500/5 hover:border-purple-500/50" },
+              { id: "12", name_bn: "১২শ শ্রেণি (উচ্চ মাধ্যমিক)", name_en: "Class 12 (Higher Sec)", board_bn: "উচ্চ মাধ্যমিক ফাইনাল", board_en: "HS Final Suggestions", desc_en: "HS Exam Preparation", desc_bn: "এইচএস ফাইনাল সাজেশন", icon: "🎓", accent: "from-amber-500/10 to-orange-500/5 hover:border-amber-500/50" }
             ].map((cls) => (
               <motion.button
                 key={cls.id}
@@ -291,119 +340,129 @@ export default function Dashboard({
                     window.dispatchEvent(new CustomEvent("setSchoolClass", { detail: cls.id }));
                   }, 100);
                 }}
-                whileHover={{ y: -4, scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex flex-col justify-between p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-emerald-400 transition-all text-left group cursor-pointer h-40"
+                whileHover={{ y: -3, scale: 1.015 }}
+                whileTap={{ scale: 0.98 }}
+                className={`relative flex flex-col justify-between p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-lg transition-all text-left group cursor-pointer h-44 overflow-hidden bg-gradient-to-br ${cls.accent}`}
               >
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${cls.color} flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform`}>
-                  {cls.icon}
+                <div className="flex items-start justify-between">
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
+                    {cls.icon}
+                  </div>
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300">
+                    {lang === "bn" ? cls.board_bn : cls.board_en}
+                  </span>
                 </div>
-                <div>
+
+                <div className="space-y-1">
                   <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center justify-between">
                     <span>{lang === "bn" ? cls.name_bn : cls.name_en}</span>
-                    <ArrowUpRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500" />
+                    <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                   </h4>
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                     {lang === "bn" ? cls.desc_bn : cls.desc_en}
                   </p>
                 </div>
               </motion.button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Polytechnic Diploma Engineering */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
-                  <Laptop className="h-5 w-5" />
-                </div>
-                <span>{lang === "bn" ? "কারিগরি ও ডিপ্লোমা ইঞ্জিনিয়ারিং কর্নার" : "Technical & Diploma Engineering"}</span>
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                {lang === "bn" ? "WBSCTE পলিটেকনিক ডিপ্লোমা কারিকুলাম, সেমিস্টার ভিত্তিক হ্যান্ডআউটস ও লজিক গেট সিমুলেটর।" : "WBSCTE semester blueprints, lab sheets & digital simulators."}
-              </p>
-            </div>
-          </div>
-
+        {/* Polytechnic & Govt Exam Cards */}
+        <section className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Polytechnic Card */}
             <motion.button
               onClick={() => onNavigate("diploma")}
-              whileHover={{ y: -4, scale: 1.015 }}
+              whileHover={{ y: -3, scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-400 transition-all text-left group cursor-pointer"
+              className="relative flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl hover:border-indigo-400 transition-all text-left group cursor-pointer overflow-hidden"
             >
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-3xl shadow-xs shrink-0 group-hover:scale-110 transition-transform">
-                🛠️
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-2xl border border-indigo-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                  🛠️
+                </div>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                      {lang === "bn" ? "পলিটেকনিক ডিপ্লোমা ইঞ্জিনিয়ারিং" : "Polytechnic Diploma Engineering"}
+                    </h3>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+                      WBSCTE
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {lang === "bn" 
+                      ? "৩ বছরের ডিপ্লোমা ইঞ্জিনিয়ারিং-এর সেমিস্টার ভিত্তিক পিডিএফ, ল্যাব রিপোর্টস এবং ডিজিটাল সার্কিট সিমুলেটর।" 
+                      : "Complete 3-year polytechnic semester blueprints, lab report guides, and digital logic gate lab."}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
-                    {lang === "bn" ? "পলিটেকনিক ডিপ্লোমা কর্নার" : "Polytechnic Diploma Corner"}
-                  </h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">WBSCTE</span>
-                </div>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {lang === "bn" 
-                    ? "৩ বছরের ডিপ্লোমা ইঞ্জিনিয়ারিং-এর সেমিস্টার ভিত্তিক পিডিএফ, ল্যাব রিপোর্টস এবং ডিজিটাল সার্কিট ল্যাব।" 
-                    : "Complete 3-year polytechnic semester blueprints, lab report guides, logic gate tools."}
-                </p>
-                <div className="pt-2 flex items-center gap-1 text-xs font-black text-indigo-600 dark:text-indigo-400">
-                  <span>{lang === "bn" ? "ডিপ্লোমা সেকশন খুলুন" : "Explore Diploma Portal"}</span>
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
+
+              <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-black text-indigo-600 dark:text-indigo-400">
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  {lang === "bn" ? "ডিপ্লোমা সেকশন খুলুন" : "Explore Diploma Portal"}
+                </span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </motion.button>
 
-            {/* Govt Exam Corner Card */}
+            {/* Govt Job Exam Card */}
             <motion.button
               onClick={() => onNavigate("govtJobNotes")}
-              whileHover={{ y: -4, scale: 1.015 }}
+              whileHover={{ y: -3, scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-amber-400 transition-all text-left group cursor-pointer"
+              className="relative flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl hover:border-amber-400 transition-all text-left group cursor-pointer overflow-hidden"
             >
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl shadow-xs shrink-0 group-hover:scale-110 transition-transform">
-                🏆
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl border border-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                  🏆
+                </div>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">
+                      {lang === "bn" ? "সরকারি চাকরির স্পেশাল প্রস্তুতি" : "Govt Job Exam Preparation"}
+                    </h3>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                      WBCS / SSC
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {lang === "bn" 
+                      ? "WBCS, রেলওয়ে, এসএসসি ও রাজ্য পরীক্ষার জন্য সাধারণ জ্ঞান, গণিত, সংবিধান ও বিজ্ঞানের টপিক ভিত্তিক হ্যান্ডবুক।" 
+                      : "Curated study modules for WBCS, Railway NTPC, SSC CGL/CHSL with previous year questions."}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">
-                    {lang === "bn" ? "সরকারি চাকরির স্পেশাল নোটস" : "Govt Job Exam Preparation"}
-                  </h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">WBCS / SSC</span>
-                </div>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {lang === "bn" 
-                    ? "WBCS, রেলওয়ে, এসএসসি ও রাজ্য পরীক্ষার জন্য সাধারণ জ্ঞান, গণিত, সংবিধান ও বিজ্ঞানের টপিক ভিত্তিক হ্যান্ডবুক।" 
-                    : "Curated study modules for WBCS, Railway NTPC, SSC CGL/CHSL with previous year questions."}
-                </p>
-                <div className="pt-2 flex items-center gap-1 text-xs font-black text-amber-600 dark:text-amber-400">
-                  <span>{lang === "bn" ? "চাকরির নোটস দেখুন" : "View Exam Notes"}</span>
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
+
+              <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-black text-amber-600 dark:text-amber-400">
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  {lang === "bn" ? "চাকরির নোটস দেখুন" : "View Exam Notes & Modules"}
+                </span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </motion.button>
           </div>
-        </div>
+        </section>
 
         {/* Govt Job Subjects Grid */}
-        <div className="space-y-4">
+        <section className="space-y-3.5">
           <div className="flex items-center justify-between px-1">
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                  <Award className="h-5 w-5" />
-                </div>
-                <span>{lang === "bn" ? "চাকরির পরীক্ষার বিষয়ভিত্তিক গাইড" : "Subject Modules for Competitive Exams"}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <Award className="h-4.5 w-4.5" />
+              </div>
+              <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">
+                {lang === "bn" ? "চাকরির পরীক্ষার বিষয়ভিত্তিক গাইড" : "Subject Modules for Competitive Exams"}
               </h2>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
             {[
-              { id: "math", name_bn: "অঙ্ক (Math)", name_en: "Mathematics", icon: "📐", color: "from-blue-500 to-cyan-500" },
+              { id: "math", name_bn: "গণিত", name_en: "Mathematics", icon: "📐", color: "from-blue-500 to-cyan-500" },
               { id: "reasoning", name_bn: "রিজনিং", name_en: "Reasoning", icon: "🧠", color: "from-purple-500 to-indigo-500" },
               { id: "english", name_bn: "ইংরেজি", name_en: "English", icon: "📝", color: "from-rose-500 to-pink-500" },
               { id: "science", name_bn: "বিজ্ঞান", name_en: "Gen Science", icon: "🔬", color: "from-teal-500 to-emerald-500" },
@@ -415,20 +474,20 @@ export default function Dashboard({
               <motion.button
                 key={subj.id}
                 onClick={() => { onNavigate("govtJobNotes"); window.dispatchEvent(new CustomEvent("setGovtJobSubject", { detail: subj.id })); }}
-                whileHover={{ y: -3, scale: 1.03 }}
+                whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.96 }}
-                className="flex flex-col items-center justify-center gap-2.5 p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all text-center cursor-pointer group"
+                className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-amber-400 transition-all text-center cursor-pointer group active:scale-95"
               >
-                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${subj.color} flex items-center justify-center text-xl shadow-xs text-white group-hover:scale-110 transition-transform`}>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${subj.color} flex items-center justify-center text-lg shadow-xs text-white group-hover:scale-105 transition-transform`}>
                   {subj.icon}
                 </div>
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200 truncate w-full">
                   {lang === "bn" ? subj.name_bn : subj.name_en}
                 </span>
               </motion.button>
             ))}
           </div>
-        </div>
+        </section>
 
       </div>
 
@@ -439,41 +498,41 @@ export default function Dashboard({
         <motion.div variants={itemVariants} className="lg:col-span-5 space-y-6">
           
           {/* Quick Learning Stats Panel */}
-          <div className="bg-slate-950 dark:bg-slate-900 text-white rounded-[2rem] p-6 shadow-xl border border-white/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-3xl p-6 shadow-xl border border-indigo-300/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
             
-            <div className="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between mb-5 border-b border-white/20 pb-3">
               <div>
-                <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-200 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
                   <span>{lang === "bn" ? "লার্নিং প্রগ্রেস অ্যানালিটিক্স" : "Live Learning Progress"}</span>
                 </h4>
-                <p className="text-[10px] text-slate-400 mt-0.5">{lang === "bn" ? "রিয়েল-টাইম সিঙ্ক ডাটাবেস" : "Synchronized real-time cloud data"}</p>
+                <p className="text-[10px] text-indigo-100 mt-0.5">{lang === "bn" ? "রিয়েল-টাইম সিঙ্ক ডাটাবেস" : "Cloud synchronized metrics"}</p>
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] font-mono uppercase tracking-wider bg-white/20 text-white border border-white/30 px-2 py-0.5 rounded-md font-black shadow-xs">
                 ACTIVE
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="p-3.5 bg-white/5 border border-white/5 rounded-2xl">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{t.dashNotesSaved}</span>
-                <span className="text-2xl font-black text-white block mt-1">{totalNotes}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 bg-white/15 border border-white/25 rounded-2xl backdrop-blur-xs">
+                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{t.dashNotesSaved}</span>
+                <span className="text-2xl font-black font-mono tabular-nums text-white block mt-1">{totalNotes}</span>
               </div>
               
-              <div className="p-3.5 bg-white/5 border border-white/5 rounded-2xl">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{lang === "bn" ? "ডাউট এআই সমাধান" : "AI Doubts Solved"}</span>
-                <span className="text-2xl font-black text-emerald-400 block mt-1">{stats.doubtsSolved || 14}</span>
+              <div className="p-3.5 bg-white/15 border border-white/25 rounded-2xl backdrop-blur-xs">
+                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{lang === "bn" ? "ডাউট এআই সমাধান" : "AI Doubts Solved"}</span>
+                <span className="text-2xl font-black font-mono tabular-nums text-amber-300 block mt-1">{stats.doubtsSolved || 14}</span>
               </div>
 
-              <div className="p-3.5 bg-white/5 border border-white/5 rounded-2xl">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{lang === "bn" ? "অধ্যয়ন সময় (মিনিট)" : "Study Minutes"}</span>
-                <span className="text-2xl font-black text-cyan-400 block mt-1">{stats.studyMinutes || 120}</span>
+              <div className="p-3.5 bg-white/15 border border-white/25 rounded-2xl backdrop-blur-xs">
+                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{lang === "bn" ? "অধ্যয়ন সময় (মিনিট)" : "Study Minutes"}</span>
+                <span className="text-2xl font-black font-mono tabular-nums text-emerald-300 block mt-1">{stats.studyMinutes || 120}</span>
               </div>
 
-              <div className="p-3.5 bg-white/5 border border-white/5 rounded-2xl">
-                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">{lang === "bn" ? "ভিডিও লেকচার" : "Syllabus Videos"}</span>
-                <span className="text-2xl font-black text-rose-400 block mt-1">{stats.videosUploaded || 8}</span>
+              <div className="p-3.5 bg-white/15 border border-white/25 rounded-2xl backdrop-blur-xs">
+                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{lang === "bn" ? "ভিডিও লেকচার" : "Syllabus Videos"}</span>
+                <span className="text-2xl font-black font-mono tabular-nums text-rose-200 block mt-1">{stats.videosUploaded || 8}</span>
               </div>
             </div>
           </div>
@@ -486,28 +545,28 @@ export default function Dashboard({
             </h3>
 
             {/* Scientific Calculator */}
-            <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-xl transition-all">
+            <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20">
                     <Calculator className="h-5 w-5" />
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 dark:text-white text-sm">
                       {lang === "bn" ? "বৈজ্ঞানিক ক্যালকুলেটর" : "Scientific Calculator"}
                     </h4>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Trig, Log & Functions</span>
+                    <span className="text-[10px] font-bold text-slate-400">Trig, Log & Functions</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
                 {lang === "bn" 
                   ? "ত্রিকোণমিতি, লগারিদম এবং জটিল সমীকরণ হিসাবের মাল্টি-ফাংশন ক্যালকুলেটর।" 
                   : "Solve trigonometric angles, log bases, roots and advanced algebraic expressions."}
               </p>
               <button
                 onClick={() => setShowCalcModal(true)}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
               >
                 <Maximize2 className="h-3.5 w-3.5" />
                 <span>{lang === "bn" ? "ক্যালকুলেটর চালু করুন" : "Launch Calculator"}</span>
@@ -515,10 +574,10 @@ export default function Dashboard({
             </div>
 
             {/* AI Math Solver Launch Card */}
-            <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-xl transition-all">
+            <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div>
@@ -529,14 +588,14 @@ export default function Dashboard({
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
                 {lang === "bn" 
                   ? "যেকোনো জটিল প্রশ্নের ছবি বা টেক্সট দিন, পেয়ে যাবেন ধাপে ধাপে বিস্তারিত সমাধান।" 
                   : "Upload homework questions or type doubts to get comprehensive step-by-step guidance."}
               </p>
               <button
                 onClick={() => setShowSolveModal(true)}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>{lang === "bn" ? "এআই ইঞ্জিন চালু করুন" : "Launch AI Solver"}</span>
@@ -550,18 +609,18 @@ export default function Dashboard({
         <motion.div variants={itemVariants} className="lg:col-span-7 space-y-6">
           
           {/* Motivation advice card */}
-          <div className="p-6 rounded-[2rem] bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-pink-500/10 border border-amber-500/20 shadow-xs">
+          <div className="p-5 sm:p-6 rounded-3xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 shadow-xs">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-300 flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 flex items-center gap-2">
                 <Quote className="h-4 w-4 text-amber-500" />
                 <span>{lang === "bn" ? "দৈনিক স্টাডি মোটিভেশন" : "Daily Study Habit Guide"}</span>
               </span>
               <button 
                 onClick={rotateQuote}
-                className="p-2 hover:bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 rounded-xl transition-colors cursor-pointer"
                 title="Next Advice"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5" />
               </button>
             </div>
             <motion.p 
@@ -578,8 +637,8 @@ export default function Dashboard({
           <div className="space-y-4">
             <div className="flex items-center justify-between px-1">
               <div>
-                <h2 className="text-lg font-black text-slate-950 dark:text-white tracking-tight flex items-center gap-2">
-                  <BookOpenCheck className="h-5 w-5 text-emerald-500" />
+                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <BookOpenCheck className="h-4.5 w-4.5 text-emerald-500" />
                   <span>{lang === "bn" ? "সম্প্রতি সংরক্ষিত নোটসমূহ" : "Recent Notes Library"}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
@@ -595,21 +654,21 @@ export default function Dashboard({
               </button>
             </div>
 
-            <div className="grid gap-3.5">
+            <div className="grid gap-3">
               {notes.slice(0, 4).map((note) => (
                 <motion.div
                   key={note.id}
                   onClick={() => onSelectNote(note)}
                   id={`note-card-${note.id}`}
-                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileHover={{ y: -2, scale: 1.008 }}
                   whileTap={{ scale: 0.99 }}
-                  className="group relative cursor-pointer rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-xl hover:border-indigo-400 transition-all text-left"
+                  className="group relative cursor-pointer rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs hover:shadow-md hover:border-indigo-400 transition-all text-left"
                 >
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className="inline-block rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
                       {note.subject === "Mathematics" ? t.mathSubject : note.subject}
                     </span>
-                    <span className="text-[11px] font-bold text-slate-400">
+                    <span className="text-[11px] font-mono font-bold text-slate-400">
                       {new Date(note.timestamp).toLocaleDateString(lang === "bn" ? "bn-BD" : undefined, { month: "short", day: "numeric" })}
                     </span>
                   </div>
@@ -618,29 +677,29 @@ export default function Dashboard({
                     {note.title}
                   </h3>
                   
-                  <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-semibold">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-semibold">
                     {note.content}
                   </p>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     <span className="flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500" />
                       <span>{lang === "bn" ? "বিস্তারিত ও এআই সারাংশ" : "Read Details & AI Summary"}</span>
                     </span>
-                    <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </motion.div>
               ))}
 
               {notes.length === 0 && (
-                <div className="rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-slate-50/50 dark:bg-slate-900/50">
-                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-slate-400 opacity-60" />
-                  <p className="text-xs font-black text-slate-600 dark:text-slate-400 mb-3">
+                <div className="rounded-3xl border-2 border-dashed border-indigo-200/80 p-8 text-center bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/30 shadow-xs">
+                  <BookOpen className="h-8 w-8 mx-auto mb-2 text-indigo-500" />
+                  <p className="text-xs font-black text-indigo-950 mb-3">
                     {lang === "bn" ? "এখনও কোনো অধ্যয়ন নোট তৈরি করা নেই।" : "Your study notes library is currently empty."}
                   </p>
                   <button
                     onClick={() => onNavigate("notes")}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm cursor-pointer transition-all active:scale-95"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer transition-all active:scale-95"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
                     <span>{lang === "bn" ? "নতুন নোট তৈরি করুন" : "Add Your First Note"}</span>
@@ -662,7 +721,7 @@ export default function Dashboard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSolveModal(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity cursor-pointer"
+              className="absolute inset-0 bg-indigo-950/25 backdrop-blur-md transition-opacity cursor-pointer"
             ></motion.div>
             
             <motion.div 
@@ -691,7 +750,7 @@ export default function Dashboard({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCalcModal(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity cursor-pointer"
+              className="absolute inset-0 bg-indigo-950/25 backdrop-blur-md transition-opacity cursor-pointer"
             ></motion.div>
             
             <motion.div 

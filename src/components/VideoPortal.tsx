@@ -541,32 +541,32 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
               </div>
 
               {/* Video Title and Metadata Description */}
-              <div className="rounded-2xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-950 p-6 shadow-3xs space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-50 dark:border-slate-850 pb-3">
+              <div className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-6 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-indigo-100 pb-3">
                   <div className="space-y-1">
-                    <span className="inline-block rounded-md bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 text-3xs font-extrabold uppercase tracking-wider text-teal-700 dark:text-teal-350 border border-teal-100 dark:border-teal-900/50">
+                    <span className="inline-block rounded-lg bg-indigo-50 px-2.5 py-1 text-3xs font-black uppercase tracking-wider text-indigo-700 border border-indigo-100">
                       {selectedVideo.subject === "Mathematics" ? (lang === "bn" ? "গণিত" : "Mathematics") : selectedVideo.subject}
                     </span>
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug">
                       {selectedVideo.title}
                     </h2>
                   </div>
-                  <div className="text-right text-[11px] text-slate-400 dark:text-slate-500 font-medium self-end">
-                    <span className="block">{lang === "bn" ? "আপলোড করেছেন:" : "Uploader:"} <strong className="text-slate-600 dark:text-slate-300 font-bold">{selectedVideo.uploadedBy}</strong></span>
+                  <div className="text-right text-[11px] text-slate-500 font-medium self-end">
+                    <span className="block">{lang === "bn" ? "আপলোড করেছেন:" : "Uploader:"} <strong className="text-indigo-900 font-bold">{selectedVideo.uploadedBy}</strong></span>
                     <span className="block mt-0.5">{new Date(selectedVideo.timestamp).toLocaleDateString(lang === "bn" ? "bn-BD" : undefined, { dateStyle: "long" })}</span>
                   </div>
                 </div>
 
-                <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">
+                <div className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
                   {selectedVideo.description}
                 </div>
               </div>
 
               {/* Comments Section */}
-              <div className="rounded-2xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-950 p-6 shadow-3xs space-y-6">
-                <div className="flex items-center gap-2 border-b border-slate-50 dark:border-slate-850 pb-3">
-                  <MessageSquare className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
+              <div className="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-6 shadow-xs space-y-6">
+                <div className="flex items-center gap-2 border-b border-indigo-100 pb-3">
+                  <MessageSquare className="h-5 w-5 text-indigo-600" />
+                  <h3 className="font-black text-slate-900 text-sm">
                     {lang === "bn" ? `মন্তব্যসমূহ (${selectedVideo.comments.length})` : `Discussion Comments (${selectedVideo.comments.length})`}
                   </h3>
                 </div>
@@ -583,11 +583,11 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                           key={comment.id}
                           className={`p-3.5 rounded-xl border flex gap-3 text-left transition-all ${
                             isUploaderComment 
-                              ? "bg-amber-50/30 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/50" 
-                              : "bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-900"
+                              ? "bg-amber-50/70 border-amber-200 shadow-2xs" 
+                              : "bg-white border-indigo-100 hover:bg-indigo-50/40 shadow-2xs"
                           }`}
                         >
-                          <div className="h-8 w-8 rounded-full bg-teal-100 dark:bg-teal-950 border border-teal-200 dark:border-teal-900 text-xs font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="h-8 w-8 rounded-full bg-teal-100 border border-teal-200 text-xs font-bold flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                             {comment.avatarUrl && (comment.avatarUrl.startsWith("data:image") || comment.avatarUrl.startsWith("http")) ? (
                               <img src={comment.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
@@ -597,25 +597,25 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                           <div className="space-y-1.5 flex-1">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-800 dark:text-slate-100 text-xs">
+                                <span className="font-bold text-slate-800 text-xs">
                                   {comment.senderName}
                                 </span>
                                 {comment.senderRole === "Admin" ? (
-                                  <span className="px-1 py-0.5 text-[8px] font-black rounded-sm bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50 uppercase scale-90">
+                                  <span className="px-1 py-0.5 text-[8px] font-black rounded-sm bg-amber-100 text-amber-800 border border-amber-200 uppercase scale-90">
                                     {lang === "bn" ? "শিক্ষক" : "Teacher"}
                                   </span>
                                 ) : (
-                                  <span className="px-1 py-0.5 text-[8px] font-black rounded-sm bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 uppercase scale-90">
+                                  <span className="px-1 py-0.5 text-[8px] font-black rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase scale-90">
                                     {lang === "bn" ? "শিক্ষার্থী" : "Student"}
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                              <span className="text-[10px] text-slate-400">
                                 {new Date(comment.timestamp).toLocaleDateString(lang === "bn" ? "bn-BD" : undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                               </span>
                             </div>
 
-                            <p className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed font-medium">
+                            <p className="text-slate-700 text-xs leading-relaxed font-medium">
                               {comment.comment}
                             </p>
                           </div>
@@ -640,8 +640,8 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                 </div>
 
                 {/* Comment writing box form */}
-                <form onSubmit={handleAddComment} className="flex gap-2 items-start border-t border-slate-50 dark:border-slate-850 pt-4">
-                  <div className="h-8 w-8 rounded-full bg-teal-100 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-xs font-bold flex items-center justify-center shrink-0 mt-1 overflow-hidden">
+                <form onSubmit={handleAddComment} className="flex gap-2 items-start border-t border-indigo-100 pt-4">
+                  <div className="h-8 w-8 rounded-full bg-teal-100 border border-teal-200 text-xs font-bold flex items-center justify-center shrink-0 mt-1 overflow-hidden shadow-2xs">
                     {profile?.avatarUrl && (profile.avatarUrl.startsWith("data:image") || profile.avatarUrl.startsWith("http")) ? (
                       <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
@@ -655,7 +655,7 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
                       value={newCommentText}
                       onChange={(e) => setNewCommentText(e.target.value)}
                       placeholder={lang === "bn" ? "আপনার প্রশ্ন বা মন্তব্য এখানে লিখুন..." : "Ask a question or share feedback with classmates..."}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-750 bg-slate-50/50 dark:bg-slate-900/60 px-4.5 py-3 pr-12 text-xs text-slate-800 dark:text-slate-200 outline-hidden focus:border-teal-500 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950/30"
+                      className="w-full rounded-xl border border-indigo-200 bg-white px-4.5 py-3 pr-12 text-xs text-slate-800 placeholder-slate-400 outline-hidden focus:border-teal-500 focus:ring-2 focus:ring-teal-100 shadow-2xs"
                     />
                     <button
                       type="submit"
@@ -668,11 +668,11 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-20 text-center space-y-4">
-              <div className="mx-auto h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-850 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                <Video className="h-6 w-6" />
+            <div className="rounded-3xl border border-dashed border-indigo-200/80 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/30 p-16 sm:p-20 text-center space-y-4 shadow-xs">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 shadow-xs">
+                <Video className="h-7 w-7" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm text-indigo-950 font-bold max-w-sm mx-auto leading-relaxed">
                 {lang === "bn" 
                   ? "বাম পাশের প্লেলিস্ট থেকে যেকোনো ভিডিও লেকচার সিলেক্ট করে ক্লাসে যোগ দিন।" 
                   : "Please select an educational video lecture from the left sidebar playlist to begin learning!"}

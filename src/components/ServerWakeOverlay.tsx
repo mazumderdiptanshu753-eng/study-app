@@ -46,7 +46,7 @@ export default function ServerWakeOverlay({ lang = "bn" }: ServerWakeOverlayProp
           transition={{ duration: 0.3 }}
           className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none"
         >
-          <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-slate-900/90 dark:bg-slate-800/95 text-white backdrop-blur-md border border-indigo-500/40 shadow-2xl shadow-indigo-500/20">
+          <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white backdrop-blur-md border border-white/20 shadow-2xl shadow-indigo-500/30">
             {successPing ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
             ) : (

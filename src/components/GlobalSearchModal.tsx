@@ -261,7 +261,7 @@ export default function GlobalSearchModal({
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-3 sm:px-4 bg-slate-950/75 backdrop-blur-md"
+        className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-3 sm:px-4 bg-indigo-950/25 backdrop-blur-md"
         onClick={onClose}
       >
         <motion.div
@@ -270,10 +270,10 @@ export default function GlobalSearchModal({
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+          className="relative w-full max-w-2xl bg-white text-slate-900 rounded-3xl border border-indigo-100 shadow-2xl overflow-hidden"
         >
           {/* Top Search Input Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center gap-3">
             <Search className="w-5 h-5 text-indigo-500 flex-shrink-0 animate-pulse" />
             
             <input
@@ -290,14 +290,14 @@ export default function GlobalSearchModal({
                   ? "নোটস, বিষয়, চাকরির খবর বা অধ্যায় খুঁজুন... (যেমন: বাস্তব সংখ্যা, Physics, GK)"
                   : "Search notes, topics, job alerts, or chapters... (e.g. Real Numbers, Math, PYQ)"
               }
-              className="flex-1 bg-transparent text-sm sm:text-base font-semibold outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+              className="flex-1 bg-transparent text-sm sm:text-base font-semibold outline-none text-slate-900 placeholder-slate-400"
             />
 
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -306,21 +306,21 @@ export default function GlobalSearchModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
             >
               ESC
             </button>
           </div>
 
           {/* Quick Category Filter Pills */}
-          <div className="px-4 py-2.5 bg-slate-50/70 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-2 overflow-x-auto custom-scrollbar text-xs font-bold">
+          <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center gap-2 overflow-x-auto custom-scrollbar text-xs font-bold">
             <button
               type="button"
               onClick={() => setSelectedCategory("all")}
               className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
                 selectedCategory === "all"
                   ? "bg-indigo-600 text-white shadow-xs"
-                  : "bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  : "bg-slate-200/70 text-slate-700 hover:text-slate-900"
               }`}
             >
               {lang === "bn" ? "সকল রেজাল্ট" : "All Results"}
@@ -435,19 +435,19 @@ export default function GlobalSearchModal({
           </div>
 
           {/* Footer Keyboard Hints */}
-          <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+          <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px]">↑↓</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-[10px]">↑↓</kbd>
                 <span>{lang === "bn" ? "উপরে/নিচে" : "Navigate"}</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px]">↵</kbd>
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-[10px]">↵</kbd>
                 <span>{lang === "bn" ? "নির্বাচন" : "Select"}</span>
               </span>
             </div>
 
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-400 font-mono font-bold">
               STUDY HUB GLOBAL SEARCH
             </span>
           </div>

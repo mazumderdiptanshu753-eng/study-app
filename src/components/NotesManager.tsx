@@ -545,7 +545,7 @@ export default function NotesManager({
               {/* Note Share code widget */}
               <button
                 onClick={() => handleShareNote(selectedNote)}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-2xs font-semibold text-slate-700 dark:text-slate-300 transition-all hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-xl border border-indigo-100 bg-white px-3 py-1.5 text-2xs font-bold text-slate-700 transition-all hover:bg-indigo-50 hover:text-indigo-900 cursor-pointer shadow-2xs"
               >
                 {copiedNoteId === selectedNote.id ? (
                   <>
@@ -554,7 +554,7 @@ export default function NotesManager({
                   </>
                 ) : (
                   <>
-                    <Share2 className="h-3.5 w-3.5 text-teal-600" />
+                    <Share2 className="h-3.5 w-3.5 text-indigo-600" />
                     {lang === "bn" ? "নোট শেয়ার কোড" : "Share Note Code"}
                   </>
                 )}
@@ -571,25 +571,25 @@ export default function NotesManager({
                 >
                   {/* TAB CONTENT: 1. Core Note Text */}
                   {activeStudyTab === "content" && (
-                    <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-850 pb-2">
-                  <h2 className="font-bold text-slate-900 dark:text-white text-base">{selectedNote.title}</h2>
-                  <span className="rounded-md bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 text-2xs font-bold text-teal-700 dark:text-teal-300">
+                    <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+                  <h2 className="font-black text-slate-900 text-base">{selectedNote.title}</h2>
+                  <span className="rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-2xs font-black text-indigo-700">
                     {selectedNote.subject === "Mathematics" ? t.mathSubject : selectedNote.subject}
                   </span>
                 </div>
-                <div className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">
                   {selectedNote.content}
                 </div>
 
                 {selectedNote.attachmentUrl && (
-                  <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
+                  <div className="mt-6 pt-6 border-t border-indigo-100 space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="rounded-lg bg-teal-50 p-1.5 text-teal-600">
+                      <div className="rounded-xl bg-indigo-100 p-2 text-indigo-700">
                         <FileText className="h-4 w-4" />
                       </div>
                       <h4 className="font-bold text-slate-800 text-xs">
-                        {lang === "bn" ? "সংযুক্ত স্টাডি ফাইল" : "Attached Study File"}: <span className="font-bold text-black">{selectedNote.attachmentName || (selectedNote.attachmentType === "pdf" ? "Document.pdf" : "Image.jpg")}</span>
+                        {lang === "bn" ? "সংযুক্ত স্টাডি ফাইল" : "Attached Study File"}: <span className="font-bold text-indigo-900">{selectedNote.attachmentName || (selectedNote.attachmentType === "pdf" ? "Document.pdf" : "Image.jpg")}</span>
                       </h4>
                     </div>
 
@@ -600,7 +600,7 @@ export default function NotesManager({
                             href={selectedNote.attachmentUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 text-xs font-bold transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 text-xs font-bold transition-all"
                           >
                             <FileText className="h-3.5 w-3.5" />
                             {lang === "bn" ? "নতুন ট্যাবে পিডিএফ খুলুন (Full Screen)" : "Open PDF in New Tab (Full Screen)"}
@@ -631,9 +631,9 @@ export default function NotesManager({
 
             {/* TAB CONTENT: 2. AI Summary */}
             {activeStudyTab === "summary" && (
-              <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-850 pb-2">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+              <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+                  <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-amber-500" />
                     {lang === "bn" ? "জেমিনি এআই সারাংশ ইঞ্জিন" : "Gemini AI Summary Engine"}
                   </h3>
@@ -708,9 +708,9 @@ export default function NotesManager({
             {activeStudyTab === "flashcards" && (
               <div className="space-y-4">
                 {isLoadingAI ? (
-                  <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center space-y-3">
-                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
-                    <p className="text-xs text-slate-500 font-semibold animate-pulse">
+                  <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-12 text-center space-y-3">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+                    <p className="text-xs text-indigo-700 font-bold animate-pulse">
                       {lang === "bn" ? "ধারণাগুলো বের করা হচ্ছে এবং ফ্ল্যাশকার্ড তৈরি করা হচ্ছে..." : "Extracting concepts & building flashcards..."}
                     </p>
                   </div>
@@ -728,13 +728,13 @@ export default function NotesManager({
                       id="study-flashcard"
                       className={`relative min-h-[180px] w-full rounded-2xl border cursor-pointer p-6 flex flex-col justify-between transition-all duration-300 ${
                         isFlipped 
-                          ? "bg-indigo-600 border-indigo-700 text-white shadow-md transform rotate-1"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 shadow-xs hover:border-indigo-300 hover:shadow-sm"
+                          ? "bg-gradient-to-br from-indigo-600 to-purple-600 border-indigo-500 text-white shadow-lg transform rotate-1"
+                          : "bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 border-indigo-200 text-slate-800 shadow-sm hover:border-indigo-400 hover:shadow-md"
                       }`}
                     >
                       {/* Side indicator badge */}
-                      <span className={`inline-block self-start rounded-md px-1.5 py-0.5 text-5xs font-extrabold uppercase tracking-widest ${
-                        isFlipped ? "bg-white/20 text-indigo-100" : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                      <span className={`inline-block self-start rounded-md px-2 py-0.5 text-5xs font-black uppercase tracking-widest ${
+                        isFlipped ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-800"
                       }`}>
                         {isFlipped 
                           ? (lang === "bn" ? "পেছন (উত্তর)" : "Back (Answer)") 
@@ -743,7 +743,7 @@ export default function NotesManager({
 
                       {/* Card Content text */}
                       <div className="my-auto py-4 text-center">
-                        <p className={`font-bold transition-all text-sm md:text-base leading-relaxed ${isFlipped ? "text-indigo-50" : "text-slate-800 dark:text-slate-200"}`}>
+                        <p className={`font-bold transition-all text-sm md:text-base leading-relaxed ${isFlipped ? "text-white" : "text-slate-800"}`}>
                           {isFlipped 
                             ? selectedNote.flashcards[currentFlashcardIndex].back 
                             : selectedNote.flashcards[currentFlashcardIndex].front
@@ -752,8 +752,8 @@ export default function NotesManager({
                       </div>
 
                       {/* Click helper hint footer */}
-                      <span className={`text-center text-5xs font-medium uppercase tracking-widest ${
-                        isFlipped ? "text-indigo-200/80" : "text-slate-400"
+                      <span className={`text-center text-5xs font-bold uppercase tracking-widest ${
+                        isFlipped ? "text-indigo-200" : "text-slate-400"
                       }`}>
                         {lang === "bn" ? "কার্ডটি উল্টাতে ক্লিক করুন" : "Click to Flip Card"}
                       </span>
@@ -761,7 +761,7 @@ export default function NotesManager({
 
                     {/* Navigation Controls */}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500 font-medium">
+                      <span className="text-xs font-bold text-slate-600">
                         {lang === "bn" 
                           ? `কার্ড ${currentFlashcardIndex + 1} / ${selectedNote.flashcards.length}` 
                           : `Card ${currentFlashcardIndex + 1} of ${selectedNote.flashcards.length}`}
@@ -773,7 +773,7 @@ export default function NotesManager({
                             setCurrentFlashcardIndex(prev => prev - 1);
                             setIsFlipped(false);
                           }}
-                          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
+                          className="rounded-xl border border-indigo-100 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 disabled:opacity-40 cursor-pointer shadow-2xs"
                         >
                           {lang === "bn" ? "পূর্ববর্তী" : "Prev"}
                         </button>
@@ -783,7 +783,7 @@ export default function NotesManager({
                             setCurrentFlashcardIndex(prev => prev + 1);
                             setIsFlipped(false);
                           }}
-                          className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 cursor-pointer"
+                          className="rounded-xl border border-indigo-100 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-indigo-50 disabled:opacity-40 cursor-pointer shadow-2xs"
                         >
                           {lang === "bn" ? "পরবর্তী" : "Next"}
                         </button>
@@ -791,14 +791,14 @@ export default function NotesManager({
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center space-y-4">
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
+                  <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-10 text-center space-y-4">
+                    <p className="text-xs text-slate-600 max-w-sm mx-auto font-medium">
                       {lang === "bn" ? "এই নোটের জন্য কোনো ফ্ল্যাশকার্ড নেই।" : "No flashcards generated for this note."}
                     </p>
                     <button
                       onClick={() => onTriggerFlashcards(selectedNote)}
                       id="btn-generate-flashcards-empty"
-                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 shadow-sm cursor-pointer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm cursor-pointer"
                     >
                       <Layers className="h-3.5 w-3.5" />
                       {lang === "bn" ? "ফ্ল্যাশকার্ড তৈরি করুন" : "Generate Flashcards"}
@@ -812,15 +812,15 @@ export default function NotesManager({
         </div>
         ) : (
           /* NO NOTE SELECTED FALLBACK DISPLAY */
-          <div className="hidden md:block rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center bg-white dark:bg-slate-900/40 space-y-4">
-            <div className="mx-auto rounded-full bg-teal-50 dark:bg-teal-950/40 p-3 text-teal-600 dark:text-teal-400 h-12 w-12 flex items-center justify-center">
+          <div className="hidden md:block rounded-3xl border-2 border-dashed border-indigo-200 p-12 text-center bg-gradient-to-br from-indigo-50/40 via-purple-50/30 to-pink-50/30 space-y-4">
+            <div className="mx-auto rounded-2xl bg-indigo-100 p-3 text-indigo-600 h-12 w-12 flex items-center justify-center shadow-xs">
               <BookOpen className="h-6 w-6" />
             </div>
             <div className="max-w-xs mx-auto space-y-1.5">
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">
+              <h3 className="font-black text-slate-900 text-sm">
                 {lang === "bn" ? "স্টাডি নোট ওয়ার্কস্টেশন" : "Study Note Workstation"}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600 font-medium">
                 {role === "Admin"
                   ? (lang === "bn" ? "ফ্ল্যাশকার্ড তৈরি করতে বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করুন অথবা সম্পূর্ণ নতুন নোট যোগ করুন!" : "Select a study note on the left sidebar to generate flashcards, or write a brand new note to begin!")
                   : (lang === "bn" ? "বাম পাশের লাইব্রেরি থেকে যেকোনো স্টাডি নোট সিলেক্ট করে সেটির সারসংক্ষেপ বা ফ্ল্যাশকার্ড দিয়ে পড়াশোনা শুরু করুন!" : "Select a curated study note from the left sidebar library to generate custom summaries or interactive flashcards!")}

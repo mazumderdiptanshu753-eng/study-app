@@ -196,23 +196,34 @@ export default function App() {
     }
   };
 
-  const startUpdateProcess = (targetVersion?: string) => {
+  const startUpdateProcess = (targetVersion?: string, isTest?: boolean) => {
     setShowUpdateModal(false);
     setIsUpdatingApp(true);
     setUpdateProgress(0);
-    setUpdateStatusStep(lang === "bn" ? "নতুন আপডেট ফাইল ডাউনলোড হচ্ছে..." : "Downloading update package...");
+    setUpdateStatusStep(lang === "bn" ? "নতুন আপডেট প্যাকেজ ডাউনলোড হচ্ছে..." : "Downloading update package...");
 
     let currentProgress = 0;
     const interval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 12) + 5;
+      currentProgress += Math.floor(Math.random() * 8) + 6;
       if (currentProgress >= 100) {
         currentProgress = 100;
         setUpdateProgress(100);
-        setUpdateStatusStep(lang === "bn" ? "স্টাডি হাব রিস্টার্ট হচ্ছে!" : "Restarting Study Hub!");
+        setUpdateStatusStep(lang === "bn" ? "স্টাডি হাব প্রস্তুত! রিস্টার্ট হচ্ছে..." : "Study Hub ready! Restarting...");
         clearInterval(interval);
         
+        if (isTest) {
+          // Preview mode: finish test without persistent bump or hard reload
+          setTimeout(() => {
+            setIsUpdatingApp(false);
+            setUpdateProgress(0);
+            setShowUpdateSuccessToast(true);
+            setTimeout(() => setShowUpdateSuccessToast(false), 5000);
+          }, 1800);
+          return;
+        }
+
         // Persist the updated version code in localStorage
-        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.6";
+        const versionToSave = targetVersion || serverVersionInfo?.latestVersion || "2.6.7";
         localStorage.setItem("client_app_version", versionToSave);
         localStorage.setItem("just_updated", "true");
         setCurrentClientVersion(versionToSave);
@@ -223,10 +234,10 @@ export default function App() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: "YOURR APP IS SUCESSFULLY UPDATED",
+              title: "অ্যাপ সফলভাবে আপডেট হয়েছে! 🎉",
               message: lang === "bn" 
-                ? `আপনার ডিভাইসটি সফলভাবে v${versionToSave} সংস্করণে আপডেট করা হয়েছে। (YOURR APP IS SUCESSFULLY UPDATED)`
-                : `YOURR APP IS SUCESSFULLY UPDATED. Your device was successfully updated to version v${versionToSave}.`,
+                ? `আপনার ডিভাইসটি সফলভাবে v${versionToSave} সংস্করণে আপডেট করা হয়েছে।`
+                : `Your device was successfully updated to version v${versionToSave}.`,
               type: "info",
               userEmail: profile.email
             })
@@ -235,29 +246,45 @@ export default function App() {
         
         setTimeout(() => {
           window.location.reload();
-        }, 1500);
+        }, 1600);
       } else {
         setUpdateProgress(currentProgress);
         if (currentProgress < 25) {
-          setUpdateStatusStep(lang === "bn" ? "নতুন আপডেট ফাইল ডাউনলোড হচ্ছে..." : "Downloading update package...");
+          setUpdateStatusStep(lang === "bn" ? "প্যাকেজ ফাইল ও রিসোর্স ডাউনলোড হচ্ছে..." : "Downloading update package...");
         } else if (currentProgress < 50) {
-          setUpdateStatusStep(lang === "bn" ? "ফাইল এক্সট্র্যাক্ট এবং যাচাই করা হচ্ছে..." : "Extracting and verifying resources...");
+          setUpdateStatusStep(lang === "bn" ? "রিসোর্স যাচাই এবং এক্সট্র্যাক্ট করা হচ্ছে..." : "Verifying & extracting assets...");
         } else if (currentProgress < 75) {
-          setUpdateStatusStep(lang === "bn" ? "কনফিগারেশন এবং ডাটাবেস সিঙ্ক করা হচ্ছে..." : "Synchronizing system settings...");
+          setUpdateStatusStep(lang === "bn" ? "ক্লাউড ডাটাবেস ও সিস্টেম কনফিগারেশন সিঙ্ক হচ্ছে..." : "Synchronizing system configuration...");
         } else {
-          setUpdateStatusStep(lang === "bn" ? "সবকিছু প্রস্তুত করা হচ্ছে..." : "Finalizing system upgrade...");
+          setUpdateStatusStep(lang === "bn" ? "নতুন ফিচার প্রয়োগ ও রিস্টার্ট প্রস্তুতি..." : "Finalizing system upgrade...");
         }
       }
-    }, 400);
+    }, 350);
   };
 
   useEffect(() => {
-    const timer = setTimeout(checkAppVersion, 4000);
+    const handleTriggerUpdate = (e: any) => {
+      const targetV = e.detail?.targetVersion;
+      if (e.detail?.changelogBn || e.detail?.changelogEn) {
+        setServerVersionInfo(prev => ({
+          latestVersion: targetV || prev?.latestVersion || "2.6.7",
+          changelogEn: e.detail?.changelogEn || prev?.changelogEn || "",
+          changelogBn: e.detail?.changelogBn || prev?.changelogBn || ""
+        }));
+      }
+      startUpdateProcess(targetV, e.detail?.isTest);
+    };
+    window.addEventListener("studyhub_trigger_update", handleTriggerUpdate);
+    return () => window.removeEventListener("studyhub_trigger_update", handleTriggerUpdate);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(checkAppVersion, 1200);
     const interval = setInterval(() => {
       if (!document.hidden) {
         checkAppVersion();
       }
-    }, 20000);
+    }, 6000);
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -369,8 +396,9 @@ export default function App() {
   }, [profile?.email]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", false);
-  }, []);
+    document.documentElement.classList.remove("dark");
+    document.body.classList.remove("dark");
+  }, [themeId]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -838,8 +866,20 @@ export default function App() {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      {showSplash ? (
+    <>
+      {/* Full-screen splash update screen covering the entire screen for all users */}
+      <AppUpdateOverlay
+        isUpdating={isUpdatingApp}
+        targetVersion={serverVersionInfo?.latestVersion}
+        progress={updateProgress}
+        statusStep={updateStatusStep}
+        lang={lang}
+        changelogBn={serverVersionInfo?.changelogBn}
+        changelogEn={serverVersionInfo?.changelogEn}
+      />
+
+      <AnimatePresence mode="wait">
+        {showSplash ? (
         <SplashScreen key="splash" theme={theme} lang={lang} />
       ) : (!profile && !hasStartedWelcome) ? (
         <motion.div
@@ -865,27 +905,26 @@ export default function App() {
           initial={{ opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-          className={`w-full flex ${profile ? "md:h-screen md:overflow-hidden flex-col md:flex-row min-h-screen" : "min-h-screen flex-col"} ${theme.bgPage} ${theme.isDark ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0b0f19] to-black" : "bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]"} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
+          className={`w-full flex ${profile ? "md:h-screen md:overflow-hidden flex-col md:flex-row min-h-screen" : "min-h-screen flex-col"} ${theme.bgPage} ${theme.textMain} font-sans antialiased transition-colors duration-300`}
         >
-          {/* Unbelievably Elegant Desktop Left Sidebar Workspace Navigation */}
+          {/* Elegant Desktop Left Sidebar Workspace Navigation */}
           {profile && (
-            <aside className={`hidden md:flex flex-col w-72 shrink-0 border-r ${theme.borderCard} ${theme.bgCard} h-[100vh] sticky top-0 z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden p-5`}>
+            <aside className={`hidden md:flex flex-col w-72 shrink-0 border-r ${theme.borderCard} ${theme.bgCard} h-[100vh] sticky top-0 z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden p-5 shadow-xs`}>
               {/* Top Brand Area */}
-              <div className={`flex items-center justify-between pb-6 mb-6 border-b ${theme.borderCard}`}>
+              <div className={`flex items-center justify-between pb-5 mb-5 border-b ${theme.borderCard}`}>
                 <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md">
-                    <GraduationCap className="h-5 w-5 drop-shadow-md" />
-                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 border border-white" />
+                  <div className="relative flex items-center justify-center h-10 w-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-sm">
+                    <GraduationCap className="h-5 w-5 drop-shadow-xs" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400" />
                   </div>
-                  <div className="leading-none">
-                    <div className="flex items-center gap-1">
-                      <span className="font-black text-sm sm:text-base tracking-tight text-slate-900">
+                  <div className="leading-tight">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-sm tracking-tight text-slate-900">
                         STUDY HUB
                       </span>
-                      <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
+                      <Sparkles className="h-3 w-3 text-amber-500" />
                     </div>
-                    <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase block mt-1">
+                    <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase block mt-0.5">
                       {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI SPACE"}
                     </span>
                   </div>
@@ -894,13 +933,13 @@ export default function App() {
               </div>
 
               {/* User Profile Summary Card inside Sidebar */}
-              <div className={`mb-6 p-4 rounded-2xl border ${theme.borderCard} bg-slate-50 flex flex-col gap-3 relative overflow-hidden group`}>
+              <div className={`mb-5 p-3.5 rounded-2xl border ${theme.borderCard} bg-gradient-to-br ${theme.heroGradient} flex flex-col gap-2.5 relative overflow-hidden group`}>
                 <div 
                   onClick={() => setCurrentTab("profile")}
-                  className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 -m-1.5 rounded-xl transition-all duration-200 group/profile-card"
+                  className="flex items-center gap-3 cursor-pointer hover:bg-white/80 p-1.5 -m-1.5 rounded-xl transition-all duration-200 group/profile-card"
                   title={lang === "bn" ? "অ্যাকাউন্ট প্রোফাইল দেখুন" : "View Account Profile"}
                 >
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-lg shadow-md select-none group-hover/profile-card:scale-105 transition-transform duration-200 shrink-0">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-base shadow-xs select-none group-hover/profile-card:scale-105 transition-transform duration-200 shrink-0">
                     {profile.avatarUrl && (profile.avatarUrl.startsWith("http") || profile.avatarUrl.startsWith("data:image")) ? (
                       <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover rounded-xl" referrerPolicy="no-referrer" />
                     ) : (
@@ -908,31 +947,31 @@ export default function App() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 leading-tight">
-                    <span className="font-black text-xs sm:text-sm block truncate text-slate-850 group-hover/profile-card:text-emerald-600 dark:group-hover/profile-card:text-emerald-400 transition-colors">
+                    <span className="font-black text-xs block truncate text-slate-900 group-hover/profile-card:text-emerald-700 transition-colors">
                       {profile.name || profile.fullName}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium truncate block mt-0.5">
+                    <span className="text-[10px] text-slate-500 font-medium truncate block mt-0.5">
                       {profile.email}
                     </span>
                   </div>
                 </div>
-                <div className={`flex items-center justify-between border-t ${theme.borderCard} pt-3 mt-1`}>
+                <div className={`flex items-center justify-between border-t border-slate-200/80 pt-2.5 mt-0.5`}>
                   {profile.role === "Admin" ? (
-                    <span className="inline-flex items-center px-2 py-0.5 text-[8px] font-black tracking-wide rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase shrink-0">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black tracking-wide rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/30 uppercase shrink-0">
                       👑 {lang === "bn" ? "এডমিন" : "Admin"}
                     </span>
                   ) : (
-                    <span className={`inline-flex items-center px-2 py-0.5 text-[8px] font-black tracking-wide rounded ${theme.primaryBg} ${theme.primaryText} border ${theme.borderCard} uppercase shrink-0`}>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black tracking-wide rounded-md bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 uppercase shrink-0">
                       🎓 {lang === "bn" ? "শিক্ষার্থী" : "Student"}
                     </span>
                   )}
                   
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <motion.button
                       onClick={() => setCurrentTab("profile")}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 hover:text-emerald-500 transition-all cursor-pointer shadow-3xs"
+                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-white/80 hover:bg-emerald-500/15 text-slate-600 hover:text-emerald-700 border border-slate-200/60 transition-all cursor-pointer shadow-3xs"
                       title={lang === "bn" ? "অ্যাকাউন্ট সেটিংস" : "Account Settings"}
                     >
                       <User className="h-3.5 w-3.5" />
@@ -942,7 +981,7 @@ export default function App() {
                       onClick={handleLogout}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-400 transition-all cursor-pointer shadow-3xs group/logout"
+                      className="flex items-center justify-center h-7 w-7 rounded-lg bg-white/80 hover:bg-rose-500/15 text-slate-600 hover:text-rose-600 border border-slate-200/60 transition-all cursor-pointer shadow-3xs group/logout"
                       title={lang === "bn" ? "লগ আউট" : "Sign Out"}
                     >
                       <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover/logout:translate-x-0.5" />
@@ -952,18 +991,18 @@ export default function App() {
               </div>
 
               {/* Navigation Items List */}
-              <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto pr-1">
+              <div className="flex-1 flex flex-col gap-1 overflow-y-auto pr-1">
                 {/* Global Search Quick Trigger Bar */}
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen(true)}
-                  className="w-full mb-1 px-3.5 py-2.5 rounded-xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 flex items-center justify-between text-xs font-black text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer shadow-3xs group active:scale-98"
+                  className="w-full mb-2 px-3 py-2 rounded-xl border border-indigo-200/80 bg-white/85 hover:border-indigo-400 hover:bg-white flex items-center justify-between text-xs font-bold text-slate-700 transition-all cursor-pointer shadow-3xs group active:scale-98"
                 >
                   <div className="flex items-center gap-2">
-                    <Search className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
-                    <span>{lang === "bn" ? "খুঁজুন (নোটস, জিকে, প্রশ্ন)" : "Search Anything..."}</span>
+                    <Search className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px]">{lang === "bn" ? "খুঁজুন (নোটস, প্রশ্ন)..." : "Search Anything..."}</span>
                   </div>
-                  <kbd className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-[10px] font-mono border border-indigo-500/30">⌘K</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-indigo-50 text-[10px] font-mono border border-indigo-200 text-indigo-600 font-bold">⌘K</kbd>
                 </button>
 
                 {[
@@ -986,13 +1025,13 @@ export default function App() {
                         setCurrentTab(item.id as any);
                         setSelectedNote(null);
                       }}
-                      className={`flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                      className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         isActive
                           ? `${theme.primaryText} ${theme.primaryBg} shadow-xs border ${theme.borderCard}`
-                          : "text-slate-500 hover:text-slate-800 hover:bg-slate-500/5"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
                       }`}
                     >
-                      <IconComp className="h-4.5 w-4.5" />
+                      <IconComp className="h-4 w-4" />
                       <span>{lang === "bn" ? item.labelBn : item.labelEn}</span>
                       {isActive && (
                         <motion.span 
@@ -1011,13 +1050,13 @@ export default function App() {
                       setCurrentTab("admin");
                       setSelectedNote(null);
                     }}
-                    className={`flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                       currentTab === "admin"
-                        ? `text-amber-500 bg-amber-550/10 border border-amber-500/20 shadow-xs`
-                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-500/5"
+                        ? `text-amber-700 bg-amber-100/80 border border-amber-300/80 shadow-xs`
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/80"
                     }`}
                   >
-                    <Shield className="h-4.5 w-4.5 text-amber-500" />
+                    <Shield className="h-4 w-4 text-amber-500" />
                     <span>{lang === "bn" ? "অ্যাডমিন প্যানেল" : "Admin Panel"}</span>
                     {currentTab === "admin" && (
                       <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -1027,14 +1066,11 @@ export default function App() {
               </div>
 
               {/* Sidebar Footer: Theme & Language Controls */}
-              <div className="border-t border-slate-200/50 pt-4 mt-auto flex flex-col gap-3.5">
+              <div className="border-t border-slate-200/70 pt-3.5 mt-auto flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase">
-                    {lang === "bn" ? "থিম পরিবর্তন" : "App Customization"}
-                  </span>
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold ${theme.textMain}`}>
-                      {lang === "bn" ? "পছন্দের থিম" : "Visual Theme"}
+                    <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">
+                      {lang === "bn" ? "থিম" : "Theme"}
                     </span>
                     <div className="flex items-center gap-1">
                       {(["emerald", "cosmic", "aurora", "sunset"] as ThemeId[]).map((tId) => (
@@ -1044,10 +1080,10 @@ export default function App() {
                             setThemeId(tId);
                             localStorage.setItem("app_theme_id", tId);
                           }}
-                          className={`h-7 w-7 rounded-xl flex items-center justify-center text-xs transition-all duration-200 active:scale-90 border cursor-pointer ${
+                          className={`h-6 w-6 rounded-lg flex items-center justify-center text-xs transition-all duration-200 active:scale-90 border cursor-pointer ${
                             themeId === tId
-                              ? `${theme.primaryBg} ${theme.primaryText} ${theme.borderCard} scale-110 shadow-3xs`
-                              : "border-transparent hover:bg-slate-100"
+                              ? `${theme.primaryBg} ${theme.primaryText} ${theme.borderCard} scale-105 shadow-3xs`
+                              : "border-transparent hover:bg-white/80 text-slate-600"
                           }`}
                           title={THEMES[tId].nameEn}
                         >
@@ -1058,18 +1094,18 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100/70 pt-3">
-                  <span className={`text-xs font-bold ${theme.textMain}`}>
-                    {lang === "bn" ? "অ্যাপের ভাষা" : "App Language"}
+                <div className="flex items-center justify-between border-t border-slate-200/70 pt-2.5">
+                  <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">
+                    {lang === "bn" ? "ভাষা" : "Language"}
                   </span>
                   
                   {/* Language switch */}
-                  <div className={`flex items-center gap-0.5 p-0.5 rounded-xl border bg-black/[0.03] border-black/[0.05] shadow-inner`}>
+                  <div className="flex items-center gap-0.5 p-0.5 rounded-lg border border-slate-200 bg-slate-100/80">
                     <button
                       onClick={() => handleLanguageChange("en")}
-                      className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                      className={`px-2.5 py-0.5 text-[10px] font-black rounded-md transition-all cursor-pointer ${
                         lang === "en"
-                          ? "bg-white text-slate-900 shadow-sm border border-black/[0.03]"
+                          ? "bg-white text-slate-900 shadow-xs"
                           : "text-slate-500 hover:text-slate-700"
                       }`}
                     >
@@ -1077,9 +1113,9 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => handleLanguageChange("bn")}
-                      className={`px-3 py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                      className={`px-2.5 py-0.5 text-[10px] font-black rounded-md transition-all cursor-pointer ${
                         lang === "bn"
-                          ? "bg-white text-slate-900 shadow-sm border border-black/[0.03]"
+                          ? "bg-white text-slate-900 shadow-xs"
                           : "text-slate-500 hover:text-slate-700"
                       }`}
                     >
@@ -1094,47 +1130,47 @@ export default function App() {
           <div ref={mainScrollRef} onScroll={handleScroll} className={`flex-1 flex flex-col min-w-0 relative ${profile ? "md:h-full md:overflow-y-auto" : ""} scroll-smooth overscroll-y-contain`}>
             {/* Mobile-only compact floating header */}
             {profile && (
-              <header className={`md:hidden flex items-center justify-between px-4 h-16 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-3xs`}>
+              <header className={`md:hidden flex items-center justify-between px-4 h-14 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-xs`}>
                 <button 
                   onClick={() => setCurrentTab("dashboard")}
                   className="flex items-center gap-2 text-left"
                 >
-                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xs">
-                    <GraduationCap className="h-5 w-5" />
+                  <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xs">
+                    <GraduationCap className="h-4 w-4" />
                   </div>
                   <div>
                     <span className="font-black text-xs block tracking-tight text-slate-900">
                       STUDY HUB
                     </span>
-                    <span className="text-[8px] font-extrabold text-slate-500 block tracking-wider uppercase">
+                    <span className="text-[8px] font-bold text-slate-400 block tracking-wider uppercase">
                       {lang === "bn" ? "অধ্যয়ন ও এআই" : "LEARN & AI"}
                     </span>
                   </div>
                 </button>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <OfflineIndicator lang={lang} variant="pill" />
 
                   {/* Global Search Mobile Trigger */}
                   <button
                     onClick={() => setIsSearchOpen(true)}
-                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 transition-all cursor-pointer shadow-3xs active:scale-95"
+                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-white border border-indigo-200/80 text-slate-700 transition-all cursor-pointer active:scale-95 shadow-3xs"
                     title={lang === "bn" ? "সার্চ করুন" : "Global Search"}
                   >
-                    <Search className="w-4 h-4" />
+                    <Search className="w-3.5 h-3.5 text-indigo-500" />
                   </button>
 
-                  {/* Highly Visible Language Toggle */}
+                  {/* Language Toggle */}
                   <button
                     onClick={() => handleLanguageChange(lang === "en" ? "bn" : "en")}
-                    className="flex items-center justify-center gap-1 h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-[10px] font-extrabold text-emerald-700 transition-all cursor-pointer shadow-3xs active:scale-95"
-                    title={lang === "bn" ? "Switch to English" : "বাংলায় পরিবর্তন করুন"}
+                    className="flex items-center justify-center gap-1 h-8 px-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-extrabold text-emerald-700 transition-all cursor-pointer active:scale-95"
+                    title={lang === "bn" ? "Switch to English" : "বাংলায় পরিবর্তন করুন"}
                   >
-                    <span className="text-xs">🌐</span>
                     <span>{lang === "en" ? "BN" : "EN"}</span>
                   </button>
 
                   <NotificationBell profile={profile} lang={lang} theme={theme} />
+                  
                   <button 
                     onClick={() => setCurrentTab("profile")}
                     className="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-sm shadow-xs border border-white/15 cursor-pointer overflow-hidden"
@@ -1186,13 +1222,9 @@ export default function App() {
                   animate={{ opacity: 1, x: 0 }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`mb-5 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-3xs backdrop-blur-sm transition-all duration-250 cursor-pointer ${
-                    theme.isDark 
-                      ? "bg-slate-950/60 border-white/[0.08] text-slate-300 hover:text-white hover:bg-slate-900/60" 
-                      : "bg-white/80 border-black/[0.08] text-black hover:bg-slate-50 font-bold"
-                  }`}
+                  className="mb-5 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/90 bg-white/90 text-slate-700 hover:text-slate-900 hover:bg-white text-xs font-bold shadow-3xs backdrop-blur-sm transition-all duration-250 cursor-pointer"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <ArrowLeft className="w-3.5 h-3.5 text-indigo-500" />
                   <span>{lang === "bn" ? "ড্যাশবোর্ড-এ ফিরুন" : "Back to Dashboard"}</span>
                 </motion.button>
               )}
@@ -1351,7 +1383,7 @@ export default function App() {
       {/* Mobile Sticky Bottom Bar Navigation */}
       {profile && (
         <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 pb-[env(safe-area-inset-bottom,0px)] flex justify-center pointer-events-none">
-          <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-[1.75rem] shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-2xl pointer-events-auto bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-around items-center w-full max-w-lg mx-auto h-16 px-2 rounded-[1.75rem] shadow-[0_12px_40px_rgba(99,102,241,0.12)] backdrop-blur-2xl pointer-events-auto bg-white/95 border border-indigo-100">
           {[
             { id: "dashboard", labelEn: "Dashboard", labelBn: "ড্যাশবোর্ড", icon: GraduationCap },
             { id: "notes", labelEn: "Notes", labelBn: "নোটস", icon: BookOpen },
@@ -1371,19 +1403,19 @@ export default function App() {
                 }}
                 className={`relative flex flex-col items-center justify-center flex-1 py-1.5 h-full transition-all cursor-pointer ${
                   isActive
-                    ? `${item.id === "admin" ? "text-amber-500 font-black" : `${theme.primaryText} font-black`}`
-                    : "text-slate-400 dark:text-slate-500 hover:text-slate-600 font-semibold"
+                    ? `${item.id === "admin" ? "text-amber-600 font-black" : `${theme.primaryText} font-black`}`
+                    : "text-slate-500 hover:text-slate-700 font-semibold"
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="mobile-dock-pill"
-                    className="absolute inset-x-1 inset-y-1.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 -z-10"
+                    className="absolute inset-x-1 inset-y-1.5 rounded-2xl bg-indigo-500/10 -z-10"
                     transition={{ type: "spring", stiffness: 450, damping: 30 }}
                   />
                 )}
                 <IconComp className={`h-5 w-5 mb-0.5 transition-transform ${isActive ? "scale-110" : ""}`} />
-                <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full">
+                <span className="text-[9px] sm:text-[10px] tracking-tight truncate max-w-full font-bold">
                   {lang === "bn" ? item.labelBn : item.labelEn}
                 </span>
               </button>
@@ -1409,14 +1441,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Full-screen sleek updating overlay */}
-      <AppUpdateOverlay
-        isUpdating={isUpdatingApp}
-        targetVersion={serverVersionInfo?.latestVersion}
-        progress={updateProgress}
-        statusStep={updateStatusStep}
-        lang={lang}
-      />
 
       {/* Persistent Global Server Wake Loading Overlay */}
       <ServerWakeOverlay lang={lang} />
@@ -1430,11 +1454,11 @@ export default function App() {
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className="fixed top-6 left-1/2 -translate-x-1/2 z-[999] w-full max-w-sm px-4"
           >
-            <div className="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl border border-teal-500/30 text-white rounded-2xl p-4 shadow-2xl flex items-start gap-3.5 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white rounded-2xl p-4 shadow-2xl border border-emerald-300/40 flex items-start gap-3.5 relative overflow-hidden backdrop-blur-xl">
               {/* Highlight background glow */}
-              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-teal-500/10 rounded-full blur-2xl"></div>
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
               
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-400 border border-teal-500/20 shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/30 shrink-0">
                 <Sparkles className="h-5 w-5 animate-pulse" />
               </div>
               <div className="space-y-1 pr-4 min-w-0 flex-1">
@@ -1481,5 +1505,6 @@ export default function App() {
     </motion.div>
     )}
   </AnimatePresence>
+  </>
   );
 }

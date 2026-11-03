@@ -216,7 +216,7 @@ export default function CommunityForum({ theme, lang, profile, onBack }: Communi
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className={`border-t ${theme.borderCard} bg-slate-50/50 dark:bg-slate-900/30 overflow-hidden`}
+                      className={`border-t ${theme.borderCard} bg-gradient-to-br from-indigo-50/40 via-purple-50/25 to-pink-50/25 overflow-hidden`}
                     >
                       <div className="p-5 space-y-6">
                         {/* Full Content */}
@@ -243,18 +243,18 @@ export default function CommunityForum({ theme, lang, profile, onBack }: Communi
                         </div>
 
                         {/* Add Reply */}
-                        <div className="flex items-end gap-2 mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+                        <div className="flex items-end gap-2 mt-4 pt-4 border-t border-slate-200/50">
                           <textarea
                             value={replyContent}
                             onChange={(e) => setReplyContent(e.target.value)}
                             placeholder={lang === "bn" ? "আপনার উত্তর লিখুন..." : "Write a reply..."}
-                            className={`flex-1 min-h-[44px] max-h-32 p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none font-medium`}
+                            className={`flex-1 min-h-[44px] max-h-32 p-3 rounded-xl border ${theme.borderCard} bg-white ${theme.textMain} text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none font-medium`}
                             rows={1}
                           />
                           <button
                             onClick={() => handleReply(post.id)}
                             disabled={!replyContent.trim()}
-                            className={`p-3 rounded-xl shadow-sm transition-all text-white ${replyContent.trim() ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer active:scale-95' : 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'}`}
+                            className={`p-3 rounded-xl shadow-sm transition-all text-white ${replyContent.trim() ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer active:scale-95' : 'bg-slate-300 cursor-not-allowed'}`}
                           >
                             <Send className="h-4 w-4" />
                           </button>
@@ -285,7 +285,7 @@ export default function CommunityForum({ theme, lang, profile, onBack }: Communi
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCreating(false)}
-              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer"
+              className="absolute inset-0 bg-indigo-950/25 backdrop-blur-md cursor-pointer"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -308,7 +308,7 @@ export default function CommunityForum({ theme, lang, profile, onBack }: Communi
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder={lang === "bn" ? "যেমন: SSC CGL এর জন্য কোন বই ভালো?" : "e.g., Best books for SSC CGL?"}
-                    className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                    className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                   />
                 </div>
                 <div>
@@ -320,7 +320,7 @@ export default function CommunityForum({ theme, lang, profile, onBack }: Communi
                     onChange={(e) => setNewContent(e.target.value)}
                     placeholder={lang === "bn" ? "আপনার প্রশ্ন বা আলোচনার বিষয় বিস্তারিত লিখুন..." : "Write your question or topic in detail..."}
                     rows={5}
-                    className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-950 ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none`}
+                    className={`w-full p-3 rounded-xl border ${theme.borderCard} bg-white ${theme.textMain} font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none`}
                   />
                 </div>
               </div>

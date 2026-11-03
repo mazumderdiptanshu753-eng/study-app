@@ -109,37 +109,37 @@ export default function GeneralKnowledge({ theme, lang }: GeneralKnowledgeProps)
           const isCorrect = selectedAnswers[qIndex] === q.correctOptionIndex;
 
           return (
-            <div key={qIndex} className={`p-5 rounded-xl border ${theme.borderCard} bg-white dark:bg-slate-900 shadow-3xs`}>
-              <p className={`font-semibold ${theme.textHeading} dark:text-white text-xs sm:text-sm mb-4 leading-relaxed`}>
-                <span className="text-amber-500 mr-1.5">{qIndex + 1}.</span> {q.question}
+            <div key={qIndex} className={`p-5 rounded-2xl border ${theme.borderCard} bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 shadow-xs`}>
+              <p className={`font-semibold ${theme.textHeading} text-xs sm:text-sm mb-4 leading-relaxed`}>
+                <span className="text-amber-500 mr-1.5 font-black">{qIndex + 1}.</span> {q.question}
               </p>
               
               <div className="space-y-2.5">
                 {q.options.map((opt, optIndex) => {
                   const isSelected = selectedAnswers[qIndex] === optIndex;
-                  let buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} text-xs font-semibold transition-all cursor-pointer bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-850 ${theme.textHeading} dark:text-white`;
+                  let buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} text-xs font-semibold transition-all cursor-pointer bg-white hover:bg-indigo-50/60 ${theme.textHeading} shadow-2xs`;
                   
                   if (showResults) {
                     if (optIndex === q.correctOptionIndex) {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-green-500 bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-300 font-semibold`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-green-500 bg-green-50 text-green-950 font-bold shadow-xs`;
                     } else if (selectedAnswers[qIndex] === optIndex) {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-900 dark:text-rose-300 font-semibold`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-rose-500 bg-rose-50 text-rose-950 font-bold shadow-xs`;
                     } else {
-                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} opacity-60 bg-white dark:bg-slate-900 ${theme.textMuted} dark:text-slate-400 font-medium`;
+                      buttonClass = `w-full text-left px-4 py-3 rounded-xl border ${theme.borderCard} opacity-60 bg-white ${theme.textMuted} font-medium`;
                     }
                   } else if (isSelected) {
-                    buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-100 font-bold shadow-3xs`;
+                    buttonClass = `w-full text-left px-4 py-3 rounded-xl border border-emerald-500 bg-emerald-50 text-emerald-950 font-black shadow-xs ring-2 ring-emerald-500/30`;
                   }
 
                   // Circular option indicators (A, B, C, D)
-                  let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+                  let badgeStyle = "bg-indigo-50 text-indigo-700 border border-indigo-200/70";
                   if (showResults) {
                     if (optIndex === q.correctOptionIndex) badgeStyle = "bg-green-600 text-white";
                     else if (isSelected) badgeStyle = "bg-red-600 text-white";
                   } else {
                     badgeStyle = isSelected 
-                      ? "bg-emerald-600 text-white" 
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/50 dark:border-slate-750";
+                      ? "bg-emerald-600 text-white shadow-xs" 
+                      : "bg-indigo-50 text-indigo-700 border border-indigo-200/70";
                   }
 
                   return (
