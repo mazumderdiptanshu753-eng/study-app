@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { Language } from "../lib/translations";
+import AppLogo from "./AppLogo";
 
 interface AppUpdateOverlayProps {
   isUpdating: boolean;
@@ -129,8 +130,8 @@ export default function AppUpdateOverlay({
             />
 
             {/* Glowing Logo Container */}
-            <div className="relative h-28 w-28 rounded-3xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-2xl shadow-indigo-500/35 border-2 border-white/80">
-              <GraduationCap className="h-14 w-14 text-white drop-shadow-md animate-pulse" />
+            <div className="relative p-1.5 rounded-3xl bg-gradient-to-tr from-indigo-500 via-sky-400 to-emerald-400 shadow-2xl shadow-indigo-500/30">
+              <AppLogo size="xl" rounded="2xl" className="shadow-lg border-2 border-white" />
               
               {/* Corner Badge */}
               <div className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border-2 border-white font-bold">

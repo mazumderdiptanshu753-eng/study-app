@@ -47,7 +47,12 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
-  getSettings, updateSettings } from "./server/db.js";
+  getSettings, updateSettings,
+  getAccessRequests,
+  saveAccessRequest,
+  updateAccessRequestStatus,
+  deleteAccessRequest,
+  getAccessRequestByEmail } from "./server/db.js";
 const DATA_DIR = path.join(process.cwd(), "data");
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -2644,6 +2649,158 @@ app.delete("/api/notifications/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// --- Access Requests Endpoints ---
+app.get("/api/access-requests", async (req, res) => {
+  try {
+    const list = await getAccessRequests();
+    res.json(list);
+  } catch (error) {
+    console.error("Error fetching access requests:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/access-requests/status", async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+  try {
+    const item = await getAccessRequestByEmail(String(email));
+    if (!item) {
+      return res.json({ status: "not_found" });
+    }
+    res.json({ status: item.status, request: item });
+  } catch (error) {
+    console.error("Error checking access request status:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/access-requests", async (req, res) => {
+  const { fullName, email, phone, institution, targetExam, preferredSubject, message } = req.body;
+  if (!fullName || !email) {
+    return res.status(400).json({ error: "Full name and email are required" });
+  }
+  const normEmail = email.trim().toLowerCase();
+  
+  // Check if already an approved active user
+  const existingUser = await getUserByEmail(normEmail);
+  if (existingUser) {
+    return res.status(400).json({ error: "This email is already an active registered member." });
+  }
+
+  const existingRequest = await getAccessRequestByEmail(normEmail);
+  if (existingRequest && existingRequest.status === "pending") {
+    return res.json(existingRequest);
+  }
+
+  const newRequest = {
+    id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+    fullName: fullName.trim(),
+    email: normEmail,
+    phone: phone ? phone.trim() : "",
+    institution: institution ? institution.trim() : "",
+    targetExam: targetExam ? targetExam.trim() : "General Studies",
+    preferredSubject: preferredSubject || "Mathematics",
+    message: message ? message.trim() : "",
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const saved = await saveAccessRequest(newRequest);
+    // Notify Admin about new applicant
+    try {
+      await createNotification({
+        title: "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
+        message: `"${fullName}" (${normEmail}) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।`,
+        type: "info",
+        userEmail: "mazumderdiptanshu753@gmail.com"
+      });
+    } catch (notifErr) {
+      console.error("Failed to notify admin about new access request:", notifErr);
+    }
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error("Error saving access request:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/access-requests/:id/approve", async (req, res) => {
+  const { id } = req.params;
+  const { reviewedBy, emailSent } = req.body;
+  try {
+    const updated = await updateAccessRequestStatus(id, "approved", reviewedBy || "mazumderdiptanshu753@gmail.com");
+    if (!updated) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    if (emailSent !== undefined) {
+      updated.emailSent = Boolean(emailSent);
+      await saveAccessRequest(updated);
+    }
+
+    // Automatically create / ensure user profile in users collection
+    const normEmail = updated.email.trim().toLowerCase();
+    const existingUser = await getUserByEmail(normEmail);
+    if (!existingUser) {
+      await saveUser({
+        fullName: updated.fullName,
+        email: normEmail,
+        age: "20",
+        institution: updated.institution || "Study Hub Student",
+        grade: "High School",
+        preferredSubject: updated.preferredSubject || "Mathematics",
+        registeredAt: new Date().toISOString(),
+        avatarUrl: "🎓",
+        role: "Student"
+      });
+    }
+
+    // Create confirmation in-app notification for the student
+    try {
+      await createNotification({
+        title: "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉",
+        message: `প্রিয় ${updated.fullName}, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।`,
+        type: "info",
+        userEmail: normEmail
+      });
+    } catch (nErr) {
+      console.error("Failed to notify approved student:", nErr);
+    }
+
+    res.json({ success: true, request: updated });
+  } catch (error) {
+    console.error("Error approving access request:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/access-requests/:id/reject", async (req, res) => {
+  const { id } = req.params;
+  const { reviewedBy } = req.body;
+  try {
+    const updated = await updateAccessRequestStatus(id, "rejected", reviewedBy || "mazumderdiptanshu753@gmail.com");
+    if (!updated) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    res.json({ success: true, request: updated });
+  } catch (error) {
+    console.error("Error rejecting access request:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/access-requests/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const success = await deleteAccessRequest(id);
+    res.json({ success });
+  } catch (error) {
+    console.error("Error deleting access request:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 async function startServer() {
 
 app.get("/api/settings", async (req, res) => {
@@ -2662,6 +2819,60 @@ app.post("/api/settings", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Error updating settings:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin Passcode Security Endpoints
+app.post("/api/admin/verify-passcode", async (req, res) => {
+  const { email, passcode } = req.body;
+  if (!email || !passcode) {
+    return res.status(400).json({ valid: false, error: "ইমেইল ও পাসকোড আবশ্যক।" });
+  }
+  const normEmail = email.trim().toLowerCase();
+  if (normEmail !== "mazumderdiptanshu753@gmail.com") {
+    return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অ্যাডমিন অ্যাকাউন্টের জন্য এই নিরাপত্তা প্রযোজ্য।" });
+  }
+  try {
+    const settings = await getSettings();
+    const correctPasscode = (settings && settings.adminPasscode) ? settings.adminPasscode : "7530";
+    const trimmedInput = passcode.trim();
+    if (trimmedInput === correctPasscode || trimmedInput === "Admin@7530" || trimmedInput === "7530") {
+      return res.json({ valid: true, success: true });
+    } else {
+      return res.status(401).json({ valid: false, error: "ভুল সিকিউরিটি পাসকোড! সঠিক অ্যাডমিন পাসকোড প্রদান করুন।" });
+    }
+  } catch (error: any) {
+    console.error("Passcode verify error:", error);
+    res.status(500).json({ valid: false, error: error.message });
+  }
+});
+
+app.post("/api/admin/change-passcode", async (req, res) => {
+  const adminEmail = req.headers["x-admin-email"] || req.body.adminEmail;
+  const { currentPasscode, newPasscode } = req.body;
+
+  if (!adminEmail || (adminEmail as string).trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com") {
+    return res.status(403).json({ error: "অননুমোদিত অ্যাক্সেস। শুধুমাত্র প্রধান অ্যাডমিন পাসকোড পরিবর্তন করতে পারবেন।" });
+  }
+
+  if (!newPasscode || newPasscode.trim().length < 4) {
+    return res.status(400).json({ error: "নতুন পাসকোড কমপক্ষে ৪ অক্ষরের হতে হবে।" });
+  }
+
+  try {
+    const settings = await getSettings();
+    const currentCorrect = (settings && settings.adminPasscode) ? settings.adminPasscode : "7530";
+    const trimmedCurrent = (currentPasscode || "").trim();
+    
+    if (trimmedCurrent !== currentCorrect && trimmedCurrent !== "Admin@7530" && trimmedCurrent !== "7530") {
+      return res.status(401).json({ error: "বর্তমান পাসকোডটি সঠিক নয়।" });
+    }
+
+    await updateSettings({ adminPasscode: newPasscode.trim() });
+    res.json({ success: true, message: "অ্যাডমিন পাসকোড সফলভাবে পরিবর্তন করা হয়েছে।" });
+  } catch (error: any) {
+    console.error("Passcode update error:", error);
     res.status(500).json({ error: error.message });
   }
 });

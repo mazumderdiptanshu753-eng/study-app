@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, Star, Ban, ArrowUpCircle, RefreshCcw, RefreshCw, Sparkles, CheckCircle, Rocket, Zap } from "lucide-react";
-import { StudentProfile } from "../types";
+import { motion, AnimatePresence } from "motion/react";
+import { 
+  Users, Search, Shield, ShieldCheck, UserCheck, UserMinus, Calendar, GraduationCap, 
+  Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, 
+  Star, Ban, ArrowUpCircle, RefreshCcw, RefreshCw, Sparkles, CheckCircle, Rocket, Zap,
+  UserPlus, CheckCircle2, Clock, XCircle, Send, AlertTriangle, ExternalLink, Filter, Phone, Building, Check,
+  Lock, Key, Eye, EyeOff
+} from "lucide-react";
+import { StudentProfile, AccessRequest } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
+import { 
+  signInWithGoogleForGmail, 
+  getGmailAccessToken, 
+  sendStudentApprovalGmail, 
+  workspaceLogout 
+} from "../lib/googleWorkspace";
 
 interface AdminPanelProps {
   lang: Language;
@@ -26,10 +38,87 @@ interface ActivityLog {
 
 export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSuspendUser, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "logs" | "settings" | "analytics" | "moderation" | "updates">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "requests" | "logs" | "settings" | "analytics" | "moderation" | "updates">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  // Access Requests & Gmail states
+  const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requestFilter, setRequestFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [requestSearch, setRequestSearch] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvalSuccessMsg, setApprovalSuccessMsg] = useState<string | null>(null);
+  const [approvalErrorMsg, setApprovalErrorMsg] = useState<string | null>(null);
+  const [isConnectingGmail, setIsConnectingGmail] = useState(false);
+  const [gmailTokenAvailable, setGmailTokenAvailable] = useState<boolean>(() => !!getGmailAccessToken());
+  const [adminGmailUser, setAdminGmailUser] = useState<string | null>(null);
+
+  // Admin Passcode change states
+  const [currentPasscode, setCurrentPasscode] = useState("");
+  const [newPasscode, setNewPasscode] = useState("");
+  const [confirmPasscode, setConfirmPasscode] = useState("");
+  const [isChangingPasscode, setIsChangingPasscode] = useState(false);
+  const [passcodeMsg, setPasscodeMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showSettingsPasscodes, setShowSettingsPasscodes] = useState(false);
+
+  const handleChangePasscode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasscodeMsg(null);
+
+    if (!currentPasscode.trim()) {
+      setPasscodeMsg({ type: "error", text: isBengali ? "বর্তমান পাসকোড লিখুন।" : "Enter current passcode." });
+      return;
+    }
+    if (!newPasscode.trim() || newPasscode.trim().length < 4) {
+      setPasscodeMsg({ type: "error", text: isBengali ? "নতুন পাসকোড কমপক্ষে ৪ অক্ষরের হতে হবে।" : "New passcode must be at least 4 characters." });
+      return;
+    }
+    if (newPasscode.trim() !== confirmPasscode.trim()) {
+      setPasscodeMsg({ type: "error", text: isBengali ? "নতুন পাসকোড দুটি মেলেনি!" : "New passcodes do not match!" });
+      return;
+    }
+
+    setIsChangingPasscode(true);
+    try {
+      const res = await fetch("/api/admin/change-passcode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          currentPasscode: currentPasscode.trim(),
+          newPasscode: newPasscode.trim()
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setPasscodeMsg({
+          type: "success",
+          text: isBengali ? "✅ অ্যাডমিন সিকিউরিটি পাসকোড সফলভাবে পরিবর্তন করা হয়েছে!" : "Admin passcode successfully updated!"
+        });
+        setCurrentPasscode("");
+        setNewPasscode("");
+        setConfirmPasscode("");
+      } else {
+        setPasscodeMsg({
+          type: "error",
+          text: data?.error || (isBengali ? "পাসকোড পরিবর্তন করতে ব্যর্থ হয়েছে।" : "Failed to update passcode.")
+        });
+      }
+    } catch (err) {
+      setPasscodeMsg({
+        type: "error",
+        text: isBengali ? "সার্ভার সংযোগ সমস্যা।" : "Server connection error."
+      });
+    } finally {
+      setIsChangingPasscode(false);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/settings")
@@ -129,6 +218,156 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
     }
   };
 
+  const fetchRequests = async (isPolling = false) => {
+    if (!isPolling) setLoadingRequests(true);
+    try {
+      const res = await fetch("/api/access-requests", {
+        headers: { "x-admin-email": currentUserEmail }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch access requests:", e);
+    } finally {
+      if (!isPolling) setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchRequests(true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleConnectGmail = async () => {
+    setIsConnectingGmail(true);
+    setApprovalErrorMsg(null);
+    try {
+      const { user } = await signInWithGoogleForGmail();
+      setGmailTokenAvailable(true);
+      setAdminGmailUser(user.email || currentUserEmail);
+      setApprovalSuccessMsg(
+        isBengali 
+          ? `জিমেইল সফলভাবে সংযুক্ত হয়েছে (${user.email || currentUserEmail})! এখন আপনি আবেদন অনুমোদন করতে পারবেন এবং সরাসরি মেইল পাঠাতে পারবেন।` 
+          : `Gmail successfully connected (${user.email || currentUserEmail})!`
+      );
+    } catch (err: any) {
+      setApprovalErrorMsg(
+        isBengali 
+          ? `গুগল জিমেইল কানেক্ট করতে সমস্যা হয়েছে: ${err.message || "পপ-আপ বন্ধ বা বাতিল করা হয়েছে"}`
+          : `Failed to connect Gmail: ${err.message}`
+      );
+    } finally {
+      setIsConnectingGmail(false);
+    }
+  };
+
+  const handleApproveAndSend = async (req: AccessRequest) => {
+    setIsApproving(true);
+    setApprovalErrorMsg(null);
+    setApprovalSuccessMsg(null);
+
+    const token = getGmailAccessToken();
+    let emailSentSuccessfully = false;
+    let emailErrorMessage = "";
+
+    if (token) {
+      try {
+        await sendStudentApprovalGmail(
+          token,
+          currentUserEmail || "mazumderdiptanshu753@gmail.com",
+          req.email,
+          req.fullName,
+          req.targetExam
+        );
+        emailSentSuccessfully = true;
+      } catch (gErr: any) {
+        console.error("Gmail sending error:", gErr);
+        emailErrorMessage = gErr.message || "জিমেইল এপিআই ত্রুটি";
+      }
+    }
+
+    try {
+      const res = await fetch(`/api/access-requests/${req.id}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          reviewedBy: currentUserEmail,
+          emailSent: emailSentSuccessfully,
+          emailError: emailSentSuccessfully ? undefined : emailErrorMessage
+        })
+      });
+
+      if (res.ok) {
+        if (emailSentSuccessfully) {
+          setApprovalSuccessMsg(
+            isBengali
+              ? `🎉 চমৎকার! ${req.fullName}-এর আবেদন অনুমোদিত হয়েছে এবং ${currentUserEmail} থেকে সরাসরি অফিশিয়াল স্বাগতম ইমেইল পাঠানো হয়েছে!`
+              : `Success! ${req.fullName}'s request approved and welcome email sent directly via Gmail!`
+          );
+        } else {
+          setApprovalSuccessMsg(
+            isBengali
+              ? `✅ ${req.fullName}-এর অ্যাকাউন্ট অনুমোদিত হয়েছে! ${token ? `(ইমেইল বার্তা ত্রুটি: ${emailErrorMessage})` : "(জিমেইল সংযুক্ত না থাকায় মেইল যায়নি, তবে অ্যাকাউন্ট সক্রিয় হয়েছে)"}`
+              : `User approved! ${emailErrorMessage ? `Email failed: ${emailErrorMessage}` : "No Gmail session."}`
+          );
+        }
+        setSelectedRequest(null);
+        fetchRequests(true);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setApprovalErrorMsg(errData?.error || "অনুমোদন সম্পন্ন করা যায়নি।");
+      }
+    } catch (err: any) {
+      setApprovalErrorMsg("সার্ভার সংযোগ সমস্যা।");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleRejectRequest = async (id: string, reason?: string) => {
+    try {
+      const res = await fetch(`/api/access-requests/${id}/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          reviewedBy: currentUserEmail,
+          adminNotes: reason || "আবেদন তথ্য অসম্পূর্ণ ছিল"
+        })
+      });
+      if (res.ok) {
+        fetchRequests(true);
+      }
+    } catch (err) {
+      console.error("Reject error:", err);
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    if (!confirm(isBengali ? "আপনি কি এই আবেদনটি মুছে ফেলতে চান?" : "Delete this access request?")) return;
+    try {
+      const res = await fetch(`/api/access-requests/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-email": currentUserEmail }
+      });
+      if (res.ok) {
+        fetchRequests(true);
+      }
+    } catch (err) {
+      console.error("Delete request error:", err);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "logs") {
       fetchLogs();
@@ -170,6 +409,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
   const totalRegistered = users.length;
   const adminsCount = users.filter(u => u?.role === "Admin").length;
   const studentsCount = users.filter(u => u?.role === "Student").length;
+  const pendingCount = requests.filter(r => r.status === "pending").length;
 
   const formatDate = (isoString: string) => {
     try {
@@ -212,16 +452,20 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       </motion.div>
 
       {/* Stats Summary Bento Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         
         {[
           { icon: Users, label: t.totalUsers, count: totalRegistered, color: "text-blue-600" },
           { icon: ShieldCheck, label: t.adminCount, count: adminsCount, color: "text-amber-600" },
           { icon: GraduationCap, label: t.studentCount, count: studentsCount, color: "text-emerald-600" },
+          { icon: Clock, label: isBengali ? "অপেক্ষমান আবেদন" : "Pending Requests", count: pendingCount, color: "text-indigo-600", badge: pendingCount > 0 },
         ].map((stat, i) => (
           <div key={i} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} p-3 flex items-center gap-3 shadow-sm`}>
-            <div className={`h-10 w-10 rounded-xl ${theme.bgPage} flex items-center justify-center ${stat.color}`}>
+            <div className={`h-10 w-10 rounded-xl ${theme.bgPage} flex items-center justify-center ${stat.color} relative`}>
               <stat.icon className="h-5 w-5" />
+              {stat.badge && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-rose-500 rounded-full animate-ping"></span>
+              )}
             </div>
             <div>
               <span className={`text-[9px] uppercase font-bold ${theme.textMuted} tracking-wider block`}>{stat.label}</span>
@@ -242,6 +486,20 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         >
           <Users className="h-4 w-4" />
           {isBengali ? "ব্যবহারকারী" : "Users"}
+        </button>
+        <button
+          onClick={() => setActiveTab("requests")}
+          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all relative ${
+            activeTab === "requests" ? `${theme.bgCard} ${theme.textHeading} shadow-sm border border-indigo-500/20 text-indigo-600` : `${theme.textMuted} hover:${theme.textHeading}`
+          }`}
+        >
+          <UserPlus className="h-4 w-4 text-indigo-500" />
+          <span>{isBengali ? "আবেদন তালিকা" : "Join Requests"}</span>
+          {pendingCount > 0 && (
+            <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.2 text-[9px] font-black animate-pulse">
+              {pendingCount}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setActiveTab("logs")}
@@ -532,6 +790,483 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       </motion.div>
       )}
 
+      {/* Join Requests Tab */}
+      {activeTab === "requests" && (
+        <motion.div variants={itemVariants} className="space-y-4">
+          
+          {/* Gmail API Integration Status Card */}
+          <div className={`p-4 sm:p-5 rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-sm space-y-3`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                  gmailTokenAvailable 
+                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
+                    : "bg-amber-500/10 text-amber-600 border border-amber-500/20 animate-pulse"
+                }`}>
+                  <Mail className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className={`text-sm sm:text-base font-black ${theme.textHeading}`}>
+                      {isBengali ? "গুগল জিমেইল ইন্টিগ্রেশন (Google Workspace)" : "Google Workspace Gmail Integration"}
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      gmailTokenAvailable 
+                        ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200" 
+                        : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200"
+                    }`}>
+                      {gmailTokenAvailable 
+                        ? (isBengali ? "সক্রিয় ও প্রস্তুত" : "Connected & Ready")
+                        : (isBengali ? "সংযোগ প্রয়োজন" : "Action Needed")}
+                    </span>
+                  </div>
+                  <p className={`text-xs ${theme.textMuted} font-semibold mt-0.5`}>
+                    {isBengali 
+                      ? "অ্যাডমিন ইমেইল (mazumderdiptanshu753@gmail.com) থেকে আবেদন অনুমোদন হলেই স্বয়ংক্রিয় অফিশিয়াল ইমেইল যাবে।"
+                      : "Official approval emails sent directly from mazumderdiptanshu753@gmail.com via Gmail API."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {gmailTokenAvailable ? (
+                  <button
+                    type="button"
+                    onClick={handleConnectGmail}
+                    disabled={isConnectingGmail}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isConnectingGmail ? "animate-spin" : ""}`} />
+                    <span>{isBengali ? "টোকেন রিফ্রেশ করুন" : "Refresh Token"}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConnectGmail}
+                    disabled={isConnectingGmail}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-500 via-rose-500 to-amber-500 hover:from-red-600 hover:to-rose-600 text-white text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-md shadow-rose-500/20"
+                  >
+                    {isConnectingGmail ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>{isBengali ? "সংযুক্ত হচ্ছে..." : "Connecting..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        <span>{isBengali ? "Google / Gmail সংযুক্ত করুন" : "Connect Admin Gmail"}</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* In-memory token notice */}
+            <div className="bg-slate-500/5 rounded-xl p-2.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
+                {isBengali 
+                  ? "নিরাপদ ক্লায়েন্ট-সাইড টোকেন: OAuth টোকেন মেমরিতে সংরক্ষিত থাকে এবং অনুমোদন পাঠানোর পর স্বয়ংক্রিয়ভাবে ব্যবহৃত হয়।"
+                  : "Secure in-memory token: Gmail API tokens are held transiently in memory per Google security guidelines."}
+              </span>
+              <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
+                mazumderdiptanshu753@gmail.com
+              </span>
+            </div>
+          </div>
+
+          {/* Feedback messages */}
+          <AnimatePresence>
+            {approvalSuccessMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>{approvalSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setApprovalSuccessMsg(null)}
+                  className="text-emerald-700 hover:text-emerald-900 cursor-pointer text-xs font-black px-1.5"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            )}
+
+            {approvalErrorMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 text-xs font-bold flex items-center justify-between shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                  <span>{approvalErrorMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setApprovalErrorMsg(null)}
+                  className="text-rose-700 hover:text-rose-900 cursor-pointer text-xs font-black px-1.5"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Requests Content Table */}
+          <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden`}>
+            
+            {/* Filter and Search header */}
+            <div className={`p-4 border-b ${theme.borderCard} flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3`}>
+              
+              {/* Filter pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(["all", "pending", "approved", "rejected"] as const).map(filter => {
+                  const count = filter === "all" 
+                    ? requests.length 
+                    : requests.filter(r => r.status === filter).length;
+                  const labels = {
+                    all: isBengali ? "সব আবেদন" : "All",
+                    pending: isBengali ? "অপেক্ষমান" : "Pending",
+                    approved: isBengali ? "অনুমোদিত" : "Approved",
+                    rejected: isBengali ? "প্রত্যাখ্যাত" : "Rejected"
+                  };
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setRequestFilter(filter)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                        requestFilter === filter 
+                          ? "bg-indigo-600 text-white shadow-xs" 
+                          : `${theme.bgPage} ${theme.textMuted} hover:${theme.textHeading}`
+                      }`}
+                    >
+                      <span>{labels[filter]}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        requestFilter === filter 
+                          ? "bg-white/20 text-white" 
+                          : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search and Refresh */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                  <input
+                    type="text"
+                    value={requestSearch}
+                    onChange={(e) => setRequestSearch(e.target.value)}
+                    placeholder={isBengali ? "নাম, ইমেইল বা প্রতিষ্ঠান..." : "Search requests..."}
+                    className={`w-full ${theme.bgPage} pl-8.5 pr-3 py-1.5 rounded-xl border ${theme.borderCard} text-xs font-medium focus:outline-none focus:border-indigo-500 transition ${theme.textMain}`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchRequests()}
+                  disabled={loadingRequests}
+                  className={`p-2 rounded-xl border ${theme.borderCard} hover:${theme.bgPage} text-slate-600 dark:text-slate-400 cursor-pointer transition`}
+                  title={isBengali ? "তাজা করুন" : "Refresh"}
+                >
+                  <RefreshCw className={`h-4 w-4 ${loadingRequests ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* List Table */}
+            {(() => {
+              const filteredList = requests.filter(req => {
+                if (requestFilter !== "all" && req.status !== requestFilter) return false;
+                if (!requestSearch.trim()) return true;
+                const q = requestSearch.toLowerCase();
+                return (
+                  (req.fullName || "").toLowerCase().includes(q) ||
+                  (req.email || "").toLowerCase().includes(q) ||
+                  (req.institution || "").toLowerCase().includes(q) ||
+                  (req.targetExam || "").toLowerCase().includes(q)
+                );
+              });
+
+              if (filteredList.length === 0) {
+                return (
+                  <div className="p-12 text-center space-y-2">
+                    <UserPlus className="h-10 w-10 text-slate-300 dark:text-slate-700 mx-auto" />
+                    <p className={`text-xs ${theme.textMuted} font-bold`}>
+                      {isBengali ? "কোনো আবেদন পাওয়া যায়নি।" : "No access requests found matching your filter."}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredList.map(req => {
+                    const isPending = req.status === "pending";
+                    const isApproved = req.status === "approved";
+                    const isRejected = req.status === "rejected";
+
+                    return (
+                      <div 
+                        key={req.id} 
+                        className="p-4 sm:p-5 hover:bg-slate-500/5 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+                      >
+                        {/* Student Details */}
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`font-black text-sm ${theme.textHeading}`}>
+                              {req.fullName}
+                            </span>
+                            
+                            {/* Status badge */}
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                <Clock className="h-2.5 w-2.5" />
+                                <span>{isBengali ? "অপেক্ষমান" : "Pending"}</span>
+                              </span>
+                            )}
+                            {isApproved && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                <CheckCircle2 className="h-2.5 w-2.5" />
+                                <span>{isBengali ? "অনুমোদিত" : "Approved"}</span>
+                                {req.emailSent && <span className="opacity-80">✉️ মেইল প্রেরিত</span>}
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                                <XCircle className="h-2.5 w-2.5" />
+                                <span>{isBengali ? "প্রত্যাখ্যাত" : "Rejected"}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Email, Phone, Institution */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                            <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                              <Mail className="h-3 w-3" />
+                              <span className="break-all">{req.email}</span>
+                            </span>
+                            {req.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                <span>{req.phone}</span>
+                              </span>
+                            )}
+                            {req.institution && (
+                              <span className="flex items-center gap-1">
+                                <Building className="h-3 w-3" />
+                                <span>{req.institution}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Target Exam & Message */}
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px]">
+                            {req.targetExam && (
+                              <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-bold">
+                                🎯 {req.targetExam}
+                              </span>
+                            )}
+                            {req.preferredSubject && (
+                              <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md font-bold">
+                                📚 {req.preferredSubject}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-400">
+                              আবেদনের সময়: {formatDate(req.requestedAt)}
+                            </span>
+                          </div>
+
+                          {req.message && (
+                            <div className="bg-slate-500/5 rounded-lg p-2 text-xs text-slate-700 dark:text-slate-300 italic border-l-2 border-indigo-500 mt-1">
+                              "{req.message}"
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+                          {isPending && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRequest(req)}
+                                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 cursor-pointer transition"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                <span>{isBengali ? "অনুমোদন ও মেইল পাঠান" : "Approve & Send Mail"}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const reason = prompt(isBengali ? "বাতিল করার কারণ লিখুন (ঐচ্ছিক):" : "Reason for rejection (optional):");
+                                  if (reason !== null) handleRejectRequest(req.id, reason);
+                                }}
+                                className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold border border-rose-200 dark:border-rose-900/30 transition cursor-pointer"
+                              >
+                                {isBengali ? "বাতিল" : "Reject"}
+                              </button>
+                            </>
+                          )}
+
+                          {isApproved && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRequest(req)}
+                              className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                            >
+                              <Send className="h-3 w-3 text-indigo-600" />
+                              <span>{isBengali ? "পুনরায় মেইল পাঠান" : "Resend Email"}</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRequest(req.id)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition cursor-pointer"
+                            title={isBengali ? "মুছে ফেলুন" : "Delete"}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+          </div>
+
+          {/* Approval Confirmation Dialog per Workspace Skill rules */}
+          <AnimatePresence>
+            {selectedRequest && (
+              <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className={`max-w-lg w-full ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-2xl overflow-hidden p-5 sm:p-6 space-y-4`}
+                >
+                  <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className={`text-base font-black ${theme.textHeading}`}>
+                          {isBengali ? "শিক্ষার্থী অনুমোদন ও জিমেইল নিশ্চিতকরণ" : "Confirm Student Approval & Gmail Send"}
+                        </h3>
+                        <p className={`text-[11px] ${theme.textMuted} font-semibold`}>
+                          Google Workspace Gmail API
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRequest(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <XCircle className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Summary Details */}
+                  <div className="bg-slate-500/5 rounded-xl p-3.5 space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-slate-200/50 dark:border-slate-800/50">
+                      <span className="text-slate-500 font-bold">{isBengali ? "শিক্ষার্থীর নাম:" : "Student Name:"}</span>
+                      <span className={`font-black ${theme.textHeading}`}>{selectedRequest.fullName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-200/50 dark:border-slate-800/50">
+                      <span className="text-slate-500 font-bold">{isBengali ? "শিক্ষার্থীর ইমেইল (To):" : "Recipient Email:"}</span>
+                      <span className="font-black text-indigo-600 dark:text-indigo-400">{selectedRequest.email}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-200/50 dark:border-slate-800/50">
+                      <span className="text-slate-500 font-bold">{isBengali ? "প্রেরক (From Gmail):" : "Sender Email:"}</span>
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
+                        mazumderdiptanshu753@gmail.com
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-slate-500 font-bold">{isBengali ? "ইমেইল বিষয় (Subject):" : "Email Subject:"}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট সফলভাবে অনুমোদিত হয়েছে 🎉
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Gmail Connection warning if not connected */}
+                  {!gmailTokenAvailable && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs space-y-2">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>{isBengali ? "সরাসরি জিমেইল পাঠাতে আগে গুগল দিয়ে লগইন করুন" : "Connect Admin Gmail first to send official email"}</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleConnectGmail}
+                        disabled={isConnectingGmail}
+                        className="w-full py-2 bg-gradient-to-r from-red-500 via-rose-500 to-amber-500 text-white rounded-lg font-black text-xs cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{isBengali ? "এখনই Google / Gmail কানেক্ট করুন" : "Sign In with Google for Gmail"}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Modal action buttons */}
+                  <div className="pt-2 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRequest(null)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      {isBengali ? "বাতিল" : "Cancel"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveAndSend(selectedRequest)}
+                      disabled={isApproving}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isApproving ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>{isBengali ? "অনুমোদন ও মেইল পাঠানো হচ্ছে..." : "Sending Gmail & Approving..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>
+                            {gmailTokenAvailable 
+                              ? (isBengali ? "অনুমোদন করুন ও জিমেইল পাঠান 🚀" : "Confirm & Send Gmail 🚀")
+                              : (isBengali ? "শুধুমাত্র অ্যাকাউন্ট অনুমোদন করুন" : "Approve Account Without Mail")}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+        </motion.div>
+      )}
+
       {activeTab === "logs" && (
         <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-3xs overflow-hidden`}>
           {loadingLogs ? (
@@ -714,49 +1449,192 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       )}
 
       {activeTab === "settings" && (
-        <motion.div variants={itemVariants} className={`${theme.bgCard} rounded-xl border ${theme.borderCard} shadow-sm overflow-hidden p-4 sm:p-6`}>
-          <h2 className={`text-lg font-bold ${theme.textHeading} mb-4`}>
-            {isBengali ? "সিস্টেম কনফিগারেশন" : "System Configuration"}
-          </h2>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-500/5 rounded-xl gap-4">
-            <div>
-              <h3 className={`font-bold ${theme.textHeading}`}>
-                {isBengali ? "মেইনটেন্যান্স মোড" : "Maintenance Mode"}
-              </h3>
-              <p className={`text-xs ${theme.textMuted} mt-1`}>
-                {isBengali ? "অ্যাপে কোনো আপডেট চলার সময় ইউজারদের জন্য অ্যাপটি বন্ধ রাখুন।" : "Disable access for users during updates."}
+        <motion.div variants={itemVariants} className="space-y-4">
+          
+          {/* Maintenance Mode Card */}
+          <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden p-4 sm:p-6`}>
+            <h2 className={`text-lg font-bold ${theme.textHeading} mb-4`}>
+              {isBengali ? "সিস্টেম কনফিগারেশন" : "System Configuration"}
+            </h2>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-500/5 rounded-xl gap-4">
+              <div>
+                <h3 className={`font-bold ${theme.textHeading}`}>
+                  {isBengali ? "মেইনটেন্যান্স মোড" : "Maintenance Mode"}
+                </h3>
+                <p className={`text-xs ${theme.textMuted} mt-1`}>
+                  {isBengali ? "অ্যাপে কোনো আপডেট চলার সময় ইউজারদের জন্য অ্যাপটি বন্ধ রাখুন।" : "Disable access for users during updates."}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !maintenanceMode;
+                  fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ maintenanceMode: newValue })
+                  })
+                  .then(res => {
+                    if (res.ok) {
+                      setMaintenanceMode(newValue);
+                      alert(isBengali ? (newValue ? "মেইনটেন্যান্স মোড চালু করা হয়েছে।" : "মেইনটেন্যান্স মোড বন্ধ করা হয়েছে।") : (newValue ? "Maintenance Mode Enabled." : "Maintenance Mode Disabled."));
+                    } else {
+                      alert("Failed to update settings");
+                    }
+                  })
+                  .catch(e => {
+                    console.error(e);
+                    alert("Failed to update settings");
+                  });
+                }}
+                className={`w-full sm:w-auto px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                  maintenanceMode
+                    ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+                    : "bg-teal-500/10 text-teal-600 hover:bg-teal-500/20"
+                }`}
+              >
+                {maintenanceMode ? (isBengali ? "বন্ধ করুন" : "Disable") : (isBengali ? "চালু করুন" : "Enable")}
+              </button>
+            </div>
+          </div>
+
+          {/* Admin Security Passcode Card */}
+          <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden p-5 sm:p-6 space-y-4`}>
+            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className={`text-base font-black ${theme.textHeading}`}>
+                    {isBengali ? "অ্যাডমিন সিকিউরিটি পাসকোড সেটিংস" : "Admin Security Passcode Settings"}
+                  </h3>
+                  <p className={`text-xs ${theme.textMuted} font-medium`}>
+                    {isBengali 
+                      ? "অননুমোদিত প্রবেশ ঠেকাতে অ্যাডমিন লগইনের জন্য বিশেষ সিকিউরিটি পাসকোড নিয়ন্ত্রণ করুন।" 
+                      : "Protect admin access with a master security passcode."}
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                🔒 {isBengali ? "সুরক্ষা লক সক্রিয়" : "Security Active"}
+              </span>
+            </div>
+
+            {/* Informational callout */}
+            <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-300 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Key className="h-4 w-4 text-amber-600" />
+                <span>{isBengali ? "ডিফল্ট প্রাথমিক পাসকোড: 7530" : "Default Initial Passcode: 7530"}</span>
+              </p>
+              <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                {isBengali 
+                  ? "যে কেউ আপনার অ্যাডমিন ইমেইল লিখলেই লগইন করতে পারবে না; তাকে অবশ্যই এই পাসকোড দিতে হবে। আপনি নিচে থেকে নিজের ইচ্ছামতো নতুন পাসকোড সেট করতে পারেন।"
+                  : "Anyone entering the admin email cannot log in without this passcode. You can update it anytime below."}
               </p>
             </div>
-            <button
-              onClick={() => {
-                const newValue = !maintenanceMode;
-                fetch("/api/settings", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ maintenanceMode: newValue })
-                })
-                .then(res => {
-                  if (res.ok) {
-                    setMaintenanceMode(newValue);
-                    alert(isBengali ? (newValue ? "মেইনটেন্যান্স মোড চালু করা হয়েছে।" : "মেইনটেন্যান্স মোড বন্ধ করা হয়েছে।") : (newValue ? "Maintenance Mode Enabled." : "Maintenance Mode Disabled."));
-                  } else {
-                    alert("Failed to update settings");
-                  }
-                })
-                .catch(e => {
-                  console.error(e);
-                  alert("Failed to update settings");
-                });
-              }}
-              className={`w-full sm:w-auto px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                maintenanceMode
-                  ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
-                  : "bg-teal-500/10 text-teal-600 hover:bg-teal-500/20"
-              }`}
-            >
-              {maintenanceMode ? (isBengali ? "বন্ধ করুন" : "Disable") : (isBengali ? "চালু করুন" : "Enable")}
-            </button>
+
+            {/* Alert Message */}
+            <AnimatePresence>
+              {passcodeMsg && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-between ${
+                    passcodeMsg.type === "success" 
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300"
+                  }`}
+                >
+                  <span>{passcodeMsg.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPasscodeMsg(null)}
+                    className="p-1 text-xs hover:opacity-70 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Change Passcode Form */}
+            <form onSubmit={handleChangePasscode} className="space-y-3 pt-2 max-w-lg">
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold ${theme.textHeading} uppercase tracking-wider block`}>
+                  {isBengali ? "বর্তমান পাসকোড (Current Passcode)" : "Current Passcode"}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSettingsPasscodes ? "text" : "password"}
+                    required
+                    value={currentPasscode}
+                    onChange={(e) => setCurrentPasscode(e.target.value)}
+                    placeholder={isBengali ? "বর্তমান পাসকোড দিন (ডিফল্ট: 7530)" : "Enter current passcode"}
+                    className={`w-full ${theme.bgPage} px-3 pr-10 h-10 rounded-xl border ${theme.borderCard} text-xs font-bold ${theme.textMain} focus:outline-none focus:border-amber-500`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsPasscodes(!showSettingsPasscodes)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showSettingsPasscodes ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-bold ${theme.textHeading} uppercase tracking-wider block`}>
+                    {isBengali ? "নতুন পাসকোড" : "New Passcode"}
+                  </label>
+                  <input
+                    type={showSettingsPasscodes ? "text" : "password"}
+                    required
+                    value={newPasscode}
+                    onChange={(e) => setNewPasscode(e.target.value)}
+                    placeholder={isBengali ? "নতুন গোপন পাসকোড" : "New passcode (min 4 chars)"}
+                    className={`w-full ${theme.bgPage} px-3 h-10 rounded-xl border ${theme.borderCard} text-xs font-bold ${theme.textMain} focus:outline-none focus:border-amber-500`}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-bold ${theme.textHeading} uppercase tracking-wider block`}>
+                    {isBengali ? "পাসকোড নিশ্চিত করুন" : "Confirm Passcode"}
+                  </label>
+                  <input
+                    type={showSettingsPasscodes ? "text" : "password"}
+                    required
+                    value={confirmPasscode}
+                    onChange={(e) => setConfirmPasscode(e.target.value)}
+                    placeholder={isBengali ? "আবারও নতুন পাসকোড" : "Confirm new passcode"}
+                    className={`w-full ${theme.bgPage} px-3 h-10 rounded-xl border ${theme.borderCard} text-xs font-bold ${theme.textMain} focus:outline-none focus:border-amber-500`}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isChangingPasscode}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs shadow-md shadow-amber-600/20 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isChangingPasscode ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      <span>{isBengali ? "পরিবর্তন হচ্ছে..." : "Updating..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>{isBengali ? "সিকিউরিটি পাসকোড আপডেট করুন" : "Update Admin Passcode"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
+
         </motion.div>
       )}
 

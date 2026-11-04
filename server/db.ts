@@ -35,6 +35,7 @@ let localDB: any = {
   studyNotes: [],
   videoLectures: [],
   notifications: [],
+  accessRequests: [],
   settings: { maintenanceMode: false },
   systemSettings: {
     app_version: {
@@ -137,7 +138,8 @@ export async function syncToFirestore(): Promise<void> {
       { name: "aiPdfNotes", items: localDB.aiPdfNotes, docKey: "id" },
       { name: "studyNotes", items: localDB.studyNotes, docKey: "id" },
       { name: "videoLectures", items: localDB.videoLectures, docKey: "id" },
-      { name: "notifications", items: localDB.notifications, docKey: "id" }
+      { name: "notifications", items: localDB.notifications, docKey: "id" },
+      { name: "accessRequests", items: localDB.accessRequests, docKey: "id" }
     ];
 
     for (const col of collections) {
@@ -181,7 +183,8 @@ export async function syncFromFirestore(): Promise<void> {
       { name: "aiPdfNotes", key: "aiPdfNotes" },
       { name: "studyNotes", key: "studyNotes" },
       { name: "videoLectures", key: "videoLectures" },
-      { name: "notifications", key: "notifications" }
+      { name: "notifications", key: "notifications" },
+      { name: "accessRequests", key: "accessRequests" }
     ];
 
     let firestoreEmpty = true;
@@ -1661,18 +1664,28 @@ export async function deleteNotification(id: string): Promise<boolean> {
 
 
 export async function getSettings(): Promise<any> {
+  const defaultSettings = { maintenanceMode: false, adminPasscode: "7530" };
   if (pool) {
     try {
-      const res = await pool.query("SELECT value FROM system_settings WHERE key = 'maintenanceMode'");
+      const res = await pool.query("SELECT key, value FROM system_settings");
       if (res.rows.length > 0) {
-        return { maintenanceMode: res.rows[0].value === true || res.rows[0].value === 'true' };
+        const settingsObj: any = { ...defaultSettings };
+        for (const row of res.rows) {
+          try {
+            settingsObj[row.key] = typeof row.value === 'string' && (row.value.startsWith('{') || row.value.startsWith('"') || row.value === 'true' || row.value === 'false')
+              ? JSON.parse(row.value)
+              : row.value;
+          } catch {
+            settingsObj[row.key] = row.value;
+          }
+        }
+        return settingsObj;
       }
-      return { maintenanceMode: false };
     } catch (e) {
       console.error("Error fetching settings from PG", e);
     }
   }
-  return localDB.settings || { maintenanceMode: false };
+  return { ...defaultSettings, ...(localDB.settings || {}) };
 }
 
 export async function updateSettings(newSettings: any): Promise<void> {
@@ -1683,11 +1696,11 @@ export async function updateSettings(newSettings: any): Promise<void> {
 
   if (pool) {
     try {
-      if (newSettings.maintenanceMode !== undefined) {
-         await pool.query(
-           "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-           ["maintenanceMode", JSON.stringify(newSettings.maintenanceMode)]
-         );
+      for (const [k, v] of Object.entries(newSettings)) {
+        await pool.query(
+          "INSERT INTO system_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+          [k, JSON.stringify(v)]
+        );
       }
     } catch (e) {
       console.error("Error updating settings in PG", e);
@@ -1714,4 +1727,55 @@ export async function cleanDemoMessages() {
     } catch(e) {}
   }
   return localDB.chatMessages.length;
+}
+
+// --- Access Requests Queries ---
+export async function getAccessRequests(): Promise<any[]> {
+  const reqs = localDB.accessRequests || [];
+  return [...reqs].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+}
+
+export async function saveAccessRequest(req: any): Promise<any> {
+  if (!localDB.accessRequests) localDB.accessRequests = [];
+  const idx = localDB.accessRequests.findIndex((r: any) => r.id === req.id || (r.email && req.email && r.email.toLowerCase() === req.email.toLowerCase()));
+  if (idx > -1) {
+    localDB.accessRequests[idx] = { ...localDB.accessRequests[idx], ...req };
+  } else {
+    localDB.accessRequests.unshift(req);
+  }
+  saveLocalDB();
+
+  if (req.id) {
+    await writeToFirestore("accessRequests", req.id, req);
+  }
+  return req;
+}
+
+export async function updateAccessRequestStatus(id: string, status: "pending" | "approved" | "rejected", reviewedBy?: string): Promise<any | null> {
+  if (!localDB.accessRequests) localDB.accessRequests = [];
+  const req = localDB.accessRequests.find((r: any) => r.id === id);
+  if (req) {
+    req.status = status;
+    req.reviewedAt = new Date().toISOString();
+    if (reviewedBy) req.reviewedBy = reviewedBy;
+    saveLocalDB();
+    await writeToFirestore("accessRequests", id, req);
+    return req;
+  }
+  return null;
+}
+
+export async function deleteAccessRequest(id: string): Promise<boolean> {
+  const initialLen = (localDB.accessRequests || []).length;
+  localDB.accessRequests = (localDB.accessRequests || []).filter((r: any) => r.id !== id);
+  saveLocalDB();
+  await deleteFromFirestore("accessRequests", id);
+  return (localDB.accessRequests || []).length < initialLen;
+}
+
+export async function getAccessRequestByEmail(email: string): Promise<any | null> {
+  if (!email) return null;
+  const normEmail = email.trim().toLowerCase();
+  const reqs = localDB.accessRequests || [];
+  return reqs.find((r: any) => (r.email || "").trim().toLowerCase() === normEmail) || null;
 }

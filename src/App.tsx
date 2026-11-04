@@ -913,9 +913,9 @@ export default function App() {
               {/* Top Brand Area */}
               <div className={`flex items-center justify-between pb-5 mb-5 border-b ${theme.borderCard}`}>
                 <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center h-10 w-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-sm">
-                    <GraduationCap className="h-5 w-5 drop-shadow-xs" />
-                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400" />
+                  <div className="relative shrink-0">
+                    <AppLogo size="md" />
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                   </div>
                   <div className="leading-tight">
                     <div className="flex items-center gap-1.5">
@@ -1133,11 +1133,9 @@ export default function App() {
               <header className={`md:hidden flex items-center justify-between px-4 h-14 border-b ${theme.borderCard} bg-white/95 backdrop-blur-xl z-25 sticky top-0 shadow-xs`}>
                 <button 
                   onClick={() => setCurrentTab("dashboard")}
-                  className="flex items-center gap-2 text-left"
+                  className="flex items-center gap-2.5 text-left"
                 >
-                  <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xs">
-                    <GraduationCap className="h-4 w-4" />
-                  </div>
+                  <AppLogo size="sm" />
                   <div>
                     <span className="font-black text-xs block tracking-tight text-slate-900">
                       STUDY HUB

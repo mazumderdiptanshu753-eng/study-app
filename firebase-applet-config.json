@@ -1,12 +1,11 @@
 {
-  "projectId": "diesel-bison-wlkqp",
-  "appId": "1:1071779979064:web:0b14420eabbb922961abcd",
-  "apiKey": "AIzaSyDELo1hxSTkvTwkcisFn03ACyBsQte2knw",
-  "authDomain": "diesel-bison-wlkqp.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-studyhub-df1bb37c-ffbe-4971-861f-73c3fb6b0d0a",
-  "storageBucket": "diesel-bison-wlkqp.firebasestorage.app",
-  "messagingSenderId": "1071779979064",
+  "projectId": "gen-lang-client-0295422386",
+  "appId": "1:944939735670:web:284cc13c942ae574551d57",
+  "apiKey": "AIzaSyCmDjYWb3Mno40-QvIPezqQAaf-V1AS0_k",
+  "authDomain": "gen-lang-client-0295422386.firebaseapp.com",
+  "storageBucket": "gen-lang-client-0295422386.firebasestorage.app",
+  "messagingSenderId": "944939735670",
   "measurementId": "",
-  "oAuthClientId": "1071779979064-tv83dlvmnqvahpgmicg4ojph1r3sevo5.apps.googleusercontent.com",
+  "oAuthClientId": "944939735670-499o9purm8mv69itp9lirnkemv390mcs.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

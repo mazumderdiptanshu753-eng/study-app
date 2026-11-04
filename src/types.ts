@@ -142,4 +142,20 @@ export interface BoardPrepPaper {
   timestamp: string;
 }
 
+export interface AccessRequest {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  institution?: string;
+  targetExam?: string;
+  preferredSubject?: string;
+  message?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  emailSent?: boolean;
+}
+
 
