@@ -1,0 +1,73 @@
+{
+  "users": [
+    {
+      "institution": "fghf",
+      "age": "55",
+      "role": "Student",
+      "preferredSubject": "Mathematics",
+      "grade": "High School",
+      "registeredAt": "2026-11-01T13:52:33.940Z",
+      "fullName": "dui",
+      "avatarUrl": "🎓",
+      "email": "fffggg"
+    },
+    {
+      "age": "22",
+      "role": "Admin",
+      "institution": "dd",
+      "grade": "High School",
+      "registeredAt": "2026-10-31T11:03:26.683Z",
+      "preferredSubject": "Mathematics",
+      "avatarUrl": "👑",
+      "email": "mazumderdiptanshu753@gmail.com",
+      "fullName": "Diptanshu Mazumder"
+    }
+  ],
+  "chatMessages": [],
+  "activityLogs": [
+    {
+      "userEmail": "fffggg",
+      "userName": "dui",
+      "action": "Logout",
+      "timestamp": "2026-11-04T08:29:09.325Z",
+      "id": "log-1793780951650-fo2ab6shl"
+    }
+  ],
+  "forumPosts": [],
+  "liveClasses": [],
+  "govtJobNotes": [],
+  "aiPdfNotes": [],
+  "studyNotes": [],
+  "videoLectures": [],
+  "notifications": [
+    {
+      "isRead": false,
+      "userEmail": "fffggg",
+      "title": "স্টাডি হাবে স্বাগতম! 🎉",
+      "type": "info",
+      "timestamp": "2026-11-03T18:03:02.084Z",
+      "message": "প্রিয় শিক্ষার্থী, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!",
+      "id": "notif-1793728982084-5nooowxo9"
+    },
+    {
+      "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
+      "message": "\"Rahul Sen\" (rahulsen.student@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।",
+      "type": "info",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "notif-1793782443266-4b447oqoh",
+      "timestamp": "2026-11-04T08:54:03.266Z",
+      "isRead": false
+    }
+  ],
+  "accessRequests": [],
+  "settings": {
+    "maintenanceMode": false
+  },
+  "systemSettings": {
+    "app_version": {
+      "latestVersion": "2.6.6",
+      "changelogEn": "Initial Release of Study Hub Portal with dynamic interactive animations.",
+      "changelogBn": "ইন্টারেক্টিভ অ্যানিমেশন সহ স্টাডি হাব পোর্টালের প্রথম রিলিজ।"
+    }
+  }
+}

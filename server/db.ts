@@ -598,25 +598,67 @@ export async function migrateLocalDataToPostgres(): Promise<void> {
   }
 }
 
+// --- Permanent Admin Accounts ---
+export const PERMANENT_ADMINS = [
+  {
+    email: "studyhub2026admin@gmail.com",
+    fullName: "Study Hub Official Administrator",
+    grade: "Admin",
+    preferredSubject: "Management",
+    registeredAt: "2026-01-01T00:00:00.000Z",
+    avatarUrl: "👑",
+    role: "Admin",
+    isSuspended: false
+  },
+  {
+    email: "mazumderdiptanshu753@gmail.com",
+    fullName: "Diptanshu Mazumder",
+    grade: "Admin",
+    preferredSubject: "Computer Science",
+    registeredAt: "2026-01-01T00:00:00.000Z",
+    avatarUrl: "👑",
+    role: "Admin",
+    isSuspended: false
+  }
+];
+
 // --- Users Database Queries ---
 export async function getUsers(): Promise<any[]> {
+  let userList: any[] = [];
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM users');
       if (res.rows && res.rows.length > 0) {
+        userList = [...res.rows];
         localDB.users = res.rows;
         saveLocalDB();
       }
-      return res.rows;
     } catch (e) {
       console.error("Error fetching users from PG, falling back to local cache:", e);
     }
   }
-  return localDB.users || [];
+  if (!userList || userList.length === 0) {
+    userList = [...(localDB.users || [])];
+  }
+
+  // Ensure both permanent admins are always present with Admin role
+  for (const admin of PERMANENT_ADMINS) {
+    const existing = userList.find((u: any) => (u.email || '').trim().toLowerCase() === admin.email);
+    if (!existing) {
+      userList.unshift({ ...admin });
+    } else {
+      existing.role = "Admin";
+      existing.avatarUrl = "👑";
+      existing.isSuspended = false;
+    }
+  }
+
+  return userList;
 }
 
 export async function saveUser(user: any): Promise<any[]> {
-  const existing = localDB.users.find((u: any) => (u.email || '').trim().toLowerCase() === (user.email || '').trim().toLowerCase());
+  const normEmail = (user.email || '').trim().toLowerCase();
+  const existing = localDB.users.find((u: any) => (u.email || '').trim().toLowerCase() === normEmail);
   if (existing) {
     Object.assign(existing, user);
   } else {
@@ -643,7 +685,7 @@ export async function saveUser(user: any): Promise<any[]> {
           role = EXCLUDED.role,
           "isSuspended" = EXCLUDED."isSuspended"
       `, [
-        user.email.trim().toLowerCase(),
+        normEmail,
         user.fullName || '',
         user.grade || '',
         user.preferredSubject || '',
@@ -660,15 +702,20 @@ export async function saveUser(user: any): Promise<any[]> {
 }
 
 export async function deleteUser(email: string): Promise<boolean> {
+  const norm = email.trim().toLowerCase();
+  if (PERMANENT_ADMINS.some(a => a.email === norm)) {
+    console.warn(`Attempt to delete permanent admin ${email} blocked.`);
+    return false;
+  }
   const len = localDB.users.length;
-  localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== email.trim().toLowerCase());
+  localDB.users = localDB.users.filter((u: any) => u.email.trim().toLowerCase() !== norm);
   saveLocalDB();
 
   await deleteFromFirestore("users", email);
 
   if (pool) {
     try {
-      await pool.query('DELETE FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+      await pool.query('DELETE FROM users WHERE email = $1', [norm]);
     } catch (e) {
       console.error("Error deleting user from PG, but local backup updated:", e);
     }
@@ -679,6 +726,12 @@ export async function deleteUser(email: string): Promise<boolean> {
 export async function getUserByEmail(email: string): Promise<any | null> {
   if (!email) return null;
   const normalizedEmail = email.trim().toLowerCase();
+
+  const permanent = PERMANENT_ADMINS.find(a => a.email === normalizedEmail);
+  if (permanent) {
+    return { ...permanent };
+  }
+
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);

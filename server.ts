@@ -1009,6 +1009,7 @@ app.post("/api/app-version", async (req, res) => {
     }
     const user = await getUserByEmail(emailToVerify);
     const isRootAdmin =
+      emailToVerify.toLowerCase() === "studyhub2026admin@gmail.com" ||
       emailToVerify.toLowerCase() === "mazumderdiptanshu753@gmail.com";
     const isAdmin = isRootAdmin || (user && user.role === "Admin");
     if (!isAdmin) {
@@ -1570,7 +1571,7 @@ app.post("/api/chat/messages", async (req, res) => {
     } else {
       try {
         const allUsers = await getUsers();
-        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "mazumderdiptanshu753@gmail.com");
+        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "studyhub2026admin@gmail.com" || u.email.toLowerCase() === "mazumderdiptanshu753@gmail.com");
         // Remove duplicates by email
         const uniqueAdmins = Array.from(new Map(admins.map(a => [a.email.toLowerCase(), a])).values());
         
@@ -2740,6 +2741,13 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
       await saveAccessRequest(updated);
     }
 
+    // Automatically generate a password if one isn't provided (e.g. from manual phone app flow)
+    const generatedPassword = updated.password || Math.random().toString(36).substring(2, 10).toUpperCase();
+    if (!updated.password) {
+      updated.password = generatedPassword;
+      await saveAccessRequest(updated);
+    }
+
     // Automatically create / ensure user profile in users collection
     const normEmail = updated.email.trim().toLowerCase();
     const existingUser = await getUserByEmail(normEmail);
@@ -2747,6 +2755,7 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
       await saveUser({
         fullName: updated.fullName,
         email: normEmail,
+        password: generatedPassword,
         age: "20",
         institution: updated.institution || "Study Hub Student",
         grade: "High School",
@@ -2755,6 +2764,10 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
         avatarUrl: "🎓",
         role: "Student"
       });
+    } else if (!existingUser.password) {
+      // Ensure existing user gets the password if they don't have one
+      existingUser.password = generatedPassword;
+      await saveUser(existingUser);
     }
 
     // Create confirmation in-app notification for the student
@@ -2824,13 +2837,18 @@ app.post("/api/settings", async (req, res) => {
 });
 
 // Admin Passcode Security Endpoints
+const PERMANENT_ADMIN_EMAILS = [
+  "studyhub2026admin@gmail.com",
+  "mazumderdiptanshu753@gmail.com"
+];
+
 app.post("/api/admin/verify-passcode", async (req, res) => {
   const { email, passcode } = req.body;
   if (!email || !passcode) {
     return res.status(400).json({ valid: false, error: "ইমেইল ও পাসকোড আবশ্যক।" });
   }
   const normEmail = email.trim().toLowerCase();
-  if (normEmail !== "mazumderdiptanshu753@gmail.com") {
+  if (!PERMANENT_ADMIN_EMAILS.includes(normEmail)) {
     return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অ্যাডমিন অ্যাকাউন্টের জন্য এই নিরাপত্তা প্রযোজ্য।" });
   }
   try {
@@ -2852,7 +2870,7 @@ app.post("/api/admin/change-passcode", async (req, res) => {
   const adminEmail = req.headers["x-admin-email"] || req.body.adminEmail;
   const { currentPasscode, newPasscode } = req.body;
 
-  if (!adminEmail || (adminEmail as string).trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com") {
+  if (!adminEmail || !PERMANENT_ADMIN_EMAILS.includes((adminEmail as string).trim().toLowerCase())) {
     return res.status(403).json({ error: "অননুমোদিত অ্যাক্সেস। শুধুমাত্র প্রধান অ্যাডমিন পাসকোড পরিবর্তন করতে পারবেন।" });
   }
 

@@ -3,11 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   User, 
   Mail, 
-  Sparkles, 
   ArrowRight, 
-  BookOpen, 
-  CheckCircle, 
-  Heart,
   Calendar,
   Building,
   Crown,
@@ -16,19 +12,22 @@ import {
   Clock,
   UserPlus,
   ShieldAlert,
-  Search,
   CheckCircle2,
-  Send,
   Lock,
   Eye,
   EyeOff,
-  Key
+  Key,
+  LogIn,
+  Phone,
+  GraduationCap,
+  Sparkles,
+  Search
 } from "lucide-react";
-import { StudentProfile } from "../types";
+import { StudentProfile, isPermanentAdmin } from "../types";
 import AppLogo from "./AppLogo";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
-import StudentAccessRequestModal from "./StudentAccessRequestModal";
+import { safeFetch } from "../lib/api";
 
 interface StudentRegistrationProps {
   onRegister: (profile: StudentProfile) => void;
@@ -38,49 +37,62 @@ interface StudentRegistrationProps {
 
 export default function StudentRegistration({ onRegister, lang, theme }: StudentRegistrationProps) {
   const t = TRANSLATIONS[lang];
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [age, setAge] = useState("");
-  const [institution, setInstitution] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"Student" | "Admin">("Student");
-  
-  // Admin Passcode state
+  const isBengali = lang === "bn";
+
+  // Active top-level mode: "login" or "signup"
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
+  // Login Form States
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [adminPasscode, setAdminPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Join Request Modal state
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [accessNotice, setAccessNotice] = useState<{
-    type: "pending" | "rejected" | "not_found" | "error";
+  // Sign Up Form States
+  const [signupFullName, setSignupFullName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupAge, setSignupAge] = useState("");
+  const [signupInstitution, setSignupInstitution] = useState("");
+  const [signupTargetExam, setSignupTargetExam] = useState("Secondary / Higher Secondary");
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+
+  // Status Check & Notice state
+  const [notice, setNotice] = useState<{
+    type: "pending" | "rejected" | "not_found" | "error" | "info" | "success";
+    title?: string;
     message: string;
     details?: any;
   } | null>(null);
 
-  const isBengali = lang === "bn";
-  const trimmedEmail = (email || "").trim().toLowerCase();
-  const isAdminEmail = trimmedEmail === "mazumderdiptanshu753@gmail.com";
+  const trimmedLoginEmail = (loginEmail || "").trim().toLowerCase();
+  const isAdminLoginEmail = isPermanentAdmin(trimmedLoginEmail);
 
-  // Watch email to auto-toggle admin role
-  useEffect(() => {
-    if (isAdminEmail) {
-      setSelectedRole("Admin");
-      setAccessNotice(null);
-    } else {
-      setSelectedRole("Student");
+  // Clear notice when switching tabs
+  const handleTabSwitch = (mode: "login" | "signup") => {
+    setAuthMode(mode);
+    setNotice(null);
+    if (mode === "signup" && !signupEmail && loginEmail) {
+      setSignupEmail(loginEmail);
     }
-  }, [email, isAdminEmail]);
+    if (mode === "login" && !loginEmail && signupEmail) {
+      setLoginEmail(signupEmail);
+    }
+  };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  // Handle Login submission
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAccessNotice(null);
+    setNotice(null);
 
-    if (!fullName.trim() || !email.trim()) return;
+    if (!trimmedLoginEmail) return;
 
-    // Admin email requires verification of secret passcode
-    if (isAdminEmail) {
+    // 1. If admin email: verify passcode
+    if (isAdminLoginEmail) {
       if (!adminPasscode.trim()) {
-        setAccessNotice({
+        setNotice({
           type: "error",
           message: isBengali 
             ? "প্রধান অ্যাডমিন অ্যাকাউন্টে প্রবেশ করতে সিকিউরিটি পাসকোড প্রদান আবশ্যক।" 
@@ -89,265 +101,345 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
         return;
       }
 
-      setIsSubmitting(true);
+      setIsLoggingIn(true);
       try {
         const verifyRes = await fetch("/api/admin/verify-passcode", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: trimmedEmail,
+            email: trimmedLoginEmail,
             passcode: adminPasscode.trim()
           })
         });
 
         if (!verifyRes.ok) {
           const errData = await verifyRes.json().catch(() => ({}));
-          setAccessNotice({
+          setNotice({
             type: "error",
-            message: errData?.error || (isBengali ? "ভুল অ্যাডমিন পাসকোড! আপনি এই অ্যাকাউন্টে প্রবেশ করতে পারবেন না।" : "Incorrect admin passcode!")
+            message: errData?.error || (isBengali ? "ভুল অ্যাডমিন পাসকোড! অনুগ্রহ করে সঠিক পাসকোড দিন।" : "Incorrect admin passcode!")
           });
-          setIsSubmitting(false);
+          setIsLoggingIn(false);
           return;
         }
 
-        const profile: StudentProfile = {
-          fullName: fullName.trim(),
-          email: trimmedEmail,
-          age: age.trim() || "24",
-          institution: institution.trim() || "Study Hub Administration",
+        // Passcode verified: load admin profile
+        const adminProfile: StudentProfile = {
+          fullName: trimmedLoginEmail.includes("mazumder") ? "Diptanshu Mazumder (Admin)" : "Study Hub Official Admin",
+          email: trimmedLoginEmail,
+          age: "24",
+          institution: "Study Hub Official Administration",
           grade: "High School",
           preferredSubject: "Mathematics",
           registeredAt: new Date().toISOString(),
           avatarUrl: "👑",
           role: "Admin"
         };
-        onRegister(profile);
-        setIsSubmitting(false);
+        onRegister(adminProfile);
       } catch (err) {
-        setAccessNotice({
+        setNotice({
           type: "error",
-          message: isBengali ? "সার্ভার যাচাইকরণ ত্রুটি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।" : "Server verification failed."
+          message: isBengali ? "সার্ভার সংযোগ ত্রুটি। পুনরায় চেষ্টা করুন।" : "Server verification failed. Please try again."
         });
-        setIsSubmitting(false);
+      } finally {
+        setIsLoggingIn(false);
       }
       return;
     }
 
-    // For regular students: verify approval status
-    setIsSubmitting(true);
+    // 2. Regular student login
+    setIsLoggingIn(true);
     try {
-      // 1. Check if user is already present in registered users
-      const usersRes = await fetch("/api/users");
-      if (usersRes.ok) {
-        const usersList: StudentProfile[] = await usersRes.json();
-        const existing = usersList.find(u => (u?.email || "").trim().toLowerCase() === trimmedEmail);
-        if (existing) {
-          if (existing.isSuspended) {
-            setAccessNotice({
-              type: "rejected",
-              message: isBengali 
-                ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাময়িকভাবে স্থগিত (Suspended) করা হয়েছে।" 
-                : "Your account has been suspended by the administrator."
-            });
-            setIsSubmitting(false);
+      // Check registered users in database
+      const usersRes = await safeFetch("/api/users");
+      if (usersRes && usersRes.ok) {
+        const cType = usersRes.headers.get("content-type");
+        if (cType && cType.includes("application/json")) {
+          const usersList: StudentProfile[] = await usersRes.json();
+          const existing = usersList.find(u => (u?.email || "").trim().toLowerCase() === trimmedLoginEmail);
+          
+          if (existing) {
+            if (existing.isSuspended) {
+              setNotice({
+                type: "rejected",
+                title: isBengali ? "অ্যাকাউন্ট স্থগিত" : "Account Suspended",
+                message: isBengali 
+                  ? "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা সাময়িকভাবে স্থগিত (Suspended) করা হয়েছে।" 
+                  : "Your account has been suspended by the administrator."
+              });
+              setIsLoggingIn(false);
+              return;
+            }
+
+            // Check if password matches
+            if (existing.password && loginPassword.trim() !== existing.password) {
+              setNotice({
+                type: "error",
+                message: isBengali ? "ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন।" : "Incorrect password! Please enter the correct password."
+              });
+              setIsLoggingIn(false);
+              return;
+            }
+
+            // Existing authorized student -> Log in immediately!
+            onRegister(existing);
+            setIsLoggingIn(false);
             return;
           }
-          // Already registered and approved member!
-          onRegister(existing);
-          setIsSubmitting(false);
-          return;
         }
       }
 
-      // 2. Check access request status
-      const statusRes = await fetch(`/api/access-requests/status?email=${encodeURIComponent(trimmedEmail)}`);
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
+      // 3. Not in registered users -> check access-requests status
+      const statusRes = await safeFetch(`/api/access-requests/status?email=${encodeURIComponent(trimmedLoginEmail)}`);
+      if (statusRes && statusRes.ok) {
+        const cType = statusRes.headers.get("content-type");
+        if (cType && cType.includes("application/json")) {
+          const statusData = await statusRes.json();
         
-        if (statusData.status === "approved") {
-          // Approved! Can proceed to enter
-          const profile: StudentProfile = {
-            fullName: fullName.trim() || statusData.request?.fullName || "Student",
-            email: trimmedEmail,
-            age: age.trim() || "18",
-            institution: institution.trim() || statusData.request?.institution || "Educational Institution",
-            grade: "High School",
-            preferredSubject: statusData.request?.preferredSubject || "Mathematics",
-            registeredAt: new Date().toISOString(),
-            avatarUrl: "🎓",
-            role: "Student"
-          };
-          onRegister(profile);
-          setIsSubmitting(false);
-          return;
-        }
-
         if (statusData.status === "pending") {
-          setAccessNotice({
+          setNotice({
             type: "pending",
+            title: isBengali ? "আবেদন অনুমোদনের অপেক্ষায়" : "Request Pending Approval",
             message: isBengali
-              ? `আপনার আবেদনটি অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে (তারিখ: ${new Date(statusData.request.requestedAt).toLocaleDateString("bn-BD")})। অ্যাডমিন অনুমোদন দিলে আপনার ইমেইলে (${trimmedEmail}) নিশ্চিতকরণ বার্তা পাঠানো হবে।`
-              : `Your join request is pending approval by the Admin. Once approved, an official notification will be sent to ${trimmedEmail}.`,
+              ? `আপনার আবেদনটি অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে। অ্যাডমিন অনুমোদন দিলে studyhub2026admin@gmail.com থেকে আপনার কাছে সরাসরি নোটিফিকেশন মেইল যাবে।`
+              : `Your access request is currently pending admin approval. Once approved, an official email will be sent from studyhub2026admin@gmail.com.`,
             details: statusData.request
           });
-          setIsSubmitting(false);
+          setIsLoggingIn(false);
           return;
         }
 
         if (statusData.status === "rejected") {
-          setAccessNotice({
+          setNotice({
             type: "rejected",
+            title: isBengali ? "আবেদন প্রত্যাখ্যাত" : "Request Rejected",
             message: isBengali
-              ? `দুঃখিত! আপনার পূর্বের আবেদনটি অ্যাডমিন কর্তৃক প্রত্যাখ্যাত হয়েছে। কারণ: ${statusData.request.adminNotes || "অনুপযুক্ত তথ্য"}। আপনি পুনরায় নতুন আবেদন পাঠাতে পারেন।`
-              : `Your previous request was rejected by the admin. Reason: ${statusData.request.adminNotes || "Incomplete details"}. You may submit a new request.`,
+              ? `দুঃখিত! আপনার পূর্বের আবেদনটি অ্যাডমিন কর্তৃক প্রত্যাখ্যাত হয়েছে (${statusData.request?.adminNotes || "অনুপযুক্ত তথ্য"})। আপনি SIGN UP ট্যাব থেকে পুনরায় নতুন আবেদন করতে পারেন।`
+              : `Your request was rejected (${statusData.request?.adminNotes || "Incomplete details"}). You can submit a new request under SIGN UP.`,
             details: statusData.request
           });
-          setIsSubmitting(false);
+          setIsLoggingIn(false);
+          return;
+        }
+
+        if (statusData.status === "approved") {
+          // Request is approved but not populated into users list yet
+          const req = statusData.request;
+          const newProfile: StudentProfile = {
+            fullName: req.fullName || "Student",
+            email: req.email,
+            age: "18",
+            institution: req.institution || "Study Hub",
+            grade: "High School",
+            preferredSubject: req.preferredSubject || "Mathematics",
+            registeredAt: new Date().toISOString(),
+            avatarUrl: "🎓",
+            role: "Student"
+          };
+          // Post to users list
+          await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newProfile)
+          });
+          onRegister(newProfile);
+          setIsLoggingIn(false);
           return;
         }
       }
+    }
 
-      // 3. Not registered and no request found
-      setAccessNotice({
+      // 4. No account and no request found
+      setNotice({
         type: "not_found",
+        title: isBengali ? "অ্যাকাউন্ট পাওয়া যায়নি" : "Account Not Found",
         message: isBengali
-          ? "এই ইমেইল দিয়ে কোনো অনুমোদিত অ্যাকাউন্ট পাওয়া যায়নি। স্টাডি হাবে প্রবেশ করার জন্য প্রথমে একটি জয়েন রিকোয়েস্ট (Join Request) পাঠাতে হবে।"
-          : "No approved account was found for this email. You must submit an Access Request and wait for admin approval."
+          ? "এই ইমেইল দিয়ে কোনো অনুমোদিত অ্যাকাউন্ট পাওয়া যায়নি। স্টাডি হাবে প্রবেশ করার জন্য অনুগ্রহ করে SIGN UP অপশন থেকে আবেদন করুন।"
+          : "No approved account was found for this email. Please switch to the SIGN UP tab to submit an access request."
       });
 
     } catch (err) {
-      console.error("Access verification error:", err);
-      setAccessNotice({
+      setNotice({
         type: "error",
-        message: isBengali ? "সার্ভার যাচাই ত্রুটি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।" : "Verification failed. Please try again."
+        message: isBengali ? "সার্ভার যাচাইকরণে সমস্যা হয়েছে।" : "Verification failed. Please try again."
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoggingIn(false);
     }
   };
 
-  const handleApprovedLogin = (approvedEmail: string) => {
-    setEmail(approvedEmail);
-    setIsRequestModalOpen(false);
-    // Auto fill and prompt user or fetch profile
-    fetch("/api/users")
-      .then(res => res.json())
-      .then(users => {
-        const found = users.find((u: any) => (u?.email || "").trim().toLowerCase() === approvedEmail.toLowerCase());
-        if (found) {
-          onRegister(found);
-        } else {
-          setAccessNotice({
-            type: "pending",
-            message: isBengali
-              ? "অ্যাকাউন্ট অনুমোদিত! নিচের ফর্মে আপনার নাম পূরণ করে ড্যাশবোর্ডে প্রবেশ করুন।"
-              : "Account approved! Complete the form to enter."
-          });
-        }
-      })
-      .catch(() => {});
+  // Handle Sign Up submission (Access Request)
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    const emailToUse = (signupEmail || "").trim().toLowerCase();
+    if (!signupFullName.trim() || !emailToUse) {
+      setNotice({
+        type: "error",
+        message: isBengali ? "সম্পূর্ণ নাম এবং ইমেইল ঠিকানা আবশ্যক।" : "Full name and email are required."
+      });
+      return;
+    }
+
+    // Check if trying to sign up with admin email
+    if (isPermanentAdmin(emailToUse)) {
+      setNotice({
+        type: "info",
+        message: isBengali 
+          ? "এটি প্রধান অ্যাডমিন ইমেইল! অনুগ্রহ করে LOG IN ট্যাবে গিয়ে পাসকোড দিয়ে প্রবেশ করুন।" 
+          : "This is a permanent admin email. Please use the LOG IN tab with your admin passcode."
+      });
+      return;
+    }
+
+    setIsSigningUp(true);
+    try {
+      const res = await fetch("/api/access-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: signupFullName.trim(),
+          email: emailToUse,
+          phone: signupPhone.trim(),
+          institution: signupInstitution.trim() || "Independent Student",
+          age: signupAge.trim() || "18",
+          targetExam: signupTargetExam,
+          preferredSubject: "Mathematics"
+        })
+      });
+
+      if (res.ok) {
+        setSignupSuccess(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setNotice({
+          type: "error",
+          message: data?.error || (isBengali ? "আবেদন জমা দেওয়া যায়নি।" : "Failed to submit sign up request.")
+        });
+      }
+    } catch (err) {
+      setNotice({
+        type: "error",
+        message: isBengali ? "সার্ভার সংযোগে সমস্যা হয়েছে।" : "Connection error. Please try again."
+      });
+    } finally {
+      setIsSigningUp(false);
+    }
   };
 
   return (
     <div className="w-full flex items-center justify-center py-2 px-1 sm:py-6 sm:px-4">
       <div className={`max-w-md w-full ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-xl overflow-hidden transition-all duration-300 relative mx-auto`}>
         
-        {/* Dynamic header brand banner */}
-        <div className={`bg-gradient-to-r ${theme.heroGradient} px-3.5 py-3 sm:px-6 sm:py-5 text-slate-900 text-center relative overflow-hidden border-b ${theme.borderCard}`}>
+        {/* Dynamic Header Brand Banner */}
+        <div className={`bg-gradient-to-r ${theme.heroGradient} px-4 py-3.5 sm:px-6 sm:py-4.5 text-slate-900 text-center relative overflow-hidden border-b ${theme.borderCard}`}>
           <div className="absolute right-0 top-0 w-24 h-24 bg-white/30 rounded-full blur-xl"></div>
           <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-100/40 rounded-full blur-xl"></div>
           
-          <div className="relative z-10 flex flex-col items-center gap-1 sm:gap-1.5">
-            <div className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/10 px-2.5 py-0.5 text-[8px] sm:text-xs font-black text-teal-800 border border-teal-500/20 select-none">
-              <AppLogo size="sm" className="bg-transparent shadow-none h-3.5 w-3.5 sm:h-4 sm:w-4 animate-pulse" />
+          <div className="relative z-10 flex flex-col items-center gap-1">
+            <div className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/10 px-2.5 py-0.5 text-[9px] sm:text-xs font-black text-teal-900 border border-teal-500/20 select-none">
+              <AppLogo size="sm" className="bg-transparent shadow-none h-4 w-4 animate-pulse" />
               <span>{isBengali ? "স্টাডি হাব পোর্টাল" : "Study Hub Portal"}</span>
             </div>
-            <h1 className="text-sm sm:text-lg font-black tracking-tight mt-1 leading-tight text-slate-950">
-              {isBengali ? "অনুমোদিত শিক্ষার্থীদের ডিজিটাল মাধ্যম" : "Approved Students Learning Desk"}
+            
+            <h1 className="text-base sm:text-lg font-black tracking-tight leading-tight text-slate-950 mt-0.5">
+              {authMode === "login"
+                ? (isBengali ? "স্টাডি হাবে লগইন করুন" : "Log In to Study Hub")
+                : (isBengali ? "নতুন শিক্ষার্থী সাইন আপ" : "Student Sign Up")
+              }
             </h1>
-            <p className="text-[9px] sm:text-[10px] text-slate-800 max-w-xs mt-0.5 font-bold leading-relaxed">
-              {isBengali 
-                ? "অ্যাডমিন অনুমোদিত শিক্ষার্থীরা সরাসরি লগইন করুন অথবা নতুন অ্যাকাউন্ট এর জন্য জয়েন রিকোয়েস্ট পাঠান।"
-                : "Approved students login directly or request access if you're a new student."}
+            
+            <p className="text-[10px] sm:text-[11px] text-slate-800 max-w-xs font-bold leading-tight">
+              {authMode === "login"
+                ? (isBengali 
+                    ? "অনুমোদিত শিক্ষার্থী বা অ্যাডমিন ইমেইল দিয়ে প্রবেশ করুন" 
+                    : "Enter your approved email to access your study desk")
+                : (isBengali 
+                    ? "অ্যাডমিন অনুমোদনের জন্য তথ্য দিয়ে সাইন আপ করুন" 
+                    : "Submit your details for official admission & approval")
+              }
             </p>
           </div>
         </div>
 
-        {/* Dynamic Transition Canvas */}
-        <div className="p-3.5 sm:p-5 space-y-3.5">
-
-          {/* Quick Access Action Bar for New Students */}
-          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-teal-500/10 border border-indigo-500/20 rounded-xl p-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <UserPlus className="h-4 w-4" />
-              </div>
-              <div>
-                <p className={`text-[10px] sm:text-xs font-extrabold ${theme.textHeading} leading-tight`}>
-                  {isBengali ? "নতুন শিক্ষার্থী? জয়েন রিকোয়েস্ট পাঠান" : "New Student? Request Access"}
-                </p>
-                <p className={`text-[8px] sm:text-[9px] ${theme.textMuted} font-semibold leading-tight`}>
-                  {isBengali ? "অ্যাডমিন অনুমোদন দিলে আপনার ইমেইলে নোটিফিকেশন যাবে" : "Official approval mail via Admin Gmail"}
-                </p>
-              </div>
-            </div>
+        {/* The Two Main Options: LOG IN & SIGN UP */}
+        <div className="p-3.5 sm:p-5 space-y-4">
+          
+          {/* Segmented Control: LOG IN | SIGN UP */}
+          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
             <button
               type="button"
-              onClick={() => setIsRequestModalOpen(true)}
-              className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] sm:text-[10px] font-black rounded-lg transition-all shadow-xs shrink-0 flex items-center gap-1 cursor-pointer"
+              onClick={() => handleTabSwitch("login")}
+              className={`py-2 text-xs sm:text-sm font-black rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                authMode === "login"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
             >
-              <span>{isBengali ? "আবেদন করুন" : "Apply Now"}</span>
-              <ArrowRight className="h-3 w-3" />
+              <LogIn className="h-4 w-4" />
+              <span>LOG IN</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabSwitch("signup")}
+              className={`py-2 text-xs sm:text-sm font-black rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                authMode === "signup"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/80 dark:border-slate-700"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              }`}
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>SIGN UP</span>
             </button>
           </div>
 
-          {/* Notice alerts (Pending, Rejected, Not Found) */}
+          {/* Interactive Notices / Status Messages */}
           <AnimatePresence>
-            {accessNotice && (
+            {notice && (
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 className={`p-3 rounded-xl border text-xs ${
-                  accessNotice.type === "pending"
+                  notice.type === "pending"
                     ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300"
-                    : accessNotice.type === "rejected"
+                    : notice.type === "rejected"
                     ? "bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-300"
-                    : accessNotice.type === "not_found"
+                    : notice.type === "not_found"
                     ? "bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-300"
+                    : notice.type === "success"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-300"
                     : "bg-red-500/10 border-red-500/30 text-red-900 dark:text-red-300"
                 }`}
               >
-                <div className="flex items-start gap-2">
-                  {accessNotice.type === "pending" && <Clock className="h-4 w-4 shrink-0 text-amber-600 mt-0.5 animate-spin" />}
-                  {accessNotice.type === "rejected" && <ShieldAlert className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />}
-                  {accessNotice.type === "not_found" && <AlertCircle className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />}
-                  {accessNotice.type === "error" && <AlertCircle className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />}
+                <div className="flex items-start gap-2.5">
+                  {notice.type === "pending" && <Clock className="h-4 w-4 shrink-0 text-amber-600 mt-0.5 animate-spin" />}
+                  {notice.type === "rejected" && <ShieldAlert className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />}
+                  {notice.type === "not_found" && <AlertCircle className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />}
+                  {notice.type === "error" && <AlertCircle className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />}
+                  {notice.type === "success" && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />}
+                  {notice.type === "info" && <Sparkles className="h-4 w-4 shrink-0 text-indigo-600 mt-0.5" />}
                   
-                  <div className="space-y-1.5 flex-1">
+                  <div className="space-y-1.5 flex-1 text-left">
+                    {notice.title && (
+                      <p className="font-black text-xs">{notice.title}</p>
+                    )}
                     <p className="font-semibold leading-relaxed text-[11px] sm:text-xs">
-                      {accessNotice.message}
+                      {notice.message}
                     </p>
 
-                    {accessNotice.type === "not_found" && (
-                      <div className="pt-1 flex items-center gap-2">
+                    {/* Quick switch to Sign Up if account is not found */}
+                    {notice.type === "not_found" && (
+                      <div className="pt-1">
                         <button
                           type="button"
-                          onClick={() => {
-                            setIsRequestModalOpen(true);
-                            setAccessNotice(null);
-                          }}
-                          className="px-2.5 py-1 bg-blue-600 text-white rounded-md text-[10px] font-black hover:bg-blue-700 transition cursor-pointer flex items-center gap-1"
+                          onClick={() => handleTabSwitch("signup")}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1 shadow-xs"
                         >
-                          <Send className="h-3 w-3" />
-                          <span>{isBengali ? "এখনই আবেদন পাঠান" : "Submit Request Now"}</span>
+                          <UserPlus className="h-3 w-3" />
+                          <span>{isBengali ? "এখনই SIGN UP করুন" : "Switch to SIGN UP"}</span>
+                          <ArrowRight className="h-3 w-3" />
                         </button>
-                      </div>
-                    )}
-
-                    {accessNotice.type === "pending" && (
-                      <div className="text-[9px] font-bold opacity-80 flex items-center gap-1 mt-1">
-                        <span>💡 স্ট্যাটাস আপডেট পেতে অ্যাডমিনের সাথে যোগাযোগ রাখুন।</span>
                       </div>
                     )}
                   </div>
@@ -356,233 +448,366 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
             )}
           </AnimatePresence>
 
-          <AnimatePresence mode="wait">
+          {/* TAB 1: LOG IN VIEW */}
+          {authMode === "login" && (
             <motion.div
-              key="form-step"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-md mx-auto"
+              key="login-tab"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="space-y-3.5"
             >
-              {/* Form fields */}
-              <form onSubmit={handleFormSubmit} className="space-y-2.5 sm:space-y-3 text-left">
-                <div className="flex items-center justify-between empty:hidden">
-                  {isAdminEmail && (
-                    <div className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2.5 py-1 rounded-full text-[10px] font-black border border-amber-500/20 animate-pulse">
-                      <Crown className="h-3 w-3 fill-amber-500" />
-                      <span>{isBengali ? "প্রধান প্রশাসক ইমেইল সনাক্ত হয়েছে 👑" : "Primary Admin Email Detected"}</span>
+              <form onSubmit={handleLoginSubmit} className="space-y-3 text-left">
+                
+                {/* Admin detected badge */}
+                {isAdminLoginEmail && (
+                  <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full text-[10px] font-black border border-amber-500/20 animate-pulse">
+                    <Crown className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                    <span>{isBengali ? "প্রধান প্রশাসক ইমেইল সনাক্ত হয়েছে 👑" : "Primary Admin Email Detected"}</span>
+                  </div>
+                )}
+
+                  {/* Email Address */}
+                  <div className="space-y-1">
+                    <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regEmailLabel} *
+                    </label>
+                    <div className="relative">
+                      <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${theme.textMuted}`} />
+                      <input
+                        type="email"
+                        required
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder={t.regEmailPlaceholder}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9.5 pr-3 h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field (Only for non-admin students) */}
+                  {!isAdminLoginEmail && (
+                    <div className="space-y-1">
+                      <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                        {isBengali ? "পাসওয়ার্ড *" : "Account Password *"}
+                      </label>
+                      <div className="relative">
+                        <Key className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${theme.textMuted}`} />
+                        <input
+                          type={showPasscode ? "text" : "password"}
+                          required
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder={isBengali ? "আপনার পাসওয়ার্ড লিখুন..." : "Enter your account password..."}
+                          className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9.5 pr-10 h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPasscode(!showPasscode)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+                        >
+                          {showPasscode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   )}
-                </div>
 
-                <div className="space-y-2.5">
-                  {/* Full Name input */}
+                {/* Admin Passcode field (Dynamic for Permanent Admins) */}
+                {isAdminLoginEmail && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    className="space-y-1.5 p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 shadow-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-amber-600 fill-amber-500/20" />
+                        <span>{isBengali ? "অ্যাডমিন সিকিউরিটি পাসকোড *" : "Admin Security Passcode *"}</span>
+                      </label>
+                      <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
+                        🔒 {isBengali ? "সুরক্ষা লক" : "Protected"}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-amber-600" />
+                      <input
+                        type={showPasscode ? "text" : "password"}
+                        required
+                        value={adminPasscode}
+                        onChange={(e) => setAdminPasscode(e.target.value)}
+                        placeholder={isBengali ? "গোপন অ্যাডমিন পাসকোড লিখুন..." : "Enter secret admin passcode..."}
+                        className="w-full rounded-xl border border-amber-500/40 bg-white/90 dark:bg-slate-900/90 pl-9 pr-10 h-10 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 font-black outline-hidden focus:border-amber-600 focus:ring-2 focus:ring-amber-500/30 transition shadow-inner"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasscode(!showPasscode)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+                        title={showPasscode ? "Hide Passcode" : "Show Passcode"}
+                      >
+                        {showPasscode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[9px] font-bold text-amber-900/80 dark:text-amber-300/80 leading-relaxed">
+                      🛡️ {isBengali ? "অননুমোদিত ব্যবহার রোধে শুধুমাত্র সঠিক পাসকোড দিয়ে প্রবেশ করা যাবে।" : "Admin passcode is required to enter admin dashboard."}
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Log In Submit Button */}
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={isLoggingIn || !loginEmail.trim()}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-11 text-xs font-black tracking-wider uppercase shadow-md bg-gradient-to-r from-indigo-600 via-blue-600 to-teal-600 hover:from-indigo-700 hover:to-teal-700 text-white transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {isLoggingIn ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>{isBengali ? "যাচাই করা হচ্ছে..." : "Verifying access..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="h-4 w-4" />
+                        <span>
+                          {isAdminLoginEmail
+                            ? (isBengali ? "অ্যাডমিন প্যানেলে প্রবেশ করুন 👑" : "Log In to Admin Panel 👑")
+                            : (isBengali ? "স্টাডি হাবে লগইন করুন 🚀" : "Log In to Study Hub 🚀")
+                          }
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Bottom switch to Sign Up */}
+              <div className="pt-2 text-center text-xs border-t border-slate-200/60 dark:border-slate-800">
+                <span className="text-slate-500 font-semibold">
+                  {isBengali ? "নতুন শিক্ষার্থী? অ্যাকাউন্ট নেই? " : "Don't have an approved account? "}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleTabSwitch("signup")}
+                  className="font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
+                >
+                  <span>SIGN UP</span>
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 2: SIGN UP VIEW */}
+          {authMode === "signup" && (
+            <motion.div
+              key="signup-tab"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-3.5"
+            >
+              {signupSuccess ? (
+                /* Success Confirmation State */
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3"
+                >
+                  <div className="h-12 w-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-emerald-900 dark:text-emerald-300">
+                      {isBengali ? "🎉 সাইন আপ রিকোয়েস্ট সফলভাবে জমা হয়েছে!" : "🎉 Sign Up Request Submitted!"}
+                    </h3>
+                    <p className="text-xs text-emerald-800/90 dark:text-emerald-400/90 mt-1.5 leading-relaxed font-medium">
+                      {isBengali 
+                        ? `ধন্যবাদ ${signupFullName}! আপনার আবেদনটি অ্যাডমিনের কাছে পাঠানো হয়েছে। অ্যাডমিন অনুমোদন দিলে আপনার ইমেইল (${signupEmail})-এ studyhub2026admin@gmail.com থেকে অফিশিয়াল নোটিফিকেশন যাবে।`
+                        : `Thank you ${signupFullName}! Your application has been submitted to the Admin. Once approved, an official notification will be emailed to ${signupEmail} from studyhub2026admin@gmail.com.`
+                      }
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignupSuccess(false);
+                        handleTabSwitch("login");
+                      }}
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      <span>{isBengali ? "লগইন এ ফিরে যান" : "Go to LOG IN"}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                /* Sign Up Form */
+                <form onSubmit={handleSignUpSubmit} className="space-y-2.5 text-left">
+                  
+
+
+                  {/* Full Name */}
                   <div className="space-y-1">
-                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
-                      {t.regFullNameLabel}
+                    <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regFullNameLabel} *
                     </label>
                     <div className="relative">
                       <User className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
                       <input
                         type="text"
                         required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        value={signupFullName}
+                        onChange={(e) => setSignupFullName(e.target.value)}
                         placeholder={isBengali ? "যেমন: দীপ্তাংশু মজুমদার" : "e.g. Diptanshu Mazumder"}
-                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
                       />
                     </div>
                   </div>
 
-                  {/* Email input */}
+                  {/* Email Address */}
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
-                        {t.regEmailLabel}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsRequestModalOpen(true)}
-                        className="text-[9px] font-extrabold text-indigo-600 hover:underline cursor-pointer"
-                      >
-                        {isBengali ? "আবেদনের স্ট্যাটাস?" : "Check Status?"}
-                      </button>
-                    </div>
+                    <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regEmailLabel} *
+                    </label>
                     <div className="relative">
                       <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
                       <input
                         type="email"
                         required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder={t.regEmailPlaceholder}
-                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        placeholder="yourname@gmail.com"
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
                       />
                     </div>
                   </div>
 
-                  {/* Admin Security Passcode Field (Only shown for Admin Email) */}
-                  {isAdminEmail && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      className="space-y-1.5 p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 shadow-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <Lock className="h-3.5 w-3.5 text-amber-600 fill-amber-500/20" />
-                          <span>{isBengali ? "অ্যাডমিন সিকিউরিটি পাসকোড *" : "Admin Security Passcode *"}</span>
-                        </label>
-                        <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
-                          🔒 {isBengali ? "সুরক্ষা লক" : "Protected"}
-                        </span>
-                      </div>
+                  {/* Two-column layout for Age & Phone */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                        {t.regAgeLabel} *
+                      </label>
                       <div className="relative">
-                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-amber-600" />
+                        <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
                         <input
-                          type={showPasscode ? "text" : "password"}
+                          type="number"
                           required
-                          value={adminPasscode}
-                          onChange={(e) => setAdminPasscode(e.target.value)}
-                          placeholder={isBengali ? "গোপন অ্যাডমিন পাসকোড লিখুন..." : "Enter secret admin passcode..."}
-                          className="w-full rounded-xl border border-amber-500/40 bg-white/90 dark:bg-slate-900/90 pl-9 pr-10 h-10 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 font-black outline-hidden focus:border-amber-600 focus:ring-2 focus:ring-amber-500/30 transition shadow-inner"
+                          value={signupAge}
+                          onChange={(e) => setSignupAge(e.target.value)}
+                          placeholder="e.g. 17"
+                          className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPasscode(!showPasscode)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
-                          title={showPasscode ? "Hide Passcode" : "Show Passcode"}
-                        >
-                          {showPasscode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
                       </div>
-                      <p className="text-[9px] font-bold text-amber-900/80 dark:text-amber-300/80 leading-relaxed flex items-center gap-1">
-                        <span>🛡️ অননুমোদিত ব্যবহার রোধে শুধুমাত্র সঠিক পাসকোড দিয়ে অ্যাডমিন প্যানেলে ঢোকা যাবে।</span>
-                      </p>
-                    </motion.div>
-                  )}
+                    </div>
 
-                  {/* Age input */}
-                  <div className="space-y-1">
-                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
-                      {t.regAgeLabel}
-                    </label>
-                    <div className="relative">
-                      <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
-                      <input
-                        type="number"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        placeholder={t.regAgePlaceholder}
-                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
-                      />
+                    <div className="space-y-1">
+                      <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                        {isBengali ? "ফোন / হোয়াটসঅ্যাপ" : "Phone (Optional)"}
+                      </label>
+                      <div className="relative">
+                        <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                        <input
+                          type="tel"
+                          value={signupPhone}
+                          onChange={(e) => setSignupPhone(e.target.value)}
+                          placeholder="017XXXXXXXX"
+                          className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* Institution input */}
+                  {/* School / College Name */}
                   <div className="space-y-1">
-                    <label className={`text-[9px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
-                      {t.regInstitutionLabel}
+                    <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {t.regInstitutionLabel} *
                     </label>
                     <div className="relative">
                       <Building className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
                       <input
                         type="text"
-                        value={institution}
-                        onChange={(e) => setInstitution(e.target.value)}
+                        required
+                        value={signupInstitution}
+                        onChange={(e) => setSignupInstitution(e.target.value)}
                         placeholder={t.regInstitutionPlaceholder}
-                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-transparent focus:ring-1 focus:ring-teal-500/20 transition-all font-semibold`}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} placeholder-slate-400 outline-hidden focus:border-indigo-500 focus:bg-transparent focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold`}
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="pt-1.5 space-y-2">
-                  {(() => {
-                    let btnGradient = "from-emerald-500 via-teal-500 to-cyan-500";
-                    let glowColor = "rgba(20, 184, 166, 0.4)";
-                    
-                    if (theme.id === "cosmic") {
-                      btnGradient = "from-indigo-500 via-purple-500 to-pink-500";
-                      glowColor = "rgba(124, 58, 237, 0.4)";
-                    } else if (theme.id === "aurora") {
-                      btnGradient = "from-cyan-500 via-sky-500 to-emerald-500";
-                      glowColor = "rgba(6, 182, 212, 0.4)";
-                    } else if (theme.id === "sunset") {
-                      btnGradient = "from-amber-500 via-orange-500 to-rose-500";
-                      glowColor = "rgba(244, 63, 94, 0.4)";
-                    }
-
-                    const isDisabled = isSubmitting || !fullName.trim() || !email.trim();
-
-                    return (
-                      <motion.button
-                        type="submit"
-                        id="btn-register-student-new"
-                        disabled={isDisabled}
-                        whileHover={isDisabled ? {} : { 
-                          scale: 1.02,
-                          boxShadow: `0 8px 20px ${glowColor}`
-                        }}
-                        whileTap={isDisabled ? {} : { scale: 0.98 }}
-                        className={`w-full inline-flex items-center justify-center gap-2 rounded-xl h-10 sm:h-11 text-xs font-black tracking-wider uppercase shadow-md transition-all cursor-pointer relative overflow-hidden border border-white/10 ${
-                          isDisabled 
-                            ? "opacity-50 pointer-events-none bg-slate-300 dark:bg-slate-800 text-slate-500" 
-                            : `bg-gradient-to-r ${btnGradient} ${theme.primaryBtnText}`
-                        }`}
+                  {/* Target Exam / Class */}
+                  <div className="space-y-1">
+                    <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
+                      {isBengali ? "টার্গেট পরীক্ষা বা শ্রেণি *" : "Target Goal / Exam *"}
+                    </label>
+                    <div className="relative">
+                      <GraduationCap className={`absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 ${theme.textMuted}`} />
+                      <select
+                        value={signupTargetExam}
+                        onChange={(e) => setSignupTargetExam(e.target.value)}
+                        className={`w-full rounded-xl border ${theme.borderCard} ${theme.bgPage} pl-9 pr-3 h-9 sm:h-10 text-xs ${theme.textMain} outline-hidden focus:border-indigo-500 font-semibold cursor-pointer`}
                       >
-                        {isSubmitting ? (
-                          <>
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                            <span className="font-bold tracking-widest">
-                              {isBengali ? "অনুমোদন ও তথ্য যাচাই হচ্ছে..." : "Verifying student access..."}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
-                              {isAdminEmail 
-                                ? (isBengali ? "অ্যাডমিন প্যানেলে প্রবেশ করুন 👑" : "Enter Admin Dashboard")
-                                : (isBengali ? "স্টাডি হাবে প্রবেশ করুন (ড্যাশবোর্ড)" : "Launch My Study Dashboard")
-                              }
-                            </span>
-                            <motion.span
-                              animate={{ x: [0, 4, 0] }}
-                              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                            >
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </motion.span>
-                          </>
-                        )}
-                      </motion.button>
-                    );
-                  })()}
-                </div>
-              </form>
+                        <option value="Secondary / Higher Secondary">Secondary / Higher Secondary (Class 9-12)</option>
+                        <option value="HSC / Alim Board Exam">HSC / Alim Board Exam</option>
+                        <option value="University Admission">University Admission</option>
+                        <option value="Medical / Engineering Entrance">Medical / Engineering Entrance</option>
+                        <option value="Govt Job Prep (BCS / Bank)">Govt Job Prep (BCS / Bank)</option>
+                        <option value="General Studies">General Studies</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSigningUp || !signupFullName.trim() || !signupEmail.trim() || !signupInstitution.trim()}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-11 text-xs font-black tracking-wider uppercase shadow-md bg-gradient-to-r from-teal-600 via-indigo-600 to-purple-600 hover:from-teal-700 hover:to-purple-700 text-white transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      {isSigningUp ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>{isBengali ? "আবেদন পাঠানো হচ্ছে..." : "Submitting sign up..."}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4" />
+                          <span>{isBengali ? "সাইন আপ রিকোয়েস্ট পাঠান 🚀" : "Submit Sign Up Request 🚀"}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Bottom switch to Log In */}
+              <div className="pt-2 text-center text-xs border-t border-slate-200/60 dark:border-slate-800">
+                <span className="text-slate-500 font-semibold">
+                  {isBengali ? "পূর্বেই অ্যাকাউন্ট অনুমোদিত? " : "Already approved or registered? "}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleTabSwitch("login")}
+                  className="font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-1 inline-flex items-center gap-1"
+                >
+                  <span>LOG IN</span>
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </div>
             </motion.div>
-          </AnimatePresence>
+          )}
+
         </div>
 
-        {/* Safe security footer */}
-        <div className="p-2 sm:p-3 border-t border-slate-200 dark:border-slate-800 text-center text-[8px] sm:text-[9px] font-bold tracking-wider text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-1 uppercase leading-relaxed">
-          <span>{isBengali ? "🔒 নিরাপদ শিক্ষার্থী অ্যাক্সেস কন্ট্রোল" : "🔒 Secure Student Access Control"}</span>
-          <div className="hidden sm:block h-1 w-1 rounded-full bg-slate-400"></div>
-          <span className="flex items-center gap-1 normal-case text-slate-500 dark:text-slate-400">
-            Powered by Google Workspace & Gmail API
-          </span>
+        {/* Security Footer */}
+        <div className="p-2 sm:p-3 border-t border-slate-200 dark:border-slate-800 text-center text-[9px] font-black tracking-widest text-slate-500 uppercase leading-relaxed">
+          Developed by DIPTANSHU MAZUMDER
         </div>
       </div>
-
-      {/* Join Request Modal */}
-      <StudentAccessRequestModal
-        isOpen={isRequestModalOpen}
-        onClose={() => setIsRequestModalOpen(false)}
-        lang={lang}
-        theme={theme}
-        initialEmail={email}
-        onApprovedLogin={handleApprovedLogin}
-      />
     </div>
   );
 }

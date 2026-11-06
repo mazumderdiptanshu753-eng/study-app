@@ -7,15 +7,17 @@ import {
   UserPlus, CheckCircle2, Clock, XCircle, Send, AlertTriangle, ExternalLink, Filter, Phone, Building, Check,
   Lock, Key, Eye, EyeOff
 } from "lucide-react";
-import { StudentProfile, AccessRequest } from "../types";
+import { StudentProfile, AccessRequest, isPermanentAdmin } from "../types";
 import { Language } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import { 
   signInWithGoogleForGmail, 
   getGmailAccessToken, 
   sendStudentApprovalGmail, 
+  getStudentApprovalMailtoLink,
   workspaceLogout 
 } from "../lib/googleWorkspace";
+import { safeFetch } from "../lib/api";
 
 interface AdminPanelProps {
   lang: Language;
@@ -55,6 +57,13 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
   const [gmailTokenAvailable, setGmailTokenAvailable] = useState<boolean>(() => !!getGmailAccessToken());
   const [adminGmailUser, setAdminGmailUser] = useState<string | null>(null);
+  const [recentApprovedEmailAction, setRecentApprovedEmailAction] = useState<{
+    name: string;
+    email: string;
+    webUrl: string;
+    mailtoUrl: string;
+    plainBody: string;
+  } | null>(null);
 
   // Admin Passcode change states
   const [currentPasscode, setCurrentPasscode] = useState("");
@@ -221,15 +230,20 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
   const fetchRequests = async (isPolling = false) => {
     if (!isPolling) setLoadingRequests(true);
     try {
-      const res = await fetch("/api/access-requests", {
+      const res = await safeFetch("/api/access-requests", {
         headers: { "x-admin-email": currentUserEmail }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setRequests(data);
+      if (res && res.ok) {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setRequests(data);
+          }
+        }
       }
     } catch (e) {
-      console.error("Failed to fetch access requests:", e);
+      console.warn("Could not fetch access requests:", e);
     } finally {
       if (!isPolling) setLoadingRequests(false);
     }
@@ -256,11 +270,29 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
           : `Gmail successfully connected (${user.email || currentUserEmail})!`
       );
     } catch (err: any) {
-      setApprovalErrorMsg(
-        isBengali 
-          ? `গুগল জিমেইল কানেক্ট করতে সমস্যা হয়েছে: ${err.message || "পপ-আপ বন্ধ বা বাতিল করা হয়েছে"}`
-          : `Failed to connect Gmail: ${err.message}`
-      );
+      const errCode = err?.code || "";
+      const errMsg = err?.message || "";
+      let friendlyMsg = "";
+
+      if (errCode === "auth/popup-closed-by-user" || errMsg.includes("popup-closed-by-user")) {
+        friendlyMsg = isBengali 
+          ? "গুগল সাইন-ইন পপ-আপ উইন্ডোটি বন্ধ করা হয়েছে বা সাইন-ইন সম্পন্ন হয়নি। পুনরায় 'Connect Admin Gmail' এ ক্লিক করে আপনার গুগল অ্যাকাউন্ট (studyhub2026admin@gmail.com) নির্বাচন করুন।"
+          : "Google Sign-in popup was closed before completing. Please click 'Connect Admin Gmail' again and sign in.";
+      } else if (errCode === "auth/popup-blocked" || errMsg.includes("popup-blocked")) {
+        friendlyMsg = isBengali
+          ? "আপনার ব্রাউজার পপ-আপ ব্লক করেছে। ব্রাউজারের অ্যাড্রেস বার থেকে Pop-ups Allow করুন।"
+          : "Popup was blocked by your browser. Please allow popups for this site.";
+      } else if (errCode === "auth/cancelled-popup-request" || errMsg.includes("cancelled-popup-request")) {
+        friendlyMsg = isBengali
+          ? "পূর্বের পপ-আপ বাতিল হয়েছে। পুনরায় চেষ্টা করুন।"
+          : "Previous popup request was cancelled. Please try again.";
+      } else {
+        friendlyMsg = isBengali 
+          ? `গুগল জিমেইল কানেক্ট করতে সমস্যা হয়েছে: ${errMsg || "অনাকাঙ্ক্ষিত ত্রুটি"}`
+          : `Failed to connect Gmail: ${errMsg}`;
+      }
+
+      setApprovalErrorMsg(friendlyMsg);
     } finally {
       setIsConnectingGmail(false);
     }
@@ -271,6 +303,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
     setApprovalErrorMsg(null);
     setApprovalSuccessMsg(null);
 
+    const generatedPassword = req.password || Math.random().toString(36).substring(2, 10).toUpperCase();
     const token = getGmailAccessToken();
     let emailSentSuccessfully = false;
     let emailErrorMessage = "";
@@ -279,9 +312,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       try {
         await sendStudentApprovalGmail(
           token,
-          currentUserEmail || "mazumderdiptanshu753@gmail.com",
+          currentUserEmail || "studyhub2026admin@gmail.com",
           req.email,
           req.fullName,
+          generatedPassword,
           req.targetExam
         );
         emailSentSuccessfully = true;
@@ -301,7 +335,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         body: JSON.stringify({
           reviewedBy: currentUserEmail,
           emailSent: emailSentSuccessfully,
-          emailError: emailSentSuccessfully ? undefined : emailErrorMessage
+          emailError: emailSentSuccessfully ? undefined : emailErrorMessage,
+          password: generatedPassword
         })
       });
 
@@ -309,18 +344,119 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         if (emailSentSuccessfully) {
           setApprovalSuccessMsg(
             isBengali
-              ? `🎉 চমৎকার! ${req.fullName}-এর আবেদন অনুমোদিত হয়েছে এবং ${currentUserEmail} থেকে সরাসরি অফিশিয়াল স্বাগতম ইমেইল পাঠানো হয়েছে!`
-              : `Success! ${req.fullName}'s request approved and welcome email sent directly via Gmail!`
+              ? `🎉 চমৎকার! ${req.fullName}-এর আবেদন অনুমোদিত হয়েছে এবং studyhub2026admin@gmail.com থেকে সরাসরি অফিশিয়াল স্বাগতম ইমেইল পাঠানো হয়েছে! (Password: ${generatedPassword})`
+              : `Success! ${req.fullName}'s request approved and welcome email sent directly from studyhub2026admin@gmail.com via Gmail! (Password: ${generatedPassword})`
           );
         } else {
+          const mailLinks = getStudentApprovalMailtoLink(req.email, req.fullName, generatedPassword, req.targetExam);
+          setRecentApprovedEmailAction({
+            name: req.fullName,
+            email: req.email,
+            webUrl: mailLinks.webUrl,
+            mailtoUrl: mailLinks.mailtoUrl,
+            plainBody: mailLinks.plainBody
+          });
           setApprovalSuccessMsg(
             isBengali
-              ? `✅ ${req.fullName}-এর অ্যাকাউন্ট অনুমোদিত হয়েছে! ${token ? `(ইমেইল বার্তা ত্রুটি: ${emailErrorMessage})` : "(জিমেইল সংযুক্ত না থাকায় মেইল যায়নি, তবে অ্যাকাউন্ট সক্রিয় হয়েছে)"}`
-              : `User approved! ${emailErrorMessage ? `Email failed: ${emailErrorMessage}` : "No Gmail session."}`
+              ? `✅ ${req.fullName}-এর অ্যাকাউন্ট অনুমোদিত হয়েছে! নিচে দেওয়া বোতামে চাপ দিয়ে সরাসরি ফোনের জিমেইল অ্যাপ থেকে অফিশিয়াল ইংরেজি ইমেইল পাঠাতে পারবেন।`
+              : `✅ ${req.fullName}'s account approved! Tap the buttons below to send the official English email from your phone.`
           );
         }
         setSelectedRequest(null);
         fetchRequests(true);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setApprovalErrorMsg(errData?.error || "অনুমোদন সম্পন্ন করা যায়নি।");
+      }
+    } catch (err: any) {
+      setApprovalErrorMsg("সার্ভার সংযোগ সমস্যা।");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleApproveAndOpenGmailApp = async (req: AccessRequest) => {
+    setIsApproving(true);
+    setApprovalErrorMsg(null);
+    const generatedPassword = req.password || Math.random().toString(36).substring(2, 10).toUpperCase();
+    try {
+      const res = await fetch(`/api/access-requests/${req.id}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          reviewedBy: currentUserEmail,
+          emailSent: true,
+          password: generatedPassword
+        })
+      });
+
+      if (res.ok) {
+        const mailLinks = getStudentApprovalMailtoLink(req.email, req.fullName, generatedPassword, req.targetExam);
+        setSelectedRequest(null);
+        fetchRequests(true);
+        setRecentApprovedEmailAction({
+          name: req.fullName,
+          email: req.email,
+          webUrl: mailLinks.webUrl,
+          mailtoUrl: mailLinks.mailtoUrl,
+          plainBody: mailLinks.plainBody
+        });
+        setApprovalSuccessMsg(
+          isBengali
+            ? `🎉 ${req.fullName}-এর অ্যাকাউন্ট অনুমোদিত হয়েছে! ফোনের জিমেইল অ্যাপ ওপেন হচ্ছে...`
+            : `🎉 ${req.fullName}'s account approved! Opening Gmail app...`
+        );
+        // Trigger native Gmail app
+        window.location.href = mailLinks.mailtoUrl;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setApprovalErrorMsg(errData?.error || "অনুমোদন সম্পন্ন করা যায়নি।");
+      }
+    } catch (err: any) {
+      setApprovalErrorMsg("সার্ভার সংযোগ সমস্যা।");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleApproveAndOpenGmailWeb = async (req: AccessRequest) => {
+    setIsApproving(true);
+    setApprovalErrorMsg(null);
+    const generatedPassword = req.password || Math.random().toString(36).substring(2, 10).toUpperCase();
+    try {
+      const res = await fetch(`/api/access-requests/${req.id}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-email": currentUserEmail
+        },
+        body: JSON.stringify({
+          reviewedBy: currentUserEmail,
+          emailSent: true,
+          password: generatedPassword
+        })
+      });
+
+      if (res.ok) {
+        const mailLinks = getStudentApprovalMailtoLink(req.email, req.fullName, generatedPassword, req.targetExam);
+        setSelectedRequest(null);
+        fetchRequests(true);
+        setRecentApprovedEmailAction({
+          name: req.fullName,
+          email: req.email,
+          webUrl: mailLinks.webUrl,
+          mailtoUrl: mailLinks.mailtoUrl,
+          plainBody: mailLinks.plainBody
+        });
+        setApprovalSuccessMsg(
+          isBengali
+            ? `🎉 ${req.fullName}-এর অ্যাকাউন্ট অনুমোদিত হয়েছে! জিমেইল ওয়েব পেজ ওপেন হচ্ছে...`
+            : `🎉 ${req.fullName}'s account approved! Opening Gmail Web...`
+        );
+        window.open(mailLinks.webUrl, "_blank");
       } else {
         const errData = await res.json().catch(() => ({}));
         setApprovalErrorMsg(errData?.error || "অনুমোদন সম্পন্ন করা যায়নি।");
@@ -586,8 +722,8 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                 </thead>
                 <tbody className={`divide-y ${theme.borderCard}`}>
                   {filteredUsers.map((user) => {
-                    const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
-                const isSuspended = user.isSuspended;
+                    const isPrimaryAdmin = isPermanentAdmin(user?.email);
+                    const isSuspended = user.isSuspended;
                     const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
 
                     return (
@@ -693,7 +829,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
             {/* Mobile View Card List */}
             <div className="block sm:hidden divide-y divide-slate-500/10">
               {filteredUsers.map((user) => {
-                const isPrimaryAdmin = (user?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+                const isPrimaryAdmin = isPermanentAdmin(user?.email);
                 const isSuspended = user.isSuspended;
                 const isSelf = (user?.email || "").trim().toLowerCase() === (currentUserEmail || "").trim().toLowerCase();
                 return (
@@ -794,87 +930,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       {activeTab === "requests" && (
         <motion.div variants={itemVariants} className="space-y-4">
           
-          {/* Gmail API Integration Status Card */}
-          <div className={`p-4 sm:p-5 rounded-2xl border ${theme.borderCard} ${theme.bgCard} shadow-sm space-y-3`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
-                  gmailTokenAvailable 
-                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
-                    : "bg-amber-500/10 text-amber-600 border border-amber-500/20 animate-pulse"
-                }`}>
-                  <Mail className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className={`text-sm sm:text-base font-black ${theme.textHeading}`}>
-                      {isBengali ? "গুগল জিমেইল ইন্টিগ্রেশন (Google Workspace)" : "Google Workspace Gmail Integration"}
-                    </h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                      gmailTokenAvailable 
-                        ? "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200" 
-                        : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200"
-                    }`}>
-                      {gmailTokenAvailable 
-                        ? (isBengali ? "সক্রিয় ও প্রস্তুত" : "Connected & Ready")
-                        : (isBengali ? "সংযোগ প্রয়োজন" : "Action Needed")}
-                    </span>
-                  </div>
-                  <p className={`text-xs ${theme.textMuted} font-semibold mt-0.5`}>
-                    {isBengali 
-                      ? "অ্যাডমিন ইমেইল (mazumderdiptanshu753@gmail.com) থেকে আবেদন অনুমোদন হলেই স্বয়ংক্রিয় অফিশিয়াল ইমেইল যাবে।"
-                      : "Official approval emails sent directly from mazumderdiptanshu753@gmail.com via Gmail API."}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {gmailTokenAvailable ? (
-                  <button
-                    type="button"
-                    onClick={handleConnectGmail}
-                    disabled={isConnectingGmail}
-                    className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isConnectingGmail ? "animate-spin" : ""}`} />
-                    <span>{isBengali ? "টোকেন রিফ্রেশ করুন" : "Refresh Token"}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleConnectGmail}
-                    disabled={isConnectingGmail}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-500 via-rose-500 to-amber-500 hover:from-red-600 hover:to-rose-600 text-white text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-md shadow-rose-500/20"
-                  >
-                    {isConnectingGmail ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>{isBengali ? "সংযুক্ত হচ্ছে..." : "Connecting..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" />
-                        <span>{isBengali ? "Google / Gmail সংযুক্ত করুন" : "Connect Admin Gmail"}</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* In-memory token notice */}
-            <div className="bg-slate-500/5 rounded-xl p-2.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
-                {isBengali 
-                  ? "নিরাপদ ক্লায়েন্ট-সাইড টোকেন: OAuth টোকেন মেমরিতে সংরক্ষিত থাকে এবং অনুমোদন পাঠানোর পর স্বয়ংক্রিয়ভাবে ব্যবহৃত হয়।"
-                  : "Secure in-memory token: Gmail API tokens are held transiently in memory per Google security guidelines."}
-              </span>
-              <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
-                mazumderdiptanshu753@gmail.com
-              </span>
-            </div>
-          </div>
 
           {/* Feedback messages */}
           <AnimatePresence>
@@ -917,6 +973,62 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                 >
                   ✕
                 </button>
+              </motion.div>
+            )}
+
+            {recentApprovedEmailAction && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="p-4 rounded-xl bg-gradient-to-r from-teal-500/10 via-indigo-500/10 to-blue-500/10 border border-teal-500/30 space-y-2.5 shadow-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-xs text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>{isBengali ? `${recentApprovedEmailAction.name}-এর অ্যাকাউন্ট সক্রিয় হয়েছে! 🎉` : `${recentApprovedEmailAction.name}'s Account Activated! 🎉`}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRecentApprovedEmailAction(null)}
+                    className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                  {isBengali 
+                    ? "মোবাইল থেকে সরাসরি ১-ট্যাপে অফিশিয়াল ইংরেজি ইমেইল পাঠাতে নিচের অপশন বেছে নিন:" 
+                    : "Send the official English welcome email directly from your phone:"}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <a
+                    href={recentApprovedEmailAction.mailtoUrl}
+                    className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>{isBengali ? "📱 ফোনে Gmail অ্যাপ খুলুন" : "Open Phone's Gmail App"}</span>
+                  </a>
+                  <a
+                    href={recentApprovedEmailAction.webUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    <span>{isBengali ? "🌐 জিমেইল ওয়েব পেজ" : "Open Gmail Web"}</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(recentApprovedEmailAction.plainBody);
+                      alert(isBengali ? "ইমেইল টেক্সট কপি করা হয়েছে!" : "Email text copied!");
+                    }}
+                    className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                  >
+                    📋 {isBengali ? "কপি মেসেজ" : "Copy Message"}
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1123,14 +1235,24 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                           )}
 
                           {isApproved && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRequest(req)}
-                              className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                            >
-                              <Send className="h-3 w-3 text-indigo-600" />
-                              <span>{isBengali ? "পুনরায় মেইল পাঠান" : "Resend Email"}</span>
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <a
+                                href={getStudentApprovalMailtoLink(req.email, req.fullName, req.targetExam).mailtoUrl}
+                                className="px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-400 text-xs font-bold flex items-center gap-1 transition"
+                                title="Open in Phone's Gmail App"
+                              >
+                                <Mail className="h-3.5 w-3.5 text-red-600" />
+                                <span>{isBengali ? "ফোনে Gmail" : "Gmail App"}</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRequest(req)}
+                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                              >
+                                <Send className="h-3 w-3 text-indigo-600" />
+                                <span>{isBengali ? "পুনরায় পাঠান" : "Resend"}</span>
+                              </button>
+                            </div>
                           )}
 
                           <button
@@ -1197,37 +1319,38 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                     <div className="flex justify-between py-1 border-b border-slate-200/50 dark:border-slate-800/50">
                       <span className="text-slate-500 font-bold">{isBengali ? "প্রেরক (From Gmail):" : "Sender Email:"}</span>
                       <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
-                        mazumderdiptanshu753@gmail.com
+                        studyhub2026admin@gmail.com
                       </span>
                     </div>
                     <div className="flex justify-between py-1">
                       <span className="text-slate-500 font-bold">{isBengali ? "ইমেইল বিষয় (Subject):" : "Email Subject:"}</span>
                       <span className="font-bold text-slate-700 dark:text-slate-300">
-                        স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট সফলভাবে অনুমোদিত হয়েছে 🎉
+                        Welcome to Study Hub! Your Account Has Been Approved 🎉
                       </span>
                     </div>
                   </div>
 
-                  {/* Gmail Connection warning if not connected */}
-                  {!gmailTokenAvailable && (
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs space-y-2">
-                      <p className="font-bold flex items-center gap-1.5">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>{isBengali ? "সরাসরি জিমেইল পাঠাতে আগে গুগল দিয়ে লগইন করুন" : "Connect Admin Gmail first to send official email"}</span>
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleConnectGmail}
-                        disabled={isConnectingGmail}
-                        className="w-full py-2 bg-gradient-to-r from-red-500 via-rose-500 to-amber-500 text-white rounded-lg font-black text-xs cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                      >
-                        <Mail className="h-3.5 w-3.5" />
-                        <span>{isBengali ? "এখনই Google / Gmail কানেক্ট করুন" : "Sign In with Google for Gmail"}</span>
-                      </button>
+                  {/* Credentials Preview */}
+                  <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-2">
+                    <h4 className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5" />
+                      <span>{isBengali ? "শিক্ষার্থীর লগইন তথ্য (Credentials)" : "Student Login Credentials"}</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">{isBengali ? "ইউজার আইডি:" : "User ID:"}</span>
+                        <div className="text-xs font-black text-slate-800 dark:text-slate-200 break-all">{selectedRequest.email}</div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">{isBengali ? "পাসওয়ার্ড:" : "Password:"}</span>
+                        <div className="text-xs font-mono font-black text-emerald-600 dark:text-emerald-400">
+                          {selectedRequest.password || "Auto-Generated ✨"}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Modal action buttons */}
+                  {/* Single 1-Click Automatic Approve & Send Option */}
                   <div className="pt-2 flex items-center justify-end gap-3">
                     <button
                       type="button"
@@ -1238,23 +1361,19 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleApproveAndSend(selectedRequest)}
+                      onClick={() => handleApproveAndOpenGmailApp(selectedRequest)}
                       disabled={isApproving}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer disabled:opacity-50"
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white text-xs font-black flex items-center gap-2 shadow-xl shadow-teal-600/30 transition cursor-pointer disabled:opacity-50"
                     >
                       {isApproving ? (
                         <>
                           <RefreshCw className="h-4 w-4 animate-spin" />
-                          <span>{isBengali ? "অনুমোদন ও মেইল পাঠানো হচ্ছে..." : "Sending Gmail & Approving..."}</span>
+                          <span>{isBengali ? "অনুমোদন ও অটো-মেইল পাঠানো হচ্ছে..." : "Approving & Sending Auto-Mail..."}</span>
                         </>
                       ) : (
                         <>
                           <Send className="h-4 w-4" />
-                          <span>
-                            {gmailTokenAvailable 
-                              ? (isBengali ? "অনুমোদন করুন ও জিমেইল পাঠান 🚀" : "Confirm & Send Gmail 🚀")
-                              : (isBengali ? "শুধুমাত্র অ্যাকাউন্ট অনুমোদন করুন" : "Approve Account Without Mail")}
-                          </span>
+                          <span>{isBengali ? "অনুমোদন করুন ও অটো-মেইল পাঠান 🚀" : "Approve & Send Auto-Mail 🚀"}</span>
                         </>
                       )}
                     </button>

@@ -70,6 +70,7 @@ export interface StudentProfile {
   avatarUrl?: string;
   role: "Admin" | "Student";
   isSuspended?: boolean;
+  password?: string;
 }
 
 export interface UserStats {
@@ -156,6 +157,18 @@ export interface AccessRequest {
   reviewedAt?: string;
   reviewedBy?: string;
   emailSent?: boolean;
+  password?: string;
 }
+
+export const PERMANENT_ADMIN_EMAILS = [
+  "studyhub2026admin@gmail.com",
+  "mazumderdiptanshu753@gmail.com"
+];
+
+export const isPermanentAdmin = (email?: string | null): boolean => {
+  if (!email) return false;
+  return PERMANENT_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+};
+
 
 

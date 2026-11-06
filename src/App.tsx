@@ -58,7 +58,7 @@ import ProfileSettings from "./components/ProfileSettings";
 import ServerWakeOverlay from "./components/ServerWakeOverlay";
 import AppUpdateOverlay from "./components/AppUpdateOverlay";
 import OfflineIndicator from "./components/OfflineIndicator";
-import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile } from "./types";
+import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile, isPermanentAdmin } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
 import { safeFetch } from "./lib/api";
@@ -113,7 +113,7 @@ export default function App() {
             parsed.avatarUrl = found.avatarUrl;
           }
         } else {
-          const isUserAdmin = (parsed?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com";
+          const isUserAdmin = isPermanentAdmin(parsed?.email);
           parsed.role = isUserAdmin ? "Admin" : "Student";
           parsed.avatarUrl = isUserAdmin ? "👑" : (parsed.avatarUrl || "🎓");
         }
@@ -184,12 +184,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setServerVersionInfo(data);
-        if (data.latestVersion && isNewerVersion(data.latestVersion, currentClientVersion)) {
-          // Automatic update: immediately trigger update process if not already updating
-          if (!isUpdatingApp) {
-            startUpdateProcess(data.latestVersion);
-          }
-        }
+        // Automatic full-screen update splash trigger removed per user request.
       }
     } catch (e) {
       console.warn("Failed to check app version:", e);
@@ -721,7 +716,7 @@ export default function App() {
     // Check maintenance mode on login attempt
     if (maintenanceMode) {
       if (!existingUser || existingUser.role !== "Admin") {
-        if (newProfile.email.trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com") {
+        if (!isPermanentAdmin(newProfile.email)) {
           alert(lang === "bn" ? "অ্যাপটিতে বর্তমানে রক্ষণাবেক্ষণ চলছে। শুধুমাত্র অ্যাডমিনরা এখন লগইন করতে পারবেন।" : "The app is currently under maintenance. Only Admins can login right now.");
           return;
         }
@@ -733,8 +728,8 @@ export default function App() {
       newProfile.avatarUrl = "👑";
     }
 
-    // Explicitly grant Admin role to the main user email
-    if ((newProfile?.email || "").trim().toLowerCase() === "mazumderdiptanshu753@gmail.com") {
+    // Explicitly grant Admin role to permanent admin accounts
+    if (isPermanentAdmin(newProfile?.email)) {
       newProfile.role = "Admin";
       newProfile.avatarUrl = "👑";
     }
