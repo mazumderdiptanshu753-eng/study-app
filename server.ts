@@ -1009,8 +1009,7 @@ app.post("/api/app-version", async (req, res) => {
     }
     const user = await getUserByEmail(emailToVerify);
     const isRootAdmin =
-      emailToVerify.toLowerCase() === "studyhub2026admin@gmail.com" ||
-      emailToVerify.toLowerCase() === "mazumderdiptanshu753@gmail.com";
+      emailToVerify.toLowerCase() === "studyhub2026admin@gmail.com";
     const isAdmin = isRootAdmin || (user && user.role === "Admin");
     if (!isAdmin) {
       return res
@@ -1571,7 +1570,7 @@ app.post("/api/chat/messages", async (req, res) => {
     } else {
       try {
         const allUsers = await getUsers();
-        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "studyhub2026admin@gmail.com" || u.email.toLowerCase() === "mazumderdiptanshu753@gmail.com");
+        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "studyhub2026admin@gmail.com");
         // Remove duplicates by email
         const uniqueAdmins = Array.from(new Map(admins.map(a => [a.email.toLowerCase(), a])).values());
         
@@ -2716,7 +2715,7 @@ app.post("/api/access-requests", async (req, res) => {
         title: "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
         message: `"${fullName}" (${normEmail}) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।`,
         type: "info",
-        userEmail: "mazumderdiptanshu753@gmail.com"
+        userEmail: "studyhub2026admin@gmail.com"
       });
     } catch (notifErr) {
       console.error("Failed to notify admin about new access request:", notifErr);
@@ -2732,7 +2731,7 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
   const { id } = req.params;
   const { reviewedBy, emailSent, password } = req.body;
   try {
-    const updated = await updateAccessRequestStatus(id, "approved", reviewedBy || "mazumderdiptanshu753@gmail.com");
+    const updated = await updateAccessRequestStatus(id, "approved", reviewedBy || "studyhub2026admin@gmail.com");
     if (!updated) {
       return res.status(404).json({ error: "Request not found" });
     }
@@ -2790,7 +2789,7 @@ app.post("/api/access-requests/:id/reject", async (req, res) => {
   const { id } = req.params;
   const { reviewedBy } = req.body;
   try {
-    const updated = await updateAccessRequestStatus(id, "rejected", reviewedBy || "mazumderdiptanshu753@gmail.com");
+    const updated = await updateAccessRequestStatus(id, "rejected", reviewedBy || "studyhub2026admin@gmail.com");
     if (!updated) {
       return res.status(404).json({ error: "Request not found" });
     }
@@ -2835,8 +2834,7 @@ app.post("/api/settings", async (req, res) => {
 
 // Admin Passcode Security Endpoints
 const PERMANENT_ADMIN_EMAILS = [
-  "studyhub2026admin@gmail.com",
-  "mazumderdiptanshu753@gmail.com"
+  "studyhub2026admin@gmail.com"
 ];
 
 app.post("/api/admin/verify-passcode", async (req, res) => {

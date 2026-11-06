@@ -609,16 +609,6 @@ export const PERMANENT_ADMINS = [
     avatarUrl: "👑",
     role: "Admin",
     isSuspended: false
-  },
-  {
-    email: "mazumderdiptanshu753@gmail.com",
-    fullName: "Diptanshu Mazumder",
-    grade: "Admin",
-    preferredSubject: "Computer Science",
-    registeredAt: "2026-01-01T00:00:00.000Z",
-    avatarUrl: "👑",
-    role: "Admin",
-    isSuspended: false
   }
 ];
 
