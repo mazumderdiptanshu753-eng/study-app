@@ -2730,7 +2730,7 @@ app.post("/api/access-requests", async (req, res) => {
 
 app.post("/api/access-requests/:id/approve", async (req, res) => {
   const { id } = req.params;
-  const { reviewedBy, emailSent } = req.body;
+  const { reviewedBy, emailSent, password } = req.body;
   try {
     const updated = await updateAccessRequestStatus(id, "approved", reviewedBy || "mazumderdiptanshu753@gmail.com");
     if (!updated) {
@@ -2738,17 +2738,14 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
     }
     if (emailSent !== undefined) {
       updated.emailSent = Boolean(emailSent);
-      await saveAccessRequest(updated);
     }
 
-    // Automatically generate a password if one isn't provided (e.g. from manual phone app flow)
-    const generatedPassword = updated.password || Math.random().toString(36).substring(2, 10).toUpperCase();
-    if (!updated.password) {
-      updated.password = generatedPassword;
-      await saveAccessRequest(updated);
-    }
+    // Use password from client request body if provided, otherwise updated.password, otherwise generate one
+    const generatedPassword = password || updated.password || Math.random().toString(36).substring(2, 10).toUpperCase();
+    updated.password = generatedPassword;
+    await saveAccessRequest(updated);
 
-    // Automatically create / ensure user profile in users collection
+    // Automatically create / ensure user profile in users collection with the exact generated password
     const normEmail = updated.email.trim().toLowerCase();
     const existingUser = await getUserByEmail(normEmail);
     if (!existingUser) {
@@ -2764,8 +2761,8 @@ app.post("/api/access-requests/:id/approve", async (req, res) => {
         avatarUrl: "🎓",
         role: "Student"
       });
-    } else if (!existingUser.password) {
-      // Ensure existing user gets the password if they don't have one
+    } else {
+      // Always update existing user's password to match the approved generated password
       existingUser.password = generatedPassword;
       await saveUser(existingUser);
     }
