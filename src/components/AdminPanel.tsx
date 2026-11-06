@@ -578,7 +578,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-12 px-1 sm:px-0"
+      className="space-y-4 sm:space-y-6 w-full max-w-full mx-auto pb-12 px-1 sm:px-4 overflow-x-hidden box-border"
     >
       
       {/* Header section with cleaner aesthetic */}
@@ -613,10 +613,10 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
       </motion.div>
 
       {/* Tabs */}
-      <motion.div variants={itemVariants} className={`flex flex-wrap p-1 ${theme.bgPage} rounded-xl mb-6 w-full sm:w-fit gap-1`}>
+      <motion.div variants={itemVariants} className={`flex overflow-x-auto whitespace-nowrap p-1 ${theme.bgPage} rounded-xl mb-6 w-full gap-1 no-scrollbar`}>
         <button
           onClick={() => setActiveTab("users")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all shrink-0 ${
             activeTab === "users" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -625,7 +625,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("requests")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all relative ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all relative shrink-0 ${
             activeTab === "requests" ? `${theme.bgCard} ${theme.textHeading} shadow-sm border border-indigo-500/20 text-indigo-600` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -639,7 +639,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("logs")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all shrink-0 ${
             activeTab === "logs" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -648,7 +648,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("settings")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all shrink-0 ${
             activeTab === "settings" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -657,7 +657,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("analytics")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all shrink-0 ${
             activeTab === "analytics" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -666,7 +666,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("moderation")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all shrink-0 ${
             activeTab === "moderation" ? `${theme.bgCard} ${theme.textHeading} shadow-sm` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
@@ -675,7 +675,7 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         </button>
         <button
           onClick={() => setActiveTab("updates")}
-          className={`flex items-center justify-center flex-1 sm:flex-none gap-2 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === "updates" ? `${theme.bgCard} ${theme.textHeading} shadow-sm border border-indigo-200 text-indigo-700` : `${theme.textMuted} hover:${theme.textHeading}`
           }`}
         >
