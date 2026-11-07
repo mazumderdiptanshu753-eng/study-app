@@ -4,6 +4,7 @@ var __name = (target, value) =>
 import express from "express";
 import path from "path";
 import fs from "fs";
+import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
@@ -1787,6 +1788,253 @@ app.delete("/api/users", async (req, res) => {
     res.json(usersList);
   } catch (error) {
     console.error("Error deleting user:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const otpStore: Record<string, { otp: string; expiresAt: number }> = {};
+
+async function sendOfficialOtpEmail(
+  toEmail: string,
+  studentName: string,
+  otp: string
+): Promise<{ success: boolean; method: string; error?: string }> {
+  const fromEmail = "studyhub2026admin@gmail.com";
+  const subject = `Your Study Hub Password Recovery OTP: ${otp}`;
+  const settings = await getSettings().catch(() => ({}));
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Study Hub - Password Recovery OTP</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(255,255,255,0.22); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;">
+        🎓 STUDY HUB OFFICIAL PORTAL
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 900; line-height: 1.2;">
+        Password Recovery Request 🔑
+      </h1>
+    </div>
+
+    <div style="padding: 32px 28px;">
+      <h2 style="margin: 0 0 14px 0; color: #0f172a; font-size: 18px; font-weight: 800;">
+        Dear ${studentName || "Student"},
+      </h2>
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+        We received a request to recover your account password for <strong>Study Hub</strong>. Please use the following <strong>6-digit One-Time Password (OTP)</strong> to verify your identity and view your password:
+      </p>
+
+      <div style="background: #f8fafc; border: 2px dashed #6366f1; border-radius: 16px; padding: 22px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+          Your One-Time Password (OTP)
+        </span>
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 6px; color: #4338ca; display: inline-block;">
+          ${otp}
+        </span>
+        <span style="font-size: 11px; font-weight: 600; color: #ef4444; display: block; margin-top: 8px;">
+          ⏱️ This OTP code is valid for 10 minutes only.
+        </span>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.6;">
+        🛡️ <strong>Security Tip:</strong> Never share this code with anyone. Study Hub administrators will never ask for your password or OTP. If you did not initiate this request, you can safely ignore this email.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: #64748b;">
+        Study Hub Official Administration &bull; <a href="mailto:${fromEmail}" style="color: #4f46e5; text-decoration: none;">${fromEmail}</a>
+      </p>
+      <p style="margin: 0;">&copy; 2026 Study Hub. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  // 1. Try Gmail API if admin has connected Gmail
+  if (settings.adminGmailToken) {
+    try {
+      const encodedSubject = `=?utf-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+      const emailLines = [
+        `From: Study Hub Official Administration <${fromEmail}>`,
+        `To: ${toEmail}`,
+        `Subject: ${encodedSubject}`,
+        "MIME-Version: 1.0",
+        "Content-Type: text/html; charset=utf-8",
+        "Content-Transfer-Encoding: base64",
+        "",
+        Buffer.from(htmlBody, "utf-8").toString("base64")
+      ];
+      const raw = Buffer.from(emailLines.join("\r\n"), "utf-8")
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+      const gRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${settings.adminGmailToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ raw })
+      });
+
+      if (gRes.ok) {
+        console.log(`[Gmail API] OTP sent successfully to ${toEmail}`);
+        return { success: true, method: "gmail_api" };
+      } else {
+        const errJson = await gRes.json().catch(() => ({}));
+        console.warn("[Gmail API] Send failed:", errJson);
+      }
+    } catch (e: any) {
+      console.warn("[Gmail API] Error:", e.message);
+    }
+  }
+
+  // 2. Try Gmail SMTP / App Password if configured
+  const appPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+  if (appPassword) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: fromEmail,
+          pass: appPassword
+        }
+      });
+      await transporter.sendMail({
+        from: `"Study Hub Official Administration" <${fromEmail}>`,
+        to: toEmail,
+        subject: subject,
+        html: htmlBody
+      });
+      console.log(`[Nodemailer SMTP] OTP sent successfully to ${toEmail}`);
+      return { success: true, method: "smtp" };
+    } catch (e: any) {
+      console.warn("[Nodemailer SMTP] Error:", e.message);
+    }
+  }
+
+  return { success: false, method: "none" };
+}
+
+app.post("/api/admin/save-gmail-token", async (req, res) => {
+  const { token, email } = req.body;
+  if (!token) return res.status(400).json({ error: "Token is required" });
+  try {
+    await updateSettings({
+      adminGmailToken: token,
+      adminGmailUser: email || "studyhub2026admin@gmail.com",
+      adminGmailTokenUpdatedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/admin/save-gmail-app-password", async (req, res) => {
+  const { appPassword } = req.body;
+  try {
+    await updateSettings({
+      adminGmailAppPassword: (appPassword || "").trim(),
+      adminGmailAppPasswordUpdatedAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/send-otp", async (req, res) => {
+  const { email, gmailToken, appPassword } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+  const normEmail = email.trim().toLowerCase();
+  try {
+    const user = await getUserByEmail(normEmail);
+    if (!user) {
+      return res.status(404).json({ error: "No registered account found for this email address." });
+    }
+
+    // Save token or app password if supplied in request
+    if (gmailToken) {
+      await updateSettings({
+        adminGmailToken: gmailToken,
+        adminGmailUser: "studyhub2026admin@gmail.com",
+        adminGmailTokenUpdatedAt: new Date().toISOString()
+      });
+    }
+    if (appPassword) {
+      await updateSettings({
+        adminGmailAppPassword: appPassword.trim(),
+        adminGmailAppPasswordUpdatedAt: new Date().toISOString()
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore[normEmail] = {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
+    };
+    console.log(`[OTP Generated] Email: ${normEmail}, OTP: ${otp}`);
+
+    // Send email from studyhub2026admin@gmail.com to student's email
+    const emailResult = await sendOfficialOtpEmail(normEmail, user.fullName || "Student", otp);
+
+    // Also trigger in-app notification backup
+    try {
+      await createNotification({
+        title: "🔑 Password Recovery OTP",
+        message: `Your password recovery OTP verification code is: ${otp}. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).`,
+        type: "info",
+        userEmail: normEmail
+      });
+    } catch (nErr) {
+      console.error("Failed to send OTP notification:", nErr);
+    }
+
+    res.json({
+      success: true,
+      emailDelivered: emailResult.success,
+      needsGmailAuth: !emailResult.success,
+      method: emailResult.method,
+      message: emailResult.success
+        ? "Official OTP verification code sent directly to your email inbox from studyhub2026admin@gmail.com."
+        : "Official email dispatcher requires Google authorization or App Password to send from studyhub2026admin@gmail.com."
+    });
+  } catch (error: any) {
+    console.error("Error sending OTP:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/verify-otp-and-reveal", async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
+  const normEmail = email.trim().toLowerCase();
+  const record = otpStore[normEmail];
+  if (!record || record.expiresAt < Date.now()) {
+    return res.status(400).json({ error: "OTP expired or invalid. Please request a new OTP." });
+  }
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ error: "Incorrect OTP code. Please try again." });
+  }
+  try {
+    const user = await getUserByEmail(normEmail);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    delete otpStore[normEmail];
+    res.json({ success: true, password: user.password || "No password set" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
     res.status(500).json({ error: error.message });
   }
 });

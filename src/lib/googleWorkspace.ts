@@ -298,3 +298,91 @@ ${OFFICIAL_ADMIN_SENDER_EMAIL}`;
 
   return { subject, plainBody, webUrl, mailtoUrl };
 }
+
+// Send official OTP verification email via Gmail API
+export async function sendOfficialOtpViaGmailApi(
+  accessToken: string,
+  studentEmail: string,
+  studentName: string,
+  otp: string
+): Promise<{ success: boolean; messageId?: string }> {
+  const senderEmail = OFFICIAL_ADMIN_SENDER_EMAIL;
+  const subject = `Your Study Hub Password Recovery OTP: ${otp}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Hub - Password Recovery OTP</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6;">
+  <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(255,255,255,0.22); padding: 6px 16px; border-radius: 30px; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;">
+        🎓 STUDY HUB OFFICIAL DISPATCH
+      </div>
+      <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.5px;">
+        Password Recovery Verification 🔑
+      </h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.92; font-size: 13px;">
+        Official security code for your account recovery
+      </p>
+    </div>
+
+    <div style="padding: 28px 24px;">
+      <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #0f172a; font-weight: 800;">
+        Hello ${studentName || "Student"},
+      </h2>
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+        A password recovery request was initiated for your Study Hub account (<strong style="color: #4f46e5;">${studentEmail}</strong>). Please use the following official One-Time Password (OTP) to view your existing account password:
+      </p>
+
+      <div style="background: #f8fafc; border: 2px dashed #6366f1; border-radius: 16px; padding: 22px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
+          Your One-Time Password (OTP)
+        </span>
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 6px; color: #4338ca; display: inline-block;">
+          ${otp}
+        </span>
+        <span style="font-size: 11px; font-weight: 600; color: #ef4444; display: block; margin-top: 8px;">
+          ⏱️ This OTP code is valid for 10 minutes only.
+        </span>
+      </div>
+
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.6;">
+        🛡️ <strong>Security Tip:</strong> Never share this code with anyone. Study Hub administrators will never ask for your password or OTP. If you did not initiate this request, you can safely ignore this email.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: #64748b;">
+        Study Hub Official Administration &bull; <a href="mailto:${senderEmail}" style="color: #4f46e5; text-decoration: none;">${senderEmail}</a>
+      </p>
+      <p style="margin: 0;">&copy; 2026 Study Hub. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const raw = encodeBase64UrlEmail(studentEmail, senderEmail, subject, htmlBody);
+  const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ raw })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData?.error?.message || `Gmail API returned ${response.status}`);
+  }
+
+  const data = await response.json();
+  return { success: true, messageId: data.id };
+}
+

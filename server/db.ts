@@ -59,6 +59,14 @@ function loadLocalDB() {
       console.error("Failed to load local db.json:", e);
     }
   }
+  // Purge mazumderdiptanshu753@gmail.com so user can register fresh as student
+  if (localDB.users) {
+    localDB.users = localDB.users.filter((u: any) => (u.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
+  }
+  if (localDB.accessRequests) {
+    localDB.accessRequests = localDB.accessRequests.filter((r: any) => (r.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
+  }
+  saveLocalDB();
 }
 loadLocalDB();
 
@@ -346,8 +354,8 @@ export async function initDatabase(): Promise<boolean> {
 
   if (!pool) return false;
   
-  let retries = 5;
-  let delay = 2000;
+  let retries = 2;
+  let delay = 1000;
   let client = null;
   
   while (retries > 0) {
@@ -359,7 +367,8 @@ export async function initDatabase(): Promise<boolean> {
       retries--;
       console.log(`PostgreSQL connection attempt failed. Retries remaining: ${retries}. Error: ${err.message}`);
       if (retries === 0) {
-        console.log("Failed to initialize PostgreSQL after 5 attempts. Keeping pool registered but falling back to local DB for this startup run if necessary.");
+        console.log("Failed to initialize PostgreSQL. Disabling PostgreSQL pool and running with local db.json & Firestore.");
+        pool = null;
         return false;
       }
       await new Promise(resolve => setTimeout(resolve, delay));

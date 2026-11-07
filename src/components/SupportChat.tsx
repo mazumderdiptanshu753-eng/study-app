@@ -11,7 +11,7 @@ import {
   MessageCircle,
   AlertCircle
 } from "lucide-react";
-import { StudentProfile, ChatMessage } from "../types";
+import { StudentProfile, ChatMessage, isPermanentAdmin } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 
@@ -32,9 +32,23 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
   const [selectedStudentEmail, setSelectedStudentEmail] = useState<string | null>(null);
   const [adminSearchTerm, setAdminSearchTerm] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const isAdmin = profile.role === "Admin";
+  const [allUsers, setAllUsers] = useState<StudentProfile[]>([]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetch("/api/users")
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setAllUsers(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAdmin]);
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const isAdmin = profile.role === "Admin";
 
   // Fetch messages from backend
   const fetchMessages = async (silent = false) => {
@@ -125,10 +139,24 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
       unreadCount: number;
     }> = {};
 
+    // 1. Add all registered users (skip self)
+    allUsers.forEach(u => {
+      const emailKey = (u.email || "").toLowerCase().trim();
+      const myEmail = (profile.email || "").toLowerCase().trim();
+      if (!emailKey || emailKey === myEmail) return;
+      groups[emailKey] = {
+        studentEmail: u.email,
+        studentName: u.fullName || "User",
+        lastMessage: lang === "bn" ? "নতুন চ্যাট শুরু করুন..." : "Start a conversation...",
+        lastTimestamp: u.registeredAt || new Date().toISOString(),
+        unreadCount: 0
+      };
+    });
+
+    // 2. Overlay with messages
     messages.forEach(msg => {
       const emailKey = (msg.studentEmail || "").toLowerCase().trim();
       if (!emailKey) return;
-      // Only keep track of student conversations
       if (!groups[emailKey]) {
         groups[emailKey] = {
           studentEmail: msg.studentEmail || "",
@@ -141,7 +169,7 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
         // Update to latest message
         const currentTimestamp = msg.timestamp ? new Date(msg.timestamp).getTime() : 0;
         const lastTimestamp = groups[emailKey].lastTimestamp ? new Date(groups[emailKey].lastTimestamp).getTime() : 0;
-        if (currentTimestamp > lastTimestamp) {
+        if (currentTimestamp > lastTimestamp || groups[emailKey].lastMessage === "Start a conversation..." || groups[emailKey].lastMessage === "নতুন চ্যাট শুরু করুন...") {
           groups[emailKey].lastMessage = msg.message || "";
           groups[emailKey].lastTimestamp = msg.timestamp || new Date().toISOString();
         }
@@ -240,12 +268,21 @@ export default function SupportChat({ profile, lang, theme }: SupportChatProps) 
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900 truncate block">{c.studentName}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs font-bold text-slate-900 truncate block">{c.studentName}</span>
+                          {isPermanentAdmin(c.studentEmail) && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 text-[7px] font-black uppercase tracking-wider shrink-0">
+                              ✓ Official Verified
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-teal-700 shrink-0 font-semibold">
                           {new Date(c.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-2xs text-slate-500 truncate block font-mono">{c.studentEmail}</p>
+                      <p className="text-2xs text-slate-500 truncate block font-mono">
+                        {isPermanentAdmin(c.studentEmail) && !isAdmin ? (lang === "bn" ? "অফিশিয়াল সাপোর্ট চ্যানেল" : "Official Support Channel") : c.studentEmail}
+                      </p>
                       <p className="text-2xs text-slate-600 truncate block font-medium mt-0.5 leading-normal">
                         {c.lastMessage}
                       </p>

@@ -5,7 +5,7 @@ import {
   Mail, Activity, LogIn, LogOut, Trash2, Settings, BarChart2, ShieldAlert, TrendingUp, 
   Star, Ban, ArrowUpCircle, RefreshCcw, RefreshCw, Sparkles, CheckCircle, Rocket, Zap,
   UserPlus, CheckCircle2, Clock, XCircle, Send, AlertTriangle, ExternalLink, Filter, Phone, Building, Check,
-  Lock, Key, Eye, EyeOff
+  Lock, Key, Eye, EyeOff, MessageSquareShare
 } from "lucide-react";
 import { StudentProfile, AccessRequest, isPermanentAdmin } from "../types";
 import { Language } from "../lib/translations";
@@ -38,7 +38,58 @@ interface ActivityLog {
   timestamp: string;
 }
 
-export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSuspendUser, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
+export default function AdminPanel({ lang, users: propUsers, onToggleAdminRole, onToggleSuspendUser, onDeleteUser, currentUserEmail, theme, currentAppVersion }: AdminPanelProps) {
+  const [users, setUsers] = useState<StudentProfile[]>(propUsers && propUsers.length > 0 ? propUsers : [
+    {
+      fullName: "Study Hub Official Admin",
+      email: "studyhub2026admin@gmail.com",
+      age: "24",
+      institution: "Study Hub Official Administration",
+      grade: "High School",
+      preferredSubject: "Mathematics",
+      registeredAt: "2026-01-01T00:00:00.000Z",
+      avatarUrl: "👑",
+      role: "Admin"
+    },
+    {
+      fullName: "Diptanshu Mazumder",
+      email: "mazumderdiptanshu753@gmail.com",
+      age: "20",
+      institution: "Ranaghat",
+      grade: "High School",
+      preferredSubject: "Mathematics",
+      registeredAt: "2026-11-06T12:50:08.577Z",
+      avatarUrl: "👑",
+      role: "Admin"
+    },
+    {
+      fullName: "Anwit Chaki",
+      email: "anwitchaki@gmail.com",
+      age: "20",
+      institution: "Birnagar",
+      grade: "High School",
+      preferredSubject: "Mathematics",
+      registeredAt: "2026-11-06T12:57:48.121Z",
+      avatarUrl: "👑",
+      role: "Admin"
+    }
+  ]);
+
+  useEffect(() => {
+    if (propUsers && propUsers.length > 0) {
+      setUsers(propUsers);
+    } else {
+      fetch("/api/users")
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setUsers(data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [propUsers]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "requests" | "logs" | "settings" | "analytics" | "moderation" | "updates">("users");
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -136,9 +187,47 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
         if (data && typeof data.maintenanceMode === 'boolean') {
           setMaintenanceMode(data.maintenanceMode);
         }
+        if (data && data.adminGmailAppPassword) {
+          setAdminAppPasswordInput(data.adminGmailAppPassword);
+        }
+        if (data && data.adminGmailToken) {
+          setGmailTokenAvailable(true);
+          if (data.adminGmailUser) setAdminGmailUser(data.adminGmailUser);
+        }
       })
       .catch(e => console.warn("Failed to fetch settings (transient network or server restart):", e));
   }, []);
+
+  // Admin Gmail Automated Dispatch state
+  const [adminAppPasswordInput, setAdminAppPasswordInput] = useState("");
+  const [isSavingAppPassword, setIsSavingAppPassword] = useState(false);
+  const [appPasswordSuccessMsg, setAppPasswordSuccessMsg] = useState<string | null>(null);
+
+  const handleSaveAppPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAppPassword(true);
+    setAppPasswordSuccessMsg(null);
+    try {
+      const res = await fetch("/api/admin/save-gmail-app-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appPassword: adminAppPasswordInput.trim() })
+      });
+      if (res.ok) {
+        setAppPasswordSuccessMsg(
+          isBengali
+            ? "গুগল অ্যাপ পাসওয়ার্ড সংরক্ষিত হয়েছে! এখন থেকে যেকোনো শিক্ষার্থীর ওটিপি ও অনুমোদন মেইল studyhub2026admin@gmail.com থেকে স্বয়ংক্রিয়ভাবে প্রেরিত হবে।"
+            : "Google App Password saved! OTP and notification emails will now be automatically sent from studyhub2026admin@gmail.com."
+        );
+      } else {
+        alert("Failed to save App Password.");
+      }
+    } catch {
+      alert("Failed to save App Password.");
+    } finally {
+      setIsSavingAppPassword(false);
+    }
+  };
 
   // App Release Update states
   const [newVersion, setNewVersion] = useState("");
@@ -261,13 +350,25 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
     setIsConnectingGmail(true);
     setApprovalErrorMsg(null);
     try {
-      const { user } = await signInWithGoogleForGmail();
+      const { user, accessToken } = await signInWithGoogleForGmail();
       setGmailTokenAvailable(true);
       setAdminGmailUser(user.email || currentUserEmail);
+
+      // Save token to backend so automatic OTP and approval emails send directly from studyhub2026admin@gmail.com
+      try {
+        await fetch("/api/admin/save-gmail-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: accessToken, email: user.email || currentUserEmail })
+        });
+      } catch (tErr) {
+        console.warn("Failed to sync Gmail token to backend:", tErr);
+      }
+
       setApprovalSuccessMsg(
         isBengali 
-          ? `জিমেইল সফলভাবে সংযুক্ত হয়েছে (${user.email || currentUserEmail})! এখন আপনি আবেদন অনুমোদন করতে পারবেন এবং সরাসরি মেইল পাঠাতে পারবেন।` 
-          : `Gmail successfully connected (${user.email || currentUserEmail})!`
+          ? `জিমেইল সফলভাবে সংযুক্ত হয়েছে (${user.email || currentUserEmail})! এখন আপনি আবেদন অনুমোদন করতে পারবেন এবং স্টুডেন্টদের অটোমেটিক ওটিপি মেইল যাবে।` 
+          : `Gmail successfully connected (${user.email || currentUserEmail})! Automated emails & OTPs will now be sent from this account.`
       );
     } catch (err: any) {
       const errCode = err?.code || "";
@@ -732,8 +833,15 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                         {/* Name and Email */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
-                            <div className="min-w-0">
-                              <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                            <div className="min-w-0 space-y-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                                {isPermanentAdmin(user.email) && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 text-[8px] font-black uppercase tracking-wider shadow-2xs">
+                                    ✓ Official Verified
+                                  </span>
+                                )}
+                              </div>
                               <span className={`text-[10px] ${theme.textMuted} font-medium block break-all sm:max-w-xs`}>{user.email}</span>
                             </div>
                           </div>
@@ -836,8 +944,15 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                   <div key={user?.email || Math.random().toString()} className="p-4 space-y-3">
                     {/* User basic info */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`font-bold text-xs ${theme.textHeading} block break-words`}>{user.fullName}</span>
+                          {isPermanentAdmin(user.email) && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 text-[8px] font-black uppercase tracking-wider shadow-2xs">
+                              ✓ Official Verified
+                            </span>
+                          )}
+                        </div>
                         <span className={`text-[10px] ${theme.textMuted} font-medium block break-all`}>{user.email}</span>
                       </div>
                       <div className="shrink-0">
@@ -1752,6 +1867,119 @@ export default function AdminPanel({ lang, users, onToggleAdminRole, onToggleSus
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* Official Email Dispatcher Card */}
+          <div className={`${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-sm overflow-hidden p-5 sm:p-6 space-y-4`}>
+            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className={`text-base font-black ${theme.textHeading}`}>
+                    {isBengali ? "অফিশিয়াল জিমেইল প্রেরক কনফিগারেশন" : "Official Gmail Dispatcher Settings"}
+                  </h3>
+                  <p className={`text-xs ${theme.textMuted} font-medium`}>
+                    {isBengali 
+                      ? "পাসওয়ার্ড রিকভারি ওটিপি (OTP) ও অনুমোদন ইমেইল স্বয়ংক্রিয়ভাবে প্রেরণের ব্যবস্থা।" 
+                      : "Automated OTP and approval emails dispatching configuration."}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-2xs font-extrabold uppercase border ${
+                gmailTokenAvailable || adminAppPasswordInput
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+              }`}>
+                {gmailTokenAvailable || adminAppPasswordInput 
+                  ? (isBengali ? "সক্রিয় (Active)" : "Active") 
+                  : (isBengali ? "অসম্পূর্ণ (Setup Needed)" : "Setup Needed")}
+              </span>
+            </div>
+
+            {/* Quick Status */}
+            <div className="p-3.5 rounded-xl bg-slate-500/5 border border-slate-200/60 dark:border-slate-800/60 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-500">Official Sender:</span>
+                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">studyhub2026admin@gmail.com</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-500">Google Workspace OAuth:</span>
+                <span className={`font-bold ${gmailTokenAvailable ? "text-emerald-600" : "text-amber-500"}`}>
+                  {gmailTokenAvailable ? "✅ Connected" : "⚠️ Not Connected"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-500">Google App Password (SMTP):</span>
+                <span className={`font-bold ${adminAppPasswordInput ? "text-emerald-600" : "text-slate-400"}`}>
+                  {adminAppPasswordInput ? "✅ Configured (24/7 Background Sending)" : "Not Set"}
+                </span>
+              </div>
+            </div>
+
+            {/* Option 1: 1-Click Connect Gmail */}
+            <div className="p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black text-indigo-950 dark:text-indigo-200 uppercase tracking-wider">
+                    {isBengali ? "১. গুগল সাইন-ইন দিয়ে সরাসরি কানেক্ট করুন" : "1. Connect directly with Google Sign-in"}
+                  </h4>
+                  <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80 mt-0.5">
+                    {isBengali 
+                      ? "১ ক্লিকে studyhub2026admin@gmail.com কানেক্ট করে স্বয়ংক্রিয় ওটিপি মেইল সক্রিয় করুন।"
+                      : "1-Click authorization with studyhub2026admin@gmail.com."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleConnectGmail}
+                  disabled={isConnectingGmail}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  <span>{isBengali ? "Connect Admin Gmail" : "Connect Admin Gmail"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Option 2: 16-character Google App Password (Permanent 24/7 background dispatch) */}
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-500/5 space-y-3">
+              <div>
+                <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                  {isBengali ? "২. অথবা গুগল অ্যাপ পাসওয়ার্ড (App Password) সেট করুন" : "2. Or set Google App Password (24/7 Background Sending)"}
+                </h4>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  {isBengali 
+                    ? "গুগল অ্যাকাউন্ট সিকিউরিটি থেকে একটি ১৬-সংখ্যার অ্যাপ পাসওয়ার্ড তৈরি করে এখানে সংরক্ষণ করতে পারেন, যাতে ওটিপি মেইল নিরবচ্ছিন্নভাবে প্রেরিত হয়।"
+                    : "Add a 16-character Google App Password so background OTP emails send 24/7 without session timeouts."}
+                </p>
+              </div>
+
+              {appPasswordSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  {appPasswordSuccessMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAppPassword} className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  type="password"
+                  value={adminAppPasswordInput}
+                  onChange={(e) => setAdminAppPasswordInput(e.target.value)}
+                  placeholder="xxxx xxxx xxxx xxxx"
+                  className={`flex-1 ${theme.bgPage} px-3.5 h-10 rounded-xl border ${theme.borderCard} text-xs font-mono font-bold ${theme.textMain} focus:outline-none focus:border-indigo-500`}
+                />
+                <button
+                  type="submit"
+                  disabled={isSavingAppPassword || !adminAppPasswordInput.trim()}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isSavingAppPassword ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                  <span>{isBengali ? "পাসওয়ার্ড সেভ করুন" : "Save App Password"}</span>
+                </button>
+              </form>
+            </div>
           </div>
 
         </motion.div>

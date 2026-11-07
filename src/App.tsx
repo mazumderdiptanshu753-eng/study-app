@@ -84,13 +84,36 @@ export default function App() {
     const local = localStorage.getItem("registered_users");
     if (local) {
       try {
-        return JSON.parse(local);
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         // ignore
       }
     }
-    // Preload sample students to make admin list view useful immediately
-    const preloaded: StudentProfile[] = [];
+    const preloaded: StudentProfile[] = [
+      {
+        fullName: "Study Hub Official Admin",
+        email: "studyhub2026admin@gmail.com",
+        age: "24",
+        institution: "Study Hub Official Administration",
+        grade: "High School",
+        preferredSubject: "Mathematics",
+        registeredAt: "2026-01-01T00:00:00.000Z",
+        avatarUrl: "👑",
+        role: "Admin"
+      },
+      {
+        fullName: "Anwit Chaki",
+        email: "anwitchaki@gmail.com",
+        age: "20",
+        institution: "Birnagar",
+        grade: "High School",
+        preferredSubject: "Mathematics",
+        registeredAt: "2026-11-06T12:57:48.121Z",
+        avatarUrl: "👑",
+        role: "Admin"
+      }
+    ];
     localStorage.setItem("registered_users", JSON.stringify(preloaded));
     return preloaded;
   });
@@ -315,9 +338,10 @@ export default function App() {
       const res = await safeFetch("/api/users", undefined, 3, 1000);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setUsers(data);
-          localStorage.setItem("registered_users", JSON.stringify(data));
+        if (Array.isArray(data)) {
+          const finalData = data.length > 0 ? data : users;
+          setUsers(finalData);
+          localStorage.setItem("registered_users", JSON.stringify(finalData));
           
           if (profile) {
             const matched = data.find((u: StudentProfile) => (u?.email || "").trim().toLowerCase() === (profile?.email || "").trim().toLowerCase());
