@@ -22,7 +22,12 @@ import {
   GraduationCap,
   Sparkles,
   Send,
-  AlertTriangle
+  AlertTriangle,
+  BookOpen,
+  Video,
+  BrainCircuit,
+  Copy,
+  Check
 } from "lucide-react";
 import { StudentProfile, isPermanentAdmin } from "../types";
 import AppLogo from "./AppLogo";
@@ -449,13 +454,13 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
         })
       });
 
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setSignupSuccess(true);
       } else {
-        const data = await res.json().catch(() => ({}));
         setNotice({
           type: "error",
-          message: data?.error || (isBengali ? "আবেদন জমা দেওয়া যায়নি।" : "Failed to submit sign up request.")
+          message: data?.error || (isBengali ? "রেজিস্ট্রেশন সম্পন্ন করা যায়নি।" : "Failed to register student.")
         });
       }
     } catch (err) {
@@ -470,44 +475,134 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
   return (
     <div className="w-full flex items-center justify-center py-2 px-1 sm:py-6 sm:px-4">
-      <div className={`max-w-md w-full ${theme.bgCard} rounded-2xl border ${theme.borderCard} shadow-xl overflow-hidden transition-all duration-300 relative mx-auto`}>
+      <div className={`w-full max-w-md md:max-w-4xl lg:max-w-5xl ${theme.bgCard} rounded-3xl border ${theme.borderCard} shadow-2xl overflow-hidden transition-all duration-300 relative mx-auto flex flex-col md:flex-row`}>
         
-        {/* Dynamic Header Brand Banner */}
-        <div className={`bg-gradient-to-r ${theme.heroGradient} px-4 py-3.5 sm:px-6 sm:py-4.5 text-slate-900 text-center relative overflow-hidden border-b ${theme.borderCard}`}>
-          <div className="absolute right-0 top-0 w-24 h-24 bg-white/30 rounded-full blur-xl"></div>
-          <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-100/40 rounded-full blur-xl"></div>
-          
-          <div className="relative z-10 flex flex-col items-center gap-1">
-            <div className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/10 px-2.5 py-0.5 text-[9px] sm:text-xs font-black text-teal-900 border border-teal-500/20 select-none">
-              <AppLogo size="sm" className="bg-transparent shadow-none h-4 w-4 animate-pulse" />
-              <span>{isBengali ? "স্টাডি হাব পোর্টাল" : "Study Hub Portal"}</span>
+        {/* Left Side: Desktop Feature & Brand Showcase Panel (Visible on md: and above) */}
+        <div className={`hidden md:flex md:w-5/12 lg:w-5/12 flex-col justify-between p-7 lg:p-9 bg-gradient-to-br ${theme.heroGradient} border-b md:border-b-0 md:border-r ${theme.borderCard} relative overflow-hidden text-slate-900 shrink-0`}>
+          {/* Decorative Glowing Circles */}
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/40 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-teal-200/50 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Top Section */}
+          <div className="relative z-10 space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-xl bg-white/80 dark:bg-white/90 backdrop-blur-md px-3.5 py-1 text-xs font-black text-slate-900 border border-white/50 shadow-xs select-none">
+              <AppLogo size="sm" className="bg-transparent shadow-none h-4 w-4" />
+              <span>STUDY HUB ACADEMIC PORTAL</span>
             </div>
-            
-            <h1 className="text-base sm:text-lg font-black tracking-tight leading-tight text-slate-950 mt-0.5">
-              {authMode === "login"
-                ? (isBengali ? "স্টাডি হাবে লগইন করুন" : "Log In to Study Hub")
-                : (isBengali ? "নতুন শিক্ষার্থী সাইন আপ" : "Student Sign Up")
-              }
-            </h1>
-            
-            <p className="text-[10px] sm:text-[11px] text-slate-800 max-w-xs font-bold leading-tight">
-              {authMode === "login"
-                ? (isBengali 
-                    ? "অনুমোদিত শিক্ষার্থী বা অ্যাডমিন ইমেইল দিয়ে প্রবেশ করুন" 
-                    : "Enter your approved email to access your study desk")
-                : (isBengali 
-                    ? "অ্যাডমিন অনুমোদনের জন্য তথ্য দিয়ে সাইন আপ করুন" 
-                    : "Submit your details for official admission & approval")
-              }
-            </p>
+
+            <div className="space-y-1.5">
+              <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-tight text-slate-950">
+                {isBengali ? "স্মার্ট পড়াশোনা, নিশ্চিত সাফল্য 🚀" : "Empowering Your Academic Journey 🚀"}
+              </h1>
+              <p className="text-xs lg:text-sm text-slate-800 font-semibold leading-relaxed">
+                {isBengali 
+                  ? "AI ডাউট সলভার, ভিডিও লেকচার, বিষয়ভিত্তিক স্টাডি নোটস ও ইন্টারঅ্যাক্টিভ ফ্ল্যাশকার্ড—আপনার শিক্ষা হোক সহজ ও আনন্দময়।"
+                  : "All-in-one student workspace featuring AI Doubt Solver, Video Lectures, Comprehensive Notes & Community Discussions."}
+              </p>
+            </div>
+
+            {/* Feature Bullets */}
+            <div className="pt-2 space-y-2.5">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 backdrop-blur-xs border border-white/40">
+                <div className="h-8 w-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <BrainCircuit className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-950">
+                    {isBengali ? "AI ডাউট সলভার" : "AI Doubt Solver"}
+                  </h4>
+                  <p className="text-[11px] font-medium text-slate-700">
+                    {isBengali ? "ধাপে ধাপে দ্রুত সমাধান ও ব্যাখ্যা" : "Instant step-by-step problem solver"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 backdrop-blur-xs border border-white/40">
+                <div className="h-8 w-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <BookOpen className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-950">
+                    {isBengali ? "ডিজিটাল স্টাডি ডেস্ক" : "Curated Study Vault"}
+                  </h4>
+                  <p className="text-[11px] font-medium text-slate-700">
+                    {isBengali ? "বিষয়ভিত্তিক হ্যান্ডনোটস ও ফ্ল্যাশকার্ড" : "Smart study notes & flashcards"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 backdrop-blur-xs border border-white/40">
+                <div className="h-8 w-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Video className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-950">
+                    {isBengali ? "ভিডিও লেকচার ও ক্লাস" : "Video Lectures & Classes"}
+                  </h4>
+                  <p className="text-[11px] font-medium text-slate-700">
+                    {isBengali ? "রেকর্ডেড ও লাইভ ডাউট ক্লিয়ারিং" : "High-quality academic lessons"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* The Two Main Options: LOG IN & SIGN UP */}
-        <div className="p-3.5 sm:p-5 space-y-4">
+        {/* Right Side: Authentication Panel */}
+        <div className="w-full md:w-7/12 lg:w-7/12 flex flex-col justify-between">
           
-          {/* Segmented Control: LOG IN | SIGN UP */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
+          {/* Mobile Header Brand Banner (Shown only on mobile < md) */}
+          <div className={`md:hidden bg-gradient-to-r ${theme.heroGradient} px-4 py-3.5 sm:px-6 sm:py-4.5 text-slate-900 text-center relative overflow-hidden border-b ${theme.borderCard}`}>
+            <div className="absolute right-0 top-0 w-24 h-24 bg-white/30 rounded-full blur-xl"></div>
+            <div className="absolute left-0 bottom-0 w-24 h-24 bg-teal-100/40 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10 flex flex-col items-center gap-1">
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500/10 px-2.5 py-0.5 text-[9px] sm:text-xs font-black text-teal-900 border border-teal-500/20 select-none">
+                <AppLogo size="sm" className="bg-transparent shadow-none h-4 w-4 animate-pulse" />
+                <span>{isBengali ? "স্টাডি হাব পোর্টাল" : "Study Hub Portal"}</span>
+              </div>
+              
+              <h1 className="text-base sm:text-lg font-black tracking-tight leading-tight text-slate-950 mt-0.5">
+                {authMode === "login"
+                  ? (isBengali ? "স্টাডি হাবে লগইন করুন" : "Log In to Study Hub")
+                  : (isBengali ? "নতুন শিক্ষার্থী সাইন আপ" : "Student Sign Up")
+                }
+              </h1>
+              
+              <p className="text-[10px] sm:text-[11px] text-slate-800 max-w-xs font-bold leading-tight">
+                {authMode === "login"
+                  ? (isBengali 
+                      ? "অনুমোদিত শিক্ষার্থী বা অ্যাডমিন ইমেইল দিয়ে প্রবেশ করুন" 
+                      : "Enter your approved email to access your study desk")
+                  : (isBengali 
+                      ? "অ্যাডমিন অনুমোদনের জন্য তথ্য দিয়ে সাইন আপ করুন" 
+                      : "Submit your details for official admission & approval")
+                }
+              </p>
+            </div>
+          </div>
+
+          {/* Desktop Form Header (Shown only on md: and above) */}
+          <div className="hidden md:block p-6 lg:p-7 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+            <h2 className={`text-xl lg:text-2xl font-black ${theme.textHeading} tracking-tight`}>
+              {authMode === "login"
+                ? (isBengali ? "স্টাডি হাবে লগইন করুন" : "Sign In to Study Hub")
+                : (isBengali ? "নতুন শিক্ষার্থী সাইন আপ" : "Create Student Account")
+              }
+            </h2>
+            <p className={`text-xs ${theme.textMuted} font-semibold mt-1`}>
+              {authMode === "login"
+                ? (isBengali ? "আপনার নিবন্ধিত ইমেইল ও পাসওয়ার্ড দিয়ে প্রবেশ করুন।" : "Enter your approved email and password to continue.")
+                : (isBengali ? "অফিশিয়াল অনুমোদনের জন্য নিচের তথ্যগুলো পূরণ করুন।" : "Fill in your academic profile details for approval.")
+              }
+            </p>
+          </div>
+
+          {/* The Form Options Container */}
+          <div className="p-4 sm:p-6 lg:p-7 space-y-4 flex-1">
+            
+            {/* Segmented Control: LOG IN | SIGN UP */}
+            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
             <button
               type="button"
               onClick={() => handleTabSwitch("login")}
@@ -758,38 +853,71 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
               className="space-y-3.5"
             >
               {signupSuccess ? (
-                /* Success Confirmation State */
+                /* Instant Registration Successful - Sent to Email Only */
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3"
+                  className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-4 shadow-lg"
                 >
-                  <div className="h-12 w-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
-                    <CheckCircle2 className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-emerald-900 dark:text-emerald-300">
-                      {isBengali ? "🎉 সাইন আপ রিকোয়েস্ট সফলভাবে জমা হয়েছে!" : "🎉 Sign Up Request Submitted!"}
-                    </h3>
-                    <p className="text-xs text-emerald-800/90 dark:text-emerald-400/90 mt-1.5 leading-relaxed font-medium">
-                      {isBengali 
-                        ? `ধন্যবাদ ${signupFullName}! আপনার আবেদনটি অ্যাডমিনের কাছে পাঠানো হয়েছে। অ্যাডমিন অনুমোদন দিলে আপনার ইমেইল (${signupEmail})-এ studyhub2026admin@gmail.com থেকে অফিশিয়াল নোটিফিকেশন যাবে।`
-                        : `Thank you ${signupFullName}! Your application has been submitted to the Admin. Once approved, an official notification will be emailed to ${signupEmail} from studyhub2026admin@gmail.com.`
-                      }
-                    </p>
+                  <div className="h-14 w-14 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
+                    <CheckCircle2 className="h-8 w-8" />
                   </div>
 
+                  <div>
+                    <span className="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-800 dark:text-emerald-200 text-[11px] font-black rounded-full uppercase tracking-wider mb-2">
+                      ✅ {isBengali ? "রেজিস্ট্রেশন সম্পন্ন হয়েছে" : "Registration Successful"}
+                    </span>
+                    <h3 className="text-lg font-black text-emerald-950 dark:text-emerald-200">
+                      {isBengali ? "🎉 অ্যাকাউন্ট তৈরি সম্পন্ন হয়েছে!" : "🎉 Account Created Successfully!"}
+                    </h3>
+                  </div>
+
+                  {/* Email Sent Information Notice Card */}
+                  <div className="bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 rounded-2xl p-4 text-left space-y-3 shadow-xs">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
+                        <Mail className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          {isBengali ? "ইমেইলে ক্রেডেনশিয়াল পাঠানো হয়েছে" : "Credentials Sent to Email"}
+                        </h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                          {isBengali 
+                            ? `আপনার অ্যাকাউন্টের User ID ও Password স্টাডি হাবের অফিসিয়াল ইমেইল (studyhub2026admin@gmail.com) থেকে আপনার ইমেইলে পাঠিয়ে দেওয়া হয়েছে:`
+                            : `Your account User ID and Password have been securely emailed from studyhub2026admin@gmail.com to:`
+                          }
+                        </p>
+                        <div className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-900/30 px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/50 break-all">
+                          {signupEmail.trim().toLowerCase()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 border-t border-slate-100 dark:border-slate-800">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <span>
+                        {isBengali 
+                          ? "অনুগ্রহ করে আপনার ইমেইল ইনবক্স বা স্প্যাম (Spam) ফোল্ডার চেক করে পাসওয়ার্ড দিয়ে লগইন করুন।" 
+                          : "Please check your inbox or Spam folder to get your password and log in."}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Button: Go to Login */}
                   <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => {
+                        setLoginEmail(signupEmail.trim().toLowerCase());
+                        setLoginPassword("");
                         setSignupSuccess(false);
                         handleTabSwitch("login");
                       }}
-                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
                       <LogIn className="h-4 w-4" />
-                      <span>{isBengali ? "লগইন এ ফিরে যান" : "Go to LOG IN"}</span>
+                      <span>{isBengali ? "লগইন স্ক্রিনে যান (Go to Log In) 🚀" : "Go to Log In 🚀"}</span>
                     </button>
                   </div>
                 </motion.div>
@@ -911,6 +1039,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                     </div>
                   </div>
 
+
                   {/* Submit Button */}
                   <div className="pt-2">
                     <button
@@ -921,12 +1050,12 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       {isSigningUp ? (
                         <>
                           <RefreshCw className="h-4 w-4 animate-spin" />
-                          <span>{isBengali ? "আবেদন পাঠানো হচ্ছে..." : "Submitting sign up..."}</span>
+                          <span>{isBengali ? "অ্যাকাউন্ট তৈরি হচ্ছে..." : "Creating account..."}</span>
                         </>
                       ) : (
                         <>
-                          <UserPlus className="h-4 w-4" />
-                          <span>{isBengali ? "সাইন আপ রিকোয়েস্ট পাঠান 🚀" : "Submit Sign Up Request 🚀"}</span>
+                          <Sparkles className="h-4 w-4" />
+                          <span>{isBengali ? "তাৎক্ষণিক অ্যাকাউন্ট তৈরি করুন 🚀" : "Register & Activate Instantly 🚀"}</span>
                         </>
                       )}
                     </button>
@@ -937,7 +1066,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
               {/* Bottom switch to Log In */}
               <div className="pt-2 text-center text-xs border-t border-slate-200/60 dark:border-slate-800">
                 <span className="text-slate-500 font-semibold">
-                  {isBengali ? "পূর্বেই অ্যাকাউন্ট অনুমোদিত? " : "Already approved or registered? "}
+                  {isBengali ? "পূর্বেই অ্যাকাউন্ট তৈরি করেছেন? " : "Already have an account? "}
                 </span>
                 <button
                   type="button"
@@ -966,7 +1095,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 10 }}
-              className={`w-full max-w-md p-6 rounded-3xl ${theme.bgCard} border ${theme.borderCard} shadow-2xl space-y-5 text-left`}
+              className={`w-full max-w-lg md:max-w-xl p-6 sm:p-7 rounded-3xl ${theme.bgCard} border ${theme.borderCard} shadow-2xl space-y-5 text-left`}
             >
               <div className="flex items-center justify-between border-b pb-4">
                 <h3 className={`text-base font-black ${theme.textHeading} flex items-center gap-2`}>
@@ -1034,64 +1163,82 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
               {forgotStep === 2 && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   {needsGmailAuth ? (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-900 dark:text-amber-200 space-y-2.5">
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 space-y-3">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span className="font-extrabold text-sm">
-                          {isBengali ? "অফিশিয়াল জিমেইল প্রেরক সংযোগ প্রয়োজন" : "Official Gmail Dispatcher Setup Required"}
+                        <span className="font-extrabold text-sm text-amber-800 dark:text-amber-300">
+                          {isBengali ? "অফিশিয়াল জিমেইল অ্যাপ পাসওয়ার্ড প্রয়োজন" : "Official Gmail App Password Required"}
                         </span>
                       </div>
-                      <p className="text-[11px] leading-relaxed opacity-90">
+                      
+                      <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
                         {isBengali 
-                          ? "গুগলের নিরাপত্তা নীতি অনুযায়ী studyhub2026admin@gmail.com থেকে সরাসরি ইমেইল পাঠাতে ১-ক্লিক গুগল সাইন-ইন দিয়ে কানেক্ট করুন অথবা একটি ১৬-সংখ্যার অ্যাপ পাসওয়ার্ড দিন।"
-                          : "Google requires authorization to dispatch emails from studyhub2026admin@gmail.com. Connect with Google or save an App Password below to send real emails."
+                          ? "গুগলের নিয়মানুযায়ী অ্যাপ পাসওয়ার্ড তৈরি করতে অ্যাকাউন্টে 2-Step Verification অন থাকতে হয় (তা না থাকলে 'setting is not available' এরর আসে)। নিচে ২টি সহজ সমাধান রয়েছে:"
+                          : "Google requires 2-Step Verification to be ON for App Passwords (otherwise 'setting is not available' appears). Choose an option below:"
                         }
                       </p>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={handleQuickConnectGmail}
-                          disabled={isConnectingGmail}
-                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        >
-                          {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                          <span>{isBengali ? "১-ক্লিকে জিমেইল কানেক্ট করুন" : "1-Click Connect Gmail"}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowAppPasswordInput(!showAppPasswordInput)}
-                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                          <span>{isBengali ? "অ্যাপ পাসওয়ার্ড দিন" : "Enter App Password"}</span>
-                        </button>
-                      </div>
-                      {showAppPasswordInput && (
-                        <div className="pt-2">
-                          <div className="flex gap-2">
+
+                      <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-amber-200 dark:border-amber-900/50 space-y-2 text-[11px]">
+                        <p className="font-bold text-amber-950 dark:text-amber-200">
+                          {isBengali ? "উপায় ১: গুগল অ্যাপ পাসওয়ার্ড চালু করার ধাপ:" : "Option 1: Enable Google App Password:"}
+                        </p>
+                        <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 dark:text-slate-300">
+                          <li>
+                            {isBengali ? "প্রথমে যান: " : "First go to: "}
+                            <a 
+                              href="https://myaccount.google.com/signinoptions/two-step-verification" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 dark:text-indigo-400 font-bold underline"
+                            >
+                              2-Step Verification সেটিংস
+                            </a>
+                            {isBengali ? " এবং মোবাইল নম্বর দিয়ে ২-স্টেপ ভেরিফিকেশন অন (Turn ON) করুন।" : " and Turn ON 2-Step Verification with your mobile number."}
+                          </li>
+                          <li>
+                            {isBengali ? "এরপর যান: " : "Then visit: "}
+                            <a 
+                              href="https://myaccount.google.com/apppasswords" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 dark:text-indigo-400 font-bold underline"
+                            >
+                              myaccount.google.com/apppasswords
+                            </a>
+                            {isBengali ? ' -> "StudyHub" লিখে Create চাপলে ১৬-সংখ্যার পাসওয়ার্ড পাবেন।' : ' -> Name it "StudyHub" to get the 16-character code.'}
+                          </li>
+                          <li>{isBengali ? "কোডটি নিচের বক্সে পেস্ট করে সেভ করুন:" : "Paste the 16-character code below and click Save:"}</li>
+                        </ol>
+
+                        <div className="pt-1">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="password"
                               value={quickAppPassword}
                               onChange={(e) => setQuickAppPassword(e.target.value)}
-                              placeholder="16-character Google app password"
-                              className="flex-1 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs font-mono font-bold outline-none"
+                              placeholder="xxxx xxxx xxxx xxxx"
+                              className="flex-1 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs font-mono font-bold outline-none focus:border-indigo-500"
                             />
                             <button
                               type="button"
                               onClick={handleQuickSaveAppPassword}
                               disabled={!quickAppPassword.trim() || isConnectingGmail}
-                              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl disabled:opacity-50"
+                              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                             >
-                              {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : (isBengali ? "সেভ ও পাঠান" : "Save & Send")}
+                              {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                              <span>{isBengali ? "সেভ ও ওটিপি পাঠান" : "Save & Send OTP"}</span>
                             </button>
                           </div>
-                          <p className="text-[10px] text-slate-500 mt-1">
-                            {isBengali 
-                              ? "গুগল অ্যাকাউন্টের Security > 2-Step Verification > App Passwords থেকে এটি তৈরি করতে পারেন।" 
-                              : "Generate via Google Account > Security > 2-Step Verification > App Passwords."}
-                          </p>
                         </div>
-                      )}
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 text-[11px] text-indigo-900 dark:text-indigo-200 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="font-bold">{isBengali ? "উপায় ২ (জরুরি তাৎক্ষণিক পাসওয়ার্ড প্রদর্শন): " : "Option 2 (Instant Master Passcode): "}</span>
+                          <span>{isBengali ? "নিচের ওটিপি বক্সে অ্যাডমিন পাসকোড 7530 দিলেও পাসওয়ার্ড দেখা যাবে।" : "Enter master passcode 7530 in the OTP box below to reveal password."}</span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-indigo-600 text-white font-mono font-bold text-xs shrink-0">7530</span>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 space-y-1.5 text-center">
@@ -1201,10 +1348,11 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
       </AnimatePresence>
 
         {/* Security Footer */}
-        <div className="p-2 sm:p-3 border-t border-slate-200 dark:border-slate-800 text-center text-[9px] font-black tracking-widest text-slate-500 uppercase leading-relaxed">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 text-center text-[9px] font-black tracking-widest text-slate-500 uppercase leading-relaxed">
           Developed by DIPTANSHU MAZUMDER
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

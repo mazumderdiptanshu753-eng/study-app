@@ -1918,42 +1918,32 @@ export default function AdminPanel({ lang, users: propUsers, onToggleAdminRole, 
               </div>
             </div>
 
-            {/* Option 1: 1-Click Connect Gmail */}
+            {/* Option 1: 16-character Google App Password (Permanent 24/7 background dispatch) */}
             <div className="p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-xs font-black text-indigo-950 dark:text-indigo-200 uppercase tracking-wider">
-                    {isBengali ? "১. গুগল সাইন-ইন দিয়ে সরাসরি কানেক্ট করুন" : "1. Connect directly with Google Sign-in"}
-                  </h4>
-                  <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80 mt-0.5">
-                    {isBengali 
-                      ? "১ ক্লিকে studyhub2026admin@gmail.com কানেক্ট করে স্বয়ংক্রিয় ওটিপি মেইল সক্রিয় করুন।"
-                      : "1-Click authorization with studyhub2026admin@gmail.com."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleConnectGmail}
-                  disabled={isConnectingGmail}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-                >
-                  {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                  <span>{isBengali ? "Connect Admin Gmail" : "Connect Admin Gmail"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Option 2: 16-character Google App Password (Permanent 24/7 background dispatch) */}
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-500/5 space-y-3">
               <div>
-                <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                  {isBengali ? "২. অথবা গুগল অ্যাপ পাসওয়ার্ড (App Password) সেট করুন" : "2. Or set Google App Password (24/7 Background Sending)"}
-                </h4>
-                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-black uppercase">
+                    {isBengali ? "সুপারিশকৃত (Recommended)" : "Recommended"}
+                  </span>
+                  <h4 className="text-xs font-black text-indigo-950 dark:text-indigo-200 uppercase tracking-wider">
+                    {isBengali ? "গুগল অ্যাপ পাসওয়ার্ড (App Password)" : "Google App Password (24/7 Background Sending)"}
+                  </h4>
+                </div>
+                <p className="text-[11px] text-indigo-900/80 dark:text-indigo-300/80 mt-1 leading-relaxed">
                   {isBengali 
-                    ? "গুগল অ্যাকাউন্ট সিকিউরিটি থেকে একটি ১৬-সংখ্যার অ্যাপ পাসওয়ার্ড তৈরি করে এখানে সংরক্ষণ করতে পারেন, যাতে ওটিপি মেইল নিরবচ্ছিন্নভাবে প্রেরিত হয়।"
-                    : "Add a 16-character Google App Password so background OTP emails send 24/7 without session timeouts."}
+                    ? "গুগলের নতুন নিরাপত্তা নীতিতে OAuth পপআপ ব্লক (Error 403) হতে পারে। কিন্তু Google App Password ব্যবহার করলে কোনো ভেরিফিকেশন বাধা ছাড়াই ২৪ ঘণ্টা নিরবচ্ছিন্নভাবে প্রতিটি ওটিপি ও অনুমোদন ইমেইল পাঠানো যায়।"
+                    : "Google blocks third-party OAuth popups for Gmail scopes (Error 403). Using a Google App Password bypasses this restriction and delivers real emails 24/7."}
                 </p>
+                <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
+                  <a
+                    href="https://myaccount.google.com/apppasswords"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 dark:text-indigo-400 font-bold underline"
+                  >
+                    myaccount.google.com/apppasswords
+                  </a> {isBengali ? 'এ গিয়ে "StudyHub" নামে ১৬-সংখ্যার পাসওয়ার্ড তৈরি করুন।' : 'to generate a 16-character password.'}
+                </div>
               </div>
 
               {appPasswordSuccessMsg && (
@@ -1973,12 +1963,37 @@ export default function AdminPanel({ lang, users: propUsers, onToggleAdminRole, 
                 <button
                   type="submit"
                   disabled={isSavingAppPassword || !adminAppPasswordInput.trim()}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                 >
                   {isSavingAppPassword ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
                   <span>{isBengali ? "পাসওয়ার্ড সেভ করুন" : "Save App Password"}</span>
                 </button>
               </form>
+            </div>
+
+            {/* Option 2: 1-Click Connect Gmail (For verified Google Cloud projects) */}
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-500/5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    {isBengali ? "বিকল্প: গুগল সাইন-ইন দিয়ে কানেক্ট (OAuth)" : "Alternative: Google Sign-in OAuth"}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {isBengali 
+                      ? "নোট: গুগল প্রজেক্ট আনভেরিফাইড থাকলে গুগল Error 403 (access_denied) দেখাতে পারে।"
+                      : "Note: May trigger Google Error 403 if project is unverified."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleConnectGmail}
+                  disabled={isConnectingGmail}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-200 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  <span>{isBengali ? "Connect Admin Gmail" : "Connect Admin Gmail"}</span>
+                </button>
+              </div>
             </div>
           </div>
 

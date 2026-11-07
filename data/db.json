@@ -1,39 +1,40 @@
 {
   "users": [
     {
-      "preferredSubject": "Mathematics",
-      "age": "20",
-      "avatarUrl": "👑",
-      "fullName": "Anwit Chaki",
-      "grade": "High School",
-      "email": "anwitchaki@gmail.com",
+      "registeredAt": "2026-11-06T12:57:48.121Z",
       "password": "WNHU5ZHV",
-      "role": "Admin",
+      "preferredSubject": "Mathematics",
+      "avatarUrl": "👑",
+      "grade": "High School",
+      "fullName": "Anwit Chaki",
       "institution": "Birnagar",
-      "registeredAt": "2026-11-06T12:57:48.121Z"
+      "age": "20",
+      "email": "anwitchaki@gmail.com",
+      "role": "Admin"
     },
     {
+      "preferredSubject": "Mathematics",
       "grade": "High School",
-      "email": "mazumderdiptanshu753@gmail.com",
+      "password": "3QFYVBC4",
+      "fullName": "Diptanshu Mazumder",
       "role": "Admin",
-      "institution": "Ranaghat",
       "avatarUrl": "👑",
       "registeredAt": "2026-11-06T12:50:08.577Z",
-      "fullName": "Diptanshu Mazumder",
-      "age": "20",
-      "preferredSubject": "Mathematics",
-      "password": "3QFYVBC4"
+      "institution": "Ranaghat",
+      "email": "mazumderdiptanshu753@gmail.com",
+      "age": "20"
     },
     {
+      "avatarUrl": "👑",
       "registeredAt": "2026-11-06T12:57:31.852Z",
       "institution": "Study Hub Official Administration",
-      "email": "studyhub2026admin@gmail.com",
       "grade": "High School",
-      "role": "Admin",
+      "fullName": "Study Hub Official Admin",
       "age": "24",
       "preferredSubject": "Mathematics",
-      "avatarUrl": "👑",
-      "fullName": "Study Hub Official Admin"
+      "role": "Admin",
+      "email": "studyhub2026admin@gmail.com",
+      "isSuspended": false
     }
   ],
   "chatMessages": [],
@@ -42,288 +43,288 @@
       "userEmail": "fffggg",
       "userName": "dui",
       "action": "Logout",
-      "id": "log-1793780951650-fo2ab6shl",
-      "timestamp": "2026-11-04T08:29:09.325Z"
+      "timestamp": "2026-11-04T08:29:09.325Z",
+      "id": "log-1793780951650-fo2ab6shl"
     },
     {
-      "timestamp": "2026-11-04T10:38:46.448Z",
       "id": "log-1793788726662-qzxixv6x4",
-      "userName": "Diptanshu",
+      "timestamp": "2026-11-04T10:38:46.448Z",
+      "userEmail": "Mazumderdiptanshu753@gmail.com",
       "action": "Logout",
-      "userEmail": "Mazumderdiptanshu753@gmail.com"
+      "userName": "Diptanshu"
     },
     {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
       "id": "log-1793790862285-vxh81w603",
-      "timestamp": "2026-11-04T11:14:22.075Z",
       "userName": "Diptanshu",
       "action": "Login",
-      "userEmail": "mazumderdiptanshu753@gmail.com"
+      "timestamp": "2026-11-04T11:14:22.075Z"
     },
     {
-      "userName": "Diptanshu Mazumder (Admin)",
-      "action": "Login",
-      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "timestamp": "2026-11-04T13:06:32.418Z",
       "id": "log-1793797595235-sqypkqk5j",
-      "timestamp": "2026-11-04T13:06:32.418Z"
-    },
-    {
-      "id": "log-1793951314406-v0xp00wmk",
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "action": "Logout",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "timestamp": "2026-11-06T07:48:29.104Z"
-    },
-    {
-      "action": "Logout",
-      "timestamp": "2026-11-06T08:03:17.651Z",
-      "id": "log-1793952203003-g0acw5p09",
-      "userName": "Diptanshu Mazumder",
-      "userEmail": "mazumderdiptanshu753@gmail.com"
-    },
-    {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "id": "log-1793952295496-l8957pajt",
-      "timestamp": "2026-11-06T08:04:50.143Z",
-      "action": "Login"
-    },
-    {
-      "action": "Logout",
-      "id": "log-1793952743107-l2wsb5t0j",
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "timestamp": "2026-11-06T08:12:17.730Z"
-    },
-    {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "id": "log-1793953254553-vexjhebjq",
-      "userName": "Diptanshu Mazumder (Admin)",
       "action": "Login",
-      "timestamp": "2026-11-06T08:20:49.235Z"
-    },
-    {
-      "timestamp": "2026-11-06T08:25:53.325Z",
-      "id": "log-1793953558708-h6pm38xq9",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "action": "Login",
-      "userEmail": "mazumderdiptanshu753@gmail.com"
-    },
-    {
-      "action": "Logout",
       "userEmail": "mazumderdiptanshu753@gmail.com",
-      "id": "log-1793953637387-766xl289e",
-      "timestamp": "2026-11-06T08:27:12.003Z",
       "userName": "Diptanshu Mazumder (Admin)"
     },
     {
-      "userName": "Study Hub Official Admin",
-      "timestamp": "2026-11-06T12:33:32.391Z",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1793951314406-v0xp00wmk",
+      "action": "Logout",
+      "timestamp": "2026-11-06T07:48:29.104Z",
+      "userName": "Diptanshu Mazumder (Admin)"
+    },
+    {
+      "userName": "Diptanshu Mazumder",
+      "timestamp": "2026-11-06T08:03:17.651Z",
+      "id": "log-1793952203003-g0acw5p09",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout"
+    },
+    {
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1793952295496-l8957pajt",
       "action": "Login",
+      "timestamp": "2026-11-06T08:04:50.143Z",
+      "userName": "Diptanshu Mazumder (Admin)"
+    },
+    {
+      "timestamp": "2026-11-06T08:12:17.730Z",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "id": "log-1793952743107-l2wsb5t0j",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "action": "Login",
+      "timestamp": "2026-11-06T08:20:49.235Z",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1793953254553-vexjhebjq",
+      "userName": "Diptanshu Mazumder (Admin)"
+    },
+    {
+      "timestamp": "2026-11-06T08:25:53.325Z",
+      "action": "Login",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "id": "log-1793953558708-h6pm38xq9",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "action": "Logout",
+      "timestamp": "2026-11-06T08:27:12.003Z",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "id": "log-1793953637387-766xl289e",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
+      "action": "Login",
+      "timestamp": "2026-11-06T12:33:32.391Z",
+      "userName": "Study Hub Official Admin",
       "userEmail": "studyhub2026admin@gmail.com",
       "id": "log-1793968417763-yxueijizp"
     },
     {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "action": "Logout",
       "userName": "Diptanshu Mazumder (Admin)",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
       "timestamp": "2026-11-06T12:35:09.792Z",
       "id": "log-1793968515134-mjc2b7p6a"
     },
     {
+      "timestamp": "2026-11-06T12:35:16.888Z",
+      "userName": "Diptanshu Mazumder (Admin)",
       "userEmail": "mazumderdiptanshu753@gmail.com",
       "action": "Login",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "timestamp": "2026-11-06T12:35:16.888Z",
       "id": "log-1793968522242-ydyfaei1m"
     },
     {
-      "id": "log-1793968571567-l5ot39dts",
       "userEmail": "mazumderdiptanshu753@gmail.com",
       "userName": "Diptanshu Mazumder (Admin)",
+      "id": "log-1793968571567-l5ot39dts",
       "timestamp": "2026-11-06T12:36:06.216Z",
       "action": "Logout"
     },
     {
+      "id": "log-1793968592035-nh3jtp7iy",
+      "action": "Login",
       "userEmail": "studyhub2026admin@gmail.com",
       "userName": "Study Hub Official Admin",
-      "action": "Login",
-      "id": "log-1793968592035-nh3jtp7iy",
       "timestamp": "2026-11-06T12:36:26.713Z"
     },
     {
+      "id": "log-1793968715938-y3eix6wkd",
+      "userEmail": "studyhub2026admin@gmail.com",
+      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:38:30.604Z",
-      "action": "Logout",
-      "userName": "Study Hub Official Admin",
-      "userEmail": "studyhub2026admin@gmail.com",
-      "id": "log-1793968715938-y3eix6wkd"
+      "action": "Logout"
     },
     {
+      "id": "log-1793968791945-4ccnmr934",
+      "userEmail": "studyhub2026admin@gmail.com",
       "action": "Login",
-      "timestamp": "2026-11-06T12:39:46.622Z",
-      "userEmail": "studyhub2026admin@gmail.com",
       "userName": "Study Hub Official Admin",
-      "id": "log-1793968791945-4ccnmr934"
+      "timestamp": "2026-11-06T12:39:46.622Z"
     },
     {
-      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:43:09.958Z",
+      "userName": "Study Hub Official Admin",
+      "id": "log-1793968995879-4k7niig03",
       "userEmail": "studyhub2026admin@gmail.com",
-      "action": "Logout",
-      "id": "log-1793968995879-4k7niig03"
+      "action": "Logout"
     },
     {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "userName": "Diptanshu Mazumder (Admin)",
+      "timestamp": "2026-11-06T12:43:34.859Z",
       "action": "Login",
       "id": "log-1793969020242-62x4265zy",
-      "timestamp": "2026-11-06T12:43:34.859Z"
-    },
-    {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "action": "Logout",
-      "timestamp": "2026-11-06T12:47:12.055Z",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "id": "log-1793969238980-a9r7t7kry"
-    },
-    {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "id": "log-1793969246574-b7hcq1ips",
-      "timestamp": "2026-11-06T12:47:21.124Z",
-      "userName": "Diptanshu Mazumder (Admin)",
-      "action": "Login"
-    },
-    {
-      "timestamp": "2026-11-06T12:47:24.971Z",
-      "action": "Logout",
-      "id": "log-1793969250796-frz4jktyo",
       "userEmail": "mazumderdiptanshu753@gmail.com",
       "userName": "Diptanshu Mazumder (Admin)"
     },
     {
-      "userEmail": "studyhub2026admin@gmail.com",
-      "userName": "Study Hub Official Admin",
+      "timestamp": "2026-11-06T12:47:12.055Z",
+      "id": "log-1793969238980-a9r7t7kry",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "action": "Logout",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
+    },
+    {
       "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "log-1793969246574-b7hcq1ips",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "timestamp": "2026-11-06T12:47:21.124Z"
+    },
+    {
+      "action": "Logout",
+      "userName": "Diptanshu Mazumder (Admin)",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "timestamp": "2026-11-06T12:47:24.971Z",
+      "id": "log-1793969250796-frz4jktyo"
+    },
+    {
+      "action": "Login",
+      "userEmail": "studyhub2026admin@gmail.com",
       "id": "log-1793969317363-8g8fb5y7k",
+      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:48:31.983Z"
     },
     {
-      "id": "log-1793969331599-5sk2xbgu2",
       "timestamp": "2026-11-06T12:48:46.178Z",
-      "userEmail": "studyhub2026admin@gmail.com",
       "action": "Logout",
-      "userName": "Study Hub Official Admin"
-    },
-    {
-      "id": "log-1793969337993-t0h3b8jk7",
-      "userEmail": "studyhub2026admin@gmail.com",
-      "timestamp": "2026-11-06T12:48:52.585Z",
+      "id": "log-1793969331599-5sk2xbgu2",
       "userName": "Study Hub Official Admin",
-      "action": "Login"
+      "userEmail": "studyhub2026admin@gmail.com"
     },
     {
-      "id": "log-1793969342722-e9mwna41d",
+      "userName": "Study Hub Official Admin",
+      "timestamp": "2026-11-06T12:48:52.585Z",
+      "action": "Login",
+      "id": "log-1793969337993-t0h3b8jk7",
+      "userEmail": "studyhub2026admin@gmail.com"
+    },
+    {
       "userEmail": "studyhub2026admin@gmail.com",
+      "id": "log-1793969342722-e9mwna41d",
       "action": "Logout",
       "timestamp": "2026-11-06T12:48:57.323Z",
       "userName": "Study Hub Official Admin"
     },
     {
+      "timestamp": "2026-11-06T12:49:51.974Z",
+      "userName": "Study Hub Official Admin",
       "id": "log-1793969397360-6w730g9xv",
       "userEmail": "studyhub2026admin@gmail.com",
-      "userName": "Study Hub Official Admin",
-      "timestamp": "2026-11-06T12:49:51.974Z",
       "action": "Login"
     },
     {
-      "userEmail": "studyhub2026admin@gmail.com",
-      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:51:31.575Z",
       "id": "log-1793969496992-mkhxa2038",
+      "userName": "Study Hub Official Admin",
+      "userEmail": "studyhub2026admin@gmail.com",
       "action": "Login"
     },
     {
-      "id": "log-1793969608481-kwmmasjsl",
       "userEmail": "studyhub2026admin@gmail.com",
+      "id": "log-1793969608481-kwmmasjsl",
       "action": "Logout",
       "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:53:23.019Z"
     },
     {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "action": "Login",
       "timestamp": "2026-11-06T12:53:50.108Z",
-      "userName": "Diptanshu Mazumder",
-      "id": "log-1793969635522-g1gya5dfm"
+      "id": "log-1793969635522-g1gya5dfm",
+      "action": "Login",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "userName": "Diptanshu Mazumder"
     },
     {
-      "id": "log-1793969778263-71vg098tz",
-      "timestamp": "2026-11-06T12:56:12.848Z",
       "userName": "Study Hub Official Admin",
       "action": "Logout",
+      "id": "log-1793969778263-71vg098tz",
+      "userEmail": "studyhub2026admin@gmail.com",
+      "timestamp": "2026-11-06T12:56:12.848Z"
+    },
+    {
+      "action": "Login",
+      "timestamp": "2026-11-06T12:56:23.590Z",
+      "userName": "Study Hub Official Admin",
+      "id": "log-1793969789483-w7iev78a3",
       "userEmail": "studyhub2026admin@gmail.com"
     },
     {
-      "userEmail": "studyhub2026admin@gmail.com",
-      "action": "Login",
-      "userName": "Study Hub Official Admin",
-      "id": "log-1793969789483-w7iev78a3",
-      "timestamp": "2026-11-06T12:56:23.590Z"
-    },
-    {
-      "userEmail": "studyhub2026admin@gmail.com",
-      "userName": "Study Hub Official Admin",
       "action": "Logout",
+      "userEmail": "studyhub2026admin@gmail.com",
       "id": "log-1793969796552-l153igt6e",
+      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T12:56:31.137Z"
     },
     {
-      "userName": "Study Hub Official Admin",
-      "id": "log-1793969857248-40cl5pf68",
       "timestamp": "2026-11-06T12:57:31.852Z",
-      "userEmail": "studyhub2026admin@gmail.com",
-      "action": "Login"
+      "action": "Login",
+      "id": "log-1793969857248-40cl5pf68",
+      "userName": "Study Hub Official Admin",
+      "userEmail": "studyhub2026admin@gmail.com"
     },
     {
-      "timestamp": "2026-11-06T12:59:23.483Z",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "action": "Logout",
       "id": "log-1793969968874-i4yx79y2j",
       "userName": "Diptanshu Mazumder",
-      "action": "Logout",
-      "userEmail": "mazumderdiptanshu753@gmail.com"
+      "timestamp": "2026-11-06T12:59:23.483Z"
     },
     {
-      "id": "log-1793969987293-b97i1zu4j",
+      "userEmail": "anwitchaki@gmail.com",
       "action": "Login",
-      "userEmail": "anwitchaki@gmail.com",
-      "timestamp": "2026-11-06T12:59:41.902Z",
-      "userName": "Anwit Chaki"
+      "id": "log-1793969987293-b97i1zu4j",
+      "userName": "Anwit Chaki",
+      "timestamp": "2026-11-06T12:59:41.902Z"
     },
     {
-      "userEmail": "anwitchaki@gmail.com",
-      "id": "log-1793972061187-rhlw47awa",
-      "userName": "Anwit Chaki",
       "timestamp": "2026-11-06T13:34:15.781Z",
+      "id": "log-1793972061187-rhlw47awa",
+      "userEmail": "anwitchaki@gmail.com",
+      "userName": "Anwit Chaki",
       "action": "Logout"
     },
     {
-      "id": "log-1793972298399-1lwal4f25",
-      "userEmail": "anwitchaki@gmail.com",
+      "timestamp": "2026-11-06T13:38:12.964Z",
       "userName": "Anwit Chaki",
+      "userEmail": "anwitchaki@gmail.com",
       "action": "Login",
-      "timestamp": "2026-11-06T13:38:12.964Z"
+      "id": "log-1793972298399-1lwal4f25"
     },
     {
-      "action": "Logout",
       "id": "log-1793973743997-54e8g4bz1",
       "timestamp": "2026-11-06T14:02:18.577Z",
       "userName": "Anwit Chaki",
+      "action": "Logout",
       "userEmail": "anwitchaki@gmail.com"
     },
     {
-      "action": "Logout",
-      "userEmail": "studyhub2026admin@gmail.com",
-      "userName": "Study Hub Official Admin",
       "timestamp": "2026-11-06T14:04:11.421Z",
-      "id": "log-1793973856781-wa0d6rjcu"
+      "userName": "Study Hub Official Admin",
+      "id": "log-1793973856781-wa0d6rjcu",
+      "action": "Logout",
+      "userEmail": "studyhub2026admin@gmail.com"
     }
   ],
   "forumPosts": [],
@@ -334,170 +335,253 @@
   "videoLectures": [],
   "notifications": [
     {
-      "userEmail": "fffggg",
-      "isRead": false,
-      "timestamp": "2026-11-03T18:03:02.084Z",
-      "id": "notif-1793728982084-5nooowxo9",
-      "message": "প্রিয় শিক্ষার্থী, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!",
       "title": "স্টাডি হাবে স্বাগতম! 🎉",
-      "type": "info"
+      "userEmail": "fffggg",
+      "id": "notif-1793728982084-5nooowxo9",
+      "isRead": false,
+      "type": "info",
+      "message": "প্রিয় শিক্ষার্থী, স্টাডি হাব পোর্টালে আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে। আপনার পড়াশোনা সহজ করতে আমরা আছি আপনার পাশে!",
+      "timestamp": "2026-11-03T18:03:02.084Z"
     },
     {
-      "id": "notif-1793782443266-4b447oqoh",
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "type": "info",
       "timestamp": "2026-11-04T08:54:03.266Z",
+      "id": "notif-1793782443266-4b447oqoh",
       "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
+      "type": "info",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
       "isRead": true,
       "message": "\"Rahul Sen\" (rahulsen.student@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।"
     },
     {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "isRead": true,
       "message": "\"Anwit Chaki\" (anwitchaki@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।",
-      "timestamp": "2026-11-06T08:04:17.893Z",
+      "type": "info",
       "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
-      "id": "notif-1793952257893-qcmp9o56q",
-      "type": "info"
+      "timestamp": "2026-11-06T08:04:17.893Z",
+      "isRead": true,
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "id": "notif-1793952257893-qcmp9o56q"
     },
     {
+      "userEmail": "anwitchaki@gmail.com",
       "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉",
-      "message": "প্রিয় Anwit Chaki, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
       "type": "info",
+      "id": "notif-1793952330681-dmf5ypqoc",
       "timestamp": "2026-11-06T08:05:30.681Z",
       "isRead": false,
-      "id": "notif-1793952330681-dmf5ypqoc",
-      "userEmail": "anwitchaki@gmail.com"
+      "message": "প্রিয় Anwit Chaki, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।"
     },
     {
-      "id": "notif-1793968743823-yjnnm1lch",
-      "userEmail": "studyhub2026admin@gmail.com",
       "isRead": false,
+      "id": "notif-1793968743823-yjnnm1lch",
+      "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
+      "userEmail": "studyhub2026admin@gmail.com",
       "type": "info",
       "timestamp": "2026-11-06T12:39:03.823Z",
-      "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
       "message": "\"gghhggg\" (mazumderdiptanshu753@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।"
     },
     {
-      "timestamp": "2026-11-06T12:49:47.077Z",
-      "userEmail": "studyhub2026admin@gmail.com",
       "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
+      "timestamp": "2026-11-06T12:49:47.077Z",
+      "message": "\"Diptanshu Mazumder\" (mazumderdiptanshu753@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।",
+      "isRead": false,
       "type": "info",
       "id": "notif-1793969387077-aahtpyw3c",
-      "isRead": false,
-      "message": "\"Diptanshu Mazumder\" (mazumderdiptanshu753@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।"
+      "userEmail": "studyhub2026admin@gmail.com"
     },
     {
-      "type": "info",
-      "userEmail": "mazumderdiptanshu753@gmail.com",
       "message": "প্রিয় Diptanshu Mazumder, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
-      "isRead": false,
-      "timestamp": "2026-11-06T12:50:08.812Z",
       "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉",
-      "id": "notif-1793969408812-xerll8y9w"
+      "timestamp": "2026-11-06T12:50:08.812Z",
+      "isRead": false,
+      "id": "notif-1793969408812-xerll8y9w",
+      "type": "info",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
     },
     {
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "message": "প্রিয় Diptanshu Mazumder, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
-      "isRead": false,
-      "type": "info",
       "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉",
       "timestamp": "2026-11-06T12:51:53.835Z",
+      "isRead": false,
+      "message": "প্রিয় Diptanshu Mazumder, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "type": "info",
       "id": "notif-1793969513835-0lpp0yqko"
     },
     {
-      "message": "\"Anwit Chaki\" (anwitchaki@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।",
-      "isRead": false,
+      "timestamp": "2026-11-06T12:57:31.816Z",
+      "id": "notif-1793969851816-iyh2agutt",
       "type": "info",
       "title": "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
       "userEmail": "studyhub2026admin@gmail.com",
-      "id": "notif-1793969851816-iyh2agutt",
-      "timestamp": "2026-11-06T12:57:31.816Z"
+      "isRead": false,
+      "message": "\"Anwit Chaki\" (anwitchaki@gmail.com) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।"
     },
     {
-      "isRead": false,
-      "userEmail": "anwitchaki@gmail.com",
-      "type": "info",
-      "id": "notif-1793969868371-ffrzq68px",
-      "message": "প্রিয় Anwit Chaki, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
       "timestamp": "2026-11-06T12:57:48.371Z",
-      "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉"
+      "message": "প্রিয় Anwit Chaki, অ্যাডমিন আপনার আবেদন অনুমোদন করেছেন। আপনি এখন স্টাডি হাবের সমস্ত ফিচার ব্যবহার করতে পারবেন।",
+      "type": "info",
+      "userEmail": "anwitchaki@gmail.com",
+      "isRead": false,
+      "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট অনুমোদিত হয়েছে 🎉",
+      "id": "notif-1793969868371-ffrzq68px"
     },
     {
-      "id": "notif-1793974679857-mali1k1jb",
-      "isRead": false,
-      "userEmail": "mazumderdiptanshu753@gmail.com",
-      "type": "info",
+      "title": "🔑 Password Recovery OTP",
       "message": "Your password recovery OTP verification code is: 419097. Valid for 10 minutes.",
       "timestamp": "2026-11-06T14:17:59.857Z",
-      "title": "🔑 Password Recovery OTP"
+      "isRead": false,
+      "type": "info",
+      "id": "notif-1793974679857-mali1k1jb",
+      "userEmail": "mazumderdiptanshu753@gmail.com"
     },
     {
-      "id": "notif-1793975913270-9hfm3igd4",
-      "isRead": false,
-      "message": "Your password recovery OTP verification code is: 687874. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
-      "timestamp": "2026-11-06T14:38:33.270Z",
-      "title": "🔑 Password Recovery OTP",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
       "type": "info",
-      "userEmail": "mazumderdiptanshu753@gmail.com"
+      "isRead": false,
+      "id": "notif-1793975913270-9hfm3igd4",
+      "message": "Your password recovery OTP verification code is: 687874. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
+      "title": "🔑 Password Recovery OTP",
+      "timestamp": "2026-11-06T14:38:33.270Z"
+    },
+    {
+      "type": "info",
+      "message": "Your password recovery OTP verification code is: 950070. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
+      "timestamp": "2026-11-07T02:12:19.805Z",
+      "title": "🔑 Password Recovery OTP",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "isRead": false,
+      "id": "notif-1794017539805-m27nin5rw"
+    },
+    {
+      "message": "Your password recovery OTP verification code is: 436626. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "type": "info",
+      "title": "🔑 Password Recovery OTP",
+      "id": "notif-1794017814894-wdfkg7fwj",
+      "timestamp": "2026-11-07T02:16:54.894Z",
+      "isRead": false
+    },
+    {
+      "timestamp": "2026-11-07T07:35:35.253Z",
+      "type": "info",
+      "id": "notif-1794036935253-e3y0hwn8q",
+      "title": "🔑 Password Recovery OTP",
+      "message": "Your password recovery OTP verification code is: 495103. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "isRead": false
+    },
+    {
+      "timestamp": "2026-11-07T07:35:55.525Z",
+      "isRead": false,
+      "type": "info",
+      "title": "🔑 Password Recovery OTP",
+      "id": "notif-1794036955525-atze7lgfr",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "message": "Your password recovery OTP verification code is: 553178. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes)."
+    },
+    {
+      "id": "notif-1794036994596-nbiwey48g",
+      "type": "info",
+      "timestamp": "2026-11-07T07:36:34.596Z",
+      "message": "Your password recovery OTP verification code is: 236288. Sent from studyhub2026admin@gmail.com (Valid for 10 minutes).",
+      "title": "🔑 Password Recovery OTP",
+      "userEmail": "mazumderdiptanshu753@gmail.com",
+      "isRead": false
+    },
+    {
+      "timestamp": "2026-11-07T08:03:33.145Z",
+      "isRead": false,
+      "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট সক্রিয় হয়েছে 🎉",
+      "id": "notif-1794038613145-zh3a70qs1",
+      "userEmail": "rahul.test.student@gmail.com",
+      "type": "info",
+      "message": "প্রিয় Rahul Das, আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার আইডি: rahul.test.student@gmail.com এবং পাসওয়ার্ড: J6WQDXHP"
+    },
+    {
+      "timestamp": "2026-11-07T08:03:33.245Z",
+      "title": "নতুন শিক্ষার্থী স্বয়ংক্রিয়ভাবে সক্রিয় হয়েছে 🚀",
+      "id": "notif-1794038613244-zao2jql5c",
+      "message": "\"Rahul Das\" (rahul.test.student@gmail.com) স্বয়ংক্রিয়ভাবে স্টাডি হাবে যুক্ত হয়েছেন (অ্যাডমিন অনুমোদনের প্রয়োজন ছাড়াই)।",
+      "isRead": false,
+      "userEmail": "studyhub2026admin@gmail.com",
+      "type": "info"
+    },
+    {
+      "title": "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট সক্রিয় হয়েছে 🎉",
+      "message": "প্রিয় Priya Sharma, আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার আইডি: priya.test.student@gmail.com এবং পাসওয়ার্ড: 0NBS7Z36",
+      "type": "info",
+      "userEmail": "priya.test.student@gmail.com",
+      "id": "notif-1794038973582-wwps49alc",
+      "timestamp": "2026-11-07T08:09:33.582Z",
+      "isRead": false
+    },
+    {
+      "title": "নতুন শিক্ষার্থী স্বয়ংক্রিয়ভাবে সক্রিয় হয়েছে 🚀",
+      "message": "\"Priya Sharma\" (priya.test.student@gmail.com) স্বয়ংক্রিয়ভাবে স্টাডি হাবে যুক্ত হয়েছেন (অ্যাডমিন অনুমোদনের প্রয়োজন ছাড়াই)।",
+      "type": "info",
+      "userEmail": "studyhub2026admin@gmail.com",
+      "id": "notif-1794038973673-xrqf682ei",
+      "timestamp": "2026-11-07T08:09:33.673Z",
+      "isRead": false
     }
   ],
   "accessRequests": [
     {
-      "reviewedBy": "mazumderdiptanshu753@gmail.com",
-      "reviewedAt": "2026-11-06T12:44:20.975Z",
-      "email": "mazumderdiptanshu753@gmail.com",
-      "phone": "",
-      "fullName": "gghhggg",
-      "message": "",
-      "status": "rejected",
-      "targetExam": "Secondary / Higher Secondary",
-      "id": "req-1793968743687-loevsw",
-      "preferredSubject": "Mathematics",
       "createdAt": "2026-11-06T12:39:03.687Z",
-      "institution": "hkhkhjk"
+      "status": "rejected",
+      "email": "mazumderdiptanshu753@gmail.com",
+      "reviewedBy": "mazumderdiptanshu753@gmail.com",
+      "institution": "hkhkhjk",
+      "message": "",
+      "targetExam": "Secondary / Higher Secondary",
+      "preferredSubject": "Mathematics",
+      "id": "req-1793968743687-loevsw",
+      "fullName": "gghhggg",
+      "reviewedAt": "2026-11-06T12:44:20.975Z",
+      "phone": ""
     },
     {
-      "preferredSubject": "Mathematics",
+      "emailSent": true,
+      "message": "",
+      "password": "3QFYVBC4",
+      "email": "mazumderdiptanshu753@gmail.com",
+      "status": "approved",
       "createdAt": "2026-11-06T12:49:46.832Z",
+      "reviewedAt": "2026-11-06T12:51:53.117Z",
       "phone": "",
+      "reviewedBy": "studyhub2026admin@gmail.com",
+      "fullName": "Diptanshu Mazumder",
       "institution": "Ranaghat",
       "id": "req-1793969386832-58t7g9",
-      "password": "3QFYVBC4",
-      "fullName": "Diptanshu Mazumder",
-      "message": "",
-      "reviewedBy": "studyhub2026admin@gmail.com",
-      "reviewedAt": "2026-11-06T12:51:53.117Z",
-      "email": "mazumderdiptanshu753@gmail.com",
-      "targetExam": "Govt Job Prep (BCS / Bank)",
-      "emailSent": true,
-      "status": "approved"
+      "preferredSubject": "Mathematics",
+      "targetExam": "Govt Job Prep (BCS / Bank)"
     },
     {
       "email": "anwitchaki@gmail.com",
-      "emailSent": true,
-      "preferredSubject": "Mathematics",
-      "phone": "",
-      "reviewedBy": "studyhub2026admin@gmail.com",
-      "fullName": "Anwit Chaki",
-      "institution": "Birnagar",
-      "reviewedAt": "2026-11-06T12:57:47.635Z",
       "status": "approved",
-      "password": "WNHU5ZHV",
-      "message": "",
-      "id": "req-1793969851550-m4e3qb",
+      "fullName": "Anwit Chaki",
+      "reviewedBy": "studyhub2026admin@gmail.com",
+      "emailSent": true,
+      "createdAt": "2026-11-06T12:57:31.550Z",
       "targetExam": "Govt Job Prep (BCS / Bank)",
-      "createdAt": "2026-11-06T12:57:31.550Z"
+      "phone": "",
+      "password": "WNHU5ZHV",
+      "id": "req-1793969851550-m4e3qb",
+      "message": "",
+      "preferredSubject": "Mathematics",
+      "institution": "Birnagar",
+      "reviewedAt": "2026-11-06T12:57:47.635Z"
     }
   ],
   "settings": {
-    "maintenanceMode": false
+    "adminGmailAppPasswordUpdatedAt": "2026-11-07T07:35:52.717Z",
+    "maintenanceMode": false,
+    "adminGmailAppPassword": "gfsk kwdd zuws txts"
   },
   "systemSettings": {
     "app_version": {
       "changelogBn": "",
-      "latestVersion": "2.7.0",
-      "changelogEn": ""
+      "changelogEn": "",
+      "latestVersion": "2.7.0"
     }
   }
 }

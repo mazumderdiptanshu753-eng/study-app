@@ -1206,7 +1206,7 @@ export default function App() {
             <OfflineIndicator lang={lang} variant="banner" />
 
             {/* Main Content Area Container */}
-            <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-2 sm:px-6 pt-4 md:px-8 pb-32 overflow-x-hidden" : "max-w-md px-2 py-4 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
+            <main className={`flex-1 w-full mx-auto ${profile ? "max-w-7xl px-2 sm:px-6 pt-4 md:px-8 pb-32 overflow-x-hidden" : "w-full max-w-6xl px-3 sm:px-6 md:px-8 py-4 sm:py-8 flex items-center justify-center min-h-[calc(100vh-3rem)]"} relative`}>
         
         {!profile ? (
           <StudentRegistration lang={lang} onRegister={handleRegister} theme={theme} />
