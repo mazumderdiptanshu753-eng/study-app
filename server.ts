@@ -1805,7 +1805,7 @@ async function sendOfficialOtpEmail(
   otp: string
 ): Promise<{ success: boolean; method: string; error?: string }> {
   const fromEmail = "studyhub2026admin@gmail.com";
-  const subject = `Your Study Hub Password Recovery OTP: ${otp}`;
+  const subject = `Study Hub - Account Recovery Code: ${otp}`;
   const settings = await getSettings().catch(() => ({}));
 
   const htmlBody = `
@@ -1816,43 +1816,41 @@ async function sendOfficialOtpEmail(
   <title>Study Hub - Password Recovery OTP</title>
 </head>
 <body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-  <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
-    <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
-      <div style="display: inline-block; background: rgba(255,255,255,0.22); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;">
-        🎓 STUDY HUB OFFICIAL PORTAL
-      </div>
-      <h1 style="margin: 0; font-size: 24px; font-weight: 900; line-height: 1.2;">
-        Password Recovery Request 🔑
+  <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+    <div style="background: #4f46e5; padding: 24px; text-align: center; color: #ffffff;">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 800;">
+        Study Hub Academy
       </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9;">Password Recovery Verification</p>
     </div>
 
-    <div style="padding: 32px 28px;">
-      <h2 style="margin: 0 0 14px 0; color: #0f172a; font-size: 18px; font-weight: 800;">
+    <div style="padding: 28px 24px;">
+      <h2 style="margin: 0 0 14px 0; color: #0f172a; font-size: 16px; font-weight: 700;">
         Dear ${studentName || "Student"},
       </h2>
       <p style="margin: 0 0 20px 0; font-size: 14px; color: #334155; line-height: 1.6;">
         We received a request to recover your account password for <strong>Study Hub</strong>. Please use the following <strong>6-digit One-Time Password (OTP)</strong> to verify your identity and view your password:
       </p>
 
-      <div style="background: #f8fafc; border: 2px dashed #6366f1; border-radius: 16px; padding: 22px; text-align: center; margin: 24px 0;">
-        <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">
-          Your One-Time Password (OTP)
+      <div style="background: #f8fafc; border: 2px dashed #6366f1; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">
+          Your 6-Digit OTP Code
         </span>
-        <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 6px; color: #4338ca; display: inline-block;">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #4338ca; display: inline-block;">
           ${otp}
         </span>
         <span style="font-size: 11px; font-weight: 600; color: #ef4444; display: block; margin-top: 8px;">
-          ⏱️ This OTP code is valid for 10 minutes only.
+          This code expires in 10 minutes.
         </span>
       </div>
 
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.6;">
-        🛡️ <strong>Security Tip:</strong> Never share this code with anyone. Study Hub administrators will never ask for your password or OTP. If you did not initiate this request, you can safely ignore this email.
+      <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+        Security Notice: Never share this code with anyone. Study Hub administrators will never ask for your password or OTP.
       </p>
     </div>
 
-    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 12px; color: #94a3b8;">
-      <p style="margin: 0 0 4px 0; font-weight: 700; color: #64748b;">
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; font-size: 12px; color: #94a3b8;">
+      <p style="margin: 0 0 4px 0; font-weight: 600; color: #64748b;">
         Study Hub Official Administration &bull; <a href="mailto:${fromEmail}" style="color: #4f46e5; text-decoration: none;">${fromEmail}</a>
       </p>
       <p style="margin: 0;">&copy; 2026 Study Hub. All rights reserved.</p>
@@ -1867,7 +1865,7 @@ async function sendOfficialOtpEmail(
     try {
       const encodedSubject = `=?utf-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
       const emailLines = [
-        `From: Study Hub Official Administration <${fromEmail}>`,
+        `From: Study Hub Academy <${fromEmail}>`,
         `To: ${toEmail}`,
         `Subject: ${encodedSubject}`,
         "MIME-Version: 1.0",
@@ -1894,40 +1892,34 @@ async function sendOfficialOtpEmail(
       if (gRes.ok) {
         console.log(`[Gmail API] OTP sent successfully to ${toEmail}`);
         return { success: true, method: "gmail_api" };
-      } else {
-        const errJson = await gRes.json().catch(() => ({}));
-        console.warn("[Gmail API] Send failed:", errJson);
       }
     } catch (e: any) {
       console.warn("[Gmail API] Error:", e.message);
     }
   }
 
-  // 2. Try Gmail SMTP / App Password if configured
+  // 2. Try Gmail SMTP / App Password
   const rawPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD || "";
   const appPassword = rawPassword.replace(/\s+/g, "").trim();
   if (appPassword) {
     try {
       const transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
           user: fromEmail,
           pass: appPassword
         }
       });
-      const plainText = `STUDY HUB - PASSWORD RECOVERY OTP\n\nDear ${studentName || "Student"},\n\nYour 6-digit One-Time Password (OTP) to recover your Study Hub account is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nFrom: Study Hub Official Administration (${fromEmail})`;
+      const plainText = `Dear ${studentName || "Student"},\n\nYour 6-digit One-Time Password (OTP) to recover your Study Hub account is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nFrom: Study Hub Academy (${fromEmail})`;
       await transporter.sendMail({
-        from: `"Study Hub Official Administration" <${fromEmail}>`,
+        from: `"Study Hub Academy" <${fromEmail}>`,
         replyTo: fromEmail,
         to: toEmail,
         subject: subject,
         text: plainText,
-        html: htmlBody,
-        headers: {
-          "X-Priority": "1",
-          "Priority": "Urgent",
-          "Importance": "high"
-        }
+        html: htmlBody
       });
       console.log(`[Nodemailer SMTP] OTP sent successfully to ${toEmail}`);
       return { success: true, method: "smtp" };
@@ -1946,7 +1938,7 @@ async function sendOfficialWelcomeCredentialsEmail(
   courseOrExam: string = "General Studies"
 ) {
   const fromEmail = "studyhub2026admin@gmail.com";
-  const subject = "Welcome to Study Hub! Your Account ID & Password 🎉";
+  const subject = "Study Hub - Your Account ID and Password";
   const settings = await getSettings();
 
   const htmlBody = `
@@ -2081,25 +2073,22 @@ async function sendOfficialWelcomeCredentialsEmail(
   if (appPassword) {
     try {
       const transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
           user: fromEmail,
           pass: appPassword
         }
       });
-      const plainText = `WELCOME TO STUDY HUB ACADEMY!\n\nDear ${studentName || "Student"},\n\nYour account has been activated successfully.\nUser ID (Email): ${toEmail}\nPassword: ${password}\n\nPlease visit Study Hub, click LOG IN, and enter your User ID and Password to begin studying.\n\nFrom: Study Hub Official Administration (${fromEmail})`;
+      const plainText = `Study Hub Academy\n\nDear ${studentName || "Student"},\n\nYour account has been activated successfully.\nUser ID (Email): ${toEmail}\nPassword: ${password}\n\nPlease visit Study Hub, click LOG IN, and enter your User ID and Password to begin studying.\n\nFrom: Study Hub Official Administration (${fromEmail})`;
       await transporter.sendMail({
-        from: `"Study Hub Official Administration" <${fromEmail}>`,
+        from: `"Study Hub Academy" <${fromEmail}>`,
         replyTo: fromEmail,
         to: toEmail,
         subject: subject,
         text: plainText,
-        html: htmlBody,
-        headers: {
-          "X-Priority": "1",
-          "Priority": "Urgent",
-          "Importance": "high"
-        }
+        html: htmlBody
       });
       console.log(`[Nodemailer SMTP] Welcome credentials sent successfully to ${toEmail}`);
       return { success: true, method: "smtp" };
@@ -2144,7 +2133,26 @@ app.post("/api/auth/send-otp", async (req, res) => {
   if (!email) return res.status(400).json({ error: "Email is required" });
   const normEmail = email.trim().toLowerCase();
   try {
-    const user = await getUserByEmail(normEmail);
+    let user = await getUserByEmail(normEmail);
+    if (!user) {
+      const reqRecord = await getAccessRequestByEmail(normEmail);
+      if (reqRecord) {
+        user = {
+          fullName: reqRecord.fullName || "Student",
+          email: reqRecord.email,
+          password: reqRecord.password || Math.random().toString(36).substring(2, 10).toUpperCase(),
+          phone: reqRecord.phone || "",
+          age: "18",
+          institution: reqRecord.institution || "Study Hub",
+          grade: reqRecord.targetExam || "General Studies",
+          preferredSubject: reqRecord.preferredSubject || "Mathematics",
+          registeredAt: reqRecord.createdAt || new Date().toISOString(),
+          avatarUrl: "🎓",
+          role: "Student"
+        };
+        await saveUser(user);
+      }
+    }
     if (!user) {
       return res.status(404).json({ error: "No registered account found for this email address." });
     }
@@ -2221,17 +2229,62 @@ app.post("/api/auth/verify-otp-and-reveal", async (req, res) => {
   }
 
   try {
-    const user = await getUserByEmail(normEmail);
+    let user = await getUserByEmail(normEmail);
+    if (!user) {
+      const reqRecord = await getAccessRequestByEmail(normEmail);
+      if (reqRecord) {
+        user = {
+          fullName: reqRecord.fullName || "Student",
+          email: reqRecord.email,
+          password: reqRecord.password || Math.random().toString(36).substring(2, 10).toUpperCase(),
+          phone: reqRecord.phone || "",
+          age: "18",
+          institution: reqRecord.institution || "Study Hub",
+          grade: reqRecord.targetExam || "General Studies",
+          preferredSubject: reqRecord.preferredSubject || "Mathematics",
+          registeredAt: reqRecord.createdAt || new Date().toISOString(),
+          avatarUrl: "🎓",
+          role: "Student"
+        };
+        await saveUser(user);
+      }
+    }
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
+    if (!user.password || user.password === "No password set") {
+      user.password = Math.random().toString(36).substring(2, 10).toUpperCase();
+      await saveUser(user);
+    }
     delete otpStore[normEmail];
-    res.json({ success: true, password: user.password || "No password set" });
+    res.json({ success: true, password: user.password });
   } catch (error: any) {
     console.error("Error verifying OTP:", error);
     res.status(500).json({ error: error.message });
   }
 });
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: "Email and new password are required" });
+  }
+  const normEmail = email.trim().toLowerCase();
+  try {
+    const user = await getUserByEmail(normEmail);
+    if (!user) {
+      return res.status(404).json({ error: "This email is not registered in Study Hub." });
+    }
+    user.password = newPassword.trim();
+    await saveUser(user);
+    delete otpStore[normEmail];
+    res.json({ success: true, message: "Password updated successfully!", user, password: user.password });
+  } catch (error: any) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/api/activity-logs", async (req, res) => {
   try {
     const logsList = await getActivityLogs();
@@ -3128,7 +3181,40 @@ app.post("/api/access-requests", async (req, res) => {
   // Check if already an approved active user
   const existingUser = await getUserByEmail(normEmail);
   if (existingUser) {
-    return res.status(400).json({ error: "This email is already an active registered member. Please use Log In." });
+    const finalPassword = (password && typeof password === "string" && password.trim().length >= 4)
+      ? password.trim()
+      : Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    existingUser.password = finalPassword;
+    if (fullName) existingUser.fullName = fullName.trim();
+    if (institution) existingUser.institution = institution.trim();
+    if (phone) existingUser.phone = phone.trim();
+    if (age) existingUser.age = String(age).trim();
+    if (targetExam) existingUser.grade = targetExam;
+    await saveUser(existingUser);
+
+    // Send credentials to student's email
+    let emailResult = { success: false, method: "none" };
+    try {
+      emailResult = await sendOfficialWelcomeCredentialsEmail(
+        normEmail,
+        existingUser.fullName || fullName.trim(),
+        finalPassword,
+        targetExam || existingUser.grade || "General Studies"
+      );
+    } catch (mailErr) {
+      console.error("Error sending credentials email on re-registration:", mailErr);
+    }
+
+    return res.json({
+      success: true,
+      autoApproved: true,
+      user: existingUser,
+      password: finalPassword,
+      emailDelivered: emailResult.success,
+      emailMethod: emailResult.method,
+      message: "Credentials have been emailed to your registered address."
+    });
   }
 
   // Determine or generate a secure student password

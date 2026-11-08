@@ -66,8 +66,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   const [signupTargetExam, setSignupTargetExam] = useState("Secondary / Higher Secondary");
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [createdPassword, setCreatedPassword] = useState("");
-  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [copiedRevealedPassword, setCopiedRevealedPassword] = useState(false);
 
   // Status Check & Notice state
   const [notice, setNotice] = useState<{
@@ -103,9 +102,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   const [emailDelivered, setEmailDelivered] = useState<boolean>(false);
   const [needsGmailAuth, setNeedsGmailAuth] = useState<boolean>(false);
   const [isConnectingGmail, setIsConnectingGmail] = useState<boolean>(false);
-  const [showAppPasswordInput, setShowAppPasswordInput] = useState<boolean>(false);
-  const [quickAppPassword, setQuickAppPassword] = useState<string>("");
-
   const handleForgotPasswordClick = () => {
     setForgotEmail(loginEmail);
     setForgotStep(1);
@@ -113,8 +109,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
     setRevealedPassword("");
     setForgotError(null);
     setEmailDelivered(false);
-    setNeedsGmailAuth(false);
-    setShowAppPasswordInput(false);
     setShowForgotModal(true);
   };
 
@@ -138,7 +132,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
       const data = await res.json();
       if (res.ok && data.success) {
         setEmailDelivered(!!data.emailDelivered);
-        setNeedsGmailAuth(!!data.needsGmailAuth);
         setForgotStep(2);
       } else {
         setForgotError(data.error || (isBengali ? "ওটিপি পাঠানো যায়নি।" : "Failed to send OTP."));
@@ -147,64 +140,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
       setForgotError(isBengali ? "নেটওয়ার্ক ত্রুটি।" : "Network error. Please try again.");
     } finally {
       setIsForgotLoading(false);
-    }
-  };
-
-  const handleQuickConnectGmail = async () => {
-    setIsConnectingGmail(true);
-    setForgotError(null);
-    try {
-      const { accessToken } = await signInWithGoogleForGmail();
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: forgotEmail.trim().toLowerCase(),
-          gmailToken: accessToken
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setEmailDelivered(!!data.emailDelivered);
-        setNeedsGmailAuth(!!data.needsGmailAuth);
-        setForgotStep(2);
-      } else {
-        setForgotError(data.error || (isBengali ? "ইমেইল পাঠানো যায়নি।" : "Failed to dispatch email."));
-      }
-    } catch (e: any) {
-      setForgotError(e.message || (isBengali ? "গুগল সাইন-ইন সংযোগ ব্যর্থ হয়েছে।" : "Google sign-in connection failed."));
-    } finally {
-      setIsConnectingGmail(false);
-    }
-  };
-
-  const handleQuickSaveAppPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickAppPassword.trim()) return;
-    setIsConnectingGmail(true);
-    setForgotError(null);
-    try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: forgotEmail.trim().toLowerCase(),
-          appPassword: quickAppPassword.trim()
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setEmailDelivered(!!data.emailDelivered);
-        setNeedsGmailAuth(!!data.needsGmailAuth);
-        setShowAppPasswordInput(false);
-        setForgotStep(2);
-      } else {
-        setForgotError(data.error || (isBengali ? "ইমেইল পাঠানো যায়নি।" : "Failed to dispatch email."));
-      }
-    } catch (e: any) {
-      setForgotError(e.message || (isBengali ? "পাসওয়ার্ড সংরক্ষণ ব্যর্থ হয়েছে।" : "Failed to save App Password."));
-    } finally {
-      setIsConnectingGmail(false);
     }
   };
 
@@ -461,9 +396,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
-        if (data.password) {
-          setCreatedPassword(data.password);
-        }
         setSignupSuccess(true);
       } else {
         setNotice({
@@ -915,62 +847,22 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       </p>
                     </div>
 
-                    {/* Immediate On-Screen Access Credentials (Failsafe) */}
-                    {createdPassword && (
-                      <div className="p-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
-                            {isBengali ? "তাৎক্ষণিক লগইন তথ্য (Failsafe Backup):" : "Immediate Access Credentials:"}
-                          </span>
-                          <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
-                            {isBengali ? "কপি বা সংরক্ষণ করুন" : "Save or copy now"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                            <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">User ID</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-200 select-all truncate block">{signupEmail.trim().toLowerCase()}</span>
-                          </div>
-                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-1.5">
-                            <div className="min-w-0">
-                              <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">Password</span>
-                              <span className="font-black text-indigo-600 dark:text-indigo-400 select-all tracking-wider text-sm">{createdPassword}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(createdPassword);
-                                setCopiedPassword(true);
-                                setTimeout(() => setCopiedPassword(false), 2500);
-                              }}
-                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
-                              title="Copy password"
-                            >
-                              {copiedPassword ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                              <span>{copiedPassword ? (isBengali ? "কপি হয়েছে" : "Copied") : (isBengali ? "কপি" : "Copy")}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="pt-2 flex flex-col sm:flex-row gap-2">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => {
                         const email = signupEmail.trim().toLowerCase();
-                        const pwd = createdPassword;
                         setLoginEmail(email);
-                        setLoginPassword(pwd);
                         setSignupSuccess(false);
                         handleTabSwitch("login");
                       }}
-                      className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
                       <LogIn className="h-4 w-4" />
-                      <span>{isBengali ? "সরাসরি লগইন করুন (Proceed to Login) 🚀" : "Proceed to Login 🚀"}</span>
+                      <span>{isBengali ? "লগইন স্ক্রিনে যান (Go to Log In) 🚀" : "Go to Log In 🚀"}</span>
                     </button>
                   </div>
                 </motion.div>
@@ -1093,6 +985,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                   </div>
 
 
+
                   {/* Submit Button */}
                   <div className="pt-2">
                     <button
@@ -1153,7 +1046,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
               <div className="flex items-center justify-between border-b pb-4">
                 <h3 className={`text-base font-black ${theme.textHeading} flex items-center gap-2`}>
                   <Key className="h-5 w-5 text-indigo-600" />
-                  {isBengali ? "পাসওয়ার্ড পুনরুদ্ধার (OTP)" : "Password Recovery (OTP)"}
+                  {isBengali ? "পাসওয়ার্ড পুনরুদ্ধার ও রিসেট" : "Password Recovery & Reset"}
                 </h3>
                 <button
                   type="button"
@@ -1170,12 +1063,13 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                 </div>
               )}
 
+              {/* EMAIL OTP FLOW */}
               {forgotStep === 1 && (
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <p className={`text-xs ${theme.textMuted} font-medium leading-relaxed`}>
                     {isBengali 
-                      ? "আপনার নিবন্ধিত ইমেইল ঠিকানাটি লিখুন। আপনার ইমেইলে একটি ৪/৬-সংখ্যার ওটিপি (OTP) কোড পাঠানো হবে।" 
-                      : "Enter your registered email address. A 6-digit OTP verification code will be sent to your email."}
+                      ? "আপনার নিবন্ধিত ইমেইল ঠিকানাটি লিখুন। studyhub2026admin@gmail.com থেকে একটি ৬-সংখ্যার ওটিপি (OTP) পাঠানো হবে।" 
+                      : "Enter your registered email address. A 6-digit OTP code will be dispatched from studyhub2026admin@gmail.com."}
                   </p>
                   <div className="space-y-1">
                     <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
@@ -1215,85 +1109,6 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
               {forgotStep === 2 && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  {needsGmailAuth ? (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span className="font-extrabold text-sm text-amber-800 dark:text-amber-300">
-                          {isBengali ? "অফিশিয়াল জিমেইল অ্যাপ পাসওয়ার্ড প্রয়োজন" : "Official Gmail App Password Required"}
-                        </span>
-                      </div>
-                      
-                      <p className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
-                        {isBengali 
-                          ? "গুগলের নিয়মানুযায়ী অ্যাপ পাসওয়ার্ড তৈরি করতে অ্যাকাউন্টে 2-Step Verification অন থাকতে হয় (তা না থাকলে 'setting is not available' এরর আসে)। নিচে ২টি সহজ সমাধান রয়েছে:"
-                          : "Google requires 2-Step Verification to be ON for App Passwords (otherwise 'setting is not available' appears). Choose an option below:"
-                        }
-                      </p>
-
-                      <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-amber-200 dark:border-amber-900/50 space-y-2 text-[11px]">
-                        <p className="font-bold text-amber-950 dark:text-amber-200">
-                          {isBengali ? "উপায় ১: গুগল অ্যাপ পাসওয়ার্ড চালু করার ধাপ:" : "Option 1: Enable Google App Password:"}
-                        </p>
-                        <ol className="list-decimal pl-4 space-y-1.5 text-slate-700 dark:text-slate-300">
-                          <li>
-                            {isBengali ? "প্রথমে যান: " : "First go to: "}
-                            <a 
-                              href="https://myaccount.google.com/signinoptions/two-step-verification" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 dark:text-indigo-400 font-bold underline"
-                            >
-                              2-Step Verification সেটিংস
-                            </a>
-                            {isBengali ? " এবং মোবাইল নম্বর দিয়ে ২-স্টেপ ভেরিফিকেশন অন (Turn ON) করুন।" : " and Turn ON 2-Step Verification with your mobile number."}
-                          </li>
-                          <li>
-                            {isBengali ? "এরপর যান: " : "Then visit: "}
-                            <a 
-                              href="https://myaccount.google.com/apppasswords" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 dark:text-indigo-400 font-bold underline"
-                            >
-                              myaccount.google.com/apppasswords
-                            </a>
-                            {isBengali ? ' -> "StudyHub" লিখে Create চাপলে ১৬-সংখ্যার পাসওয়ার্ড পাবেন।' : ' -> Name it "StudyHub" to get the 16-character code.'}
-                          </li>
-                          <li>{isBengali ? "কোডটি নিচের বক্সে পেস্ট করে সেভ করুন:" : "Paste the 16-character code below and click Save:"}</li>
-                        </ol>
-
-                        <div className="pt-1">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="password"
-                              value={quickAppPassword}
-                              onChange={(e) => setQuickAppPassword(e.target.value)}
-                              placeholder="xxxx xxxx xxxx xxxx"
-                              className="flex-1 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-xs font-mono font-bold outline-none focus:border-indigo-500"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleQuickSaveAppPassword}
-                              disabled={!quickAppPassword.trim() || isConnectingGmail}
-                              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-                            >
-                              {isConnectingGmail ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                              <span>{isBengali ? "সেভ ও ওটিপি পাঠান" : "Save & Send OTP"}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 text-[11px] text-indigo-900 dark:text-indigo-200 flex items-center justify-between gap-2">
-                        <div>
-                          <span className="font-bold">{isBengali ? "উপায় ২ (জরুরি তাৎক্ষণিক পাসওয়ার্ড প্রদর্শন): " : "Option 2 (Instant Master Passcode): "}</span>
-                          <span>{isBengali ? "নিচের ওটিপি বক্সে অ্যাডমিন পাসকোড 7530 দিলেও পাসওয়ার্ড দেখা যাবে।" : "Enter master passcode 7530 in the OTP box below to reveal password."}</span>
-                        </div>
-                        <span className="px-2 py-0.5 rounded bg-indigo-600 text-white font-mono font-bold text-xs shrink-0">7530</span>
-                      </div>
-                    </div>
-                  ) : (
                     <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 space-y-2 text-center">
                       <p className="font-extrabold text-sm text-indigo-700 dark:text-indigo-300">
                         {isBengali ? "📩 ৬-সংখ্যার ওটিপি কোড পাঠানো হয়েছে!" : "📩 6-Digit OTP Dispatched!"}
@@ -1311,12 +1126,11 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                         </div>
                         <p className="font-normal text-[10.5px]">
                           {isBengali 
-                            ? "ইনবক্সে সরাসরি না পেলে অনুগ্রহ করে আপনার জিমেইলের Spam (স্প্যাম) অথবা Promotions ফোল্ডার চেক করুন।" 
-                            : "If not visible in primary Inbox, please check your Spam or Promotions folder."}
+                            ? "ইনবক্সে সরাসরি না পেলে অনুগ্রহ করে আপনার জিমেইলের Spam (স্প্যাম) অথবা Promotions ফোল্ডার চেক করুন। অথবা জরুরি প্রয়োজনে অ্যাডমিন পাসকোড 7530 ব্যবহার করতে পারেন।" 
+                            : "If not visible in primary Inbox, please check your Spam or Promotions folder. You may also use master passcode 7530."}
                         </p>
                       </div>
                     </div>
-                  )}
 
                   <div className="space-y-1">
                     <label className={`text-[10px] font-extrabold ${theme.textHeading} uppercase tracking-wider block`}>
@@ -1375,11 +1189,13 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(revealedPassword);
-                        alert(isBengali ? "পাসওয়ার্ড কপি করা হয়েছে!" : "Password copied to clipboard!");
+                        setCopiedRevealedPassword(true);
+                        setTimeout(() => setCopiedRevealedPassword(false), 2500);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 cursor-pointer shadow-xs"
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 cursor-pointer shadow-xs flex items-center gap-1.5"
                     >
-                      {isBengali ? "কপি" : "Copy"}
+                      {copiedRevealedPassword ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      <span>{copiedRevealedPassword ? (isBengali ? "কপি হয়েছে!" : "Copied!") : (isBengali ? "কপি" : "Copy")}</span>
                     </button>
                   </div>
 
