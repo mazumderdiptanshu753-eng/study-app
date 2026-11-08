@@ -108,7 +108,7 @@ export default function UserManualModal({ isOpen, onClose, lang: appLang }: User
                   </span>
                 </h3>
                 <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  অফিসিয়াল সংস্করণ v2.6 • বাংলা ও ইংরেজি সম্পূর্ণ ব্যবহার সহায়িকা
+                  বাংলা ও ইংরেজি সম্পূর্ণ প্রাতিষ্ঠানিক ব্যবহার সহায়িকা
                 </p>
               </div>
             </div>
@@ -222,7 +222,6 @@ export default function UserManualModal({ isOpen, onClose, lang: appLang }: User
                   Comprehensive Step-by-Step Guide for Students &amp; Administrators
                 </p>
                 <div className="pt-2 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500">
-                  <span>সংস্করণ: <strong>v2.6 Verified</strong></span>
                   <span>অফিশিয়াল অ্যাডমিন: <strong className="text-indigo-600 dark:text-indigo-400">studyhub2026admin@gmail.com</strong></span>
                   <span>ডেভেলপার: <strong>Diptanshu Mazumder</strong></span>
                 </div>
@@ -390,9 +389,6 @@ export default function UserManualModal({ isOpen, onClose, lang: appLang }: User
 
               {/* Footer attribution */}
               <div className="pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                <p className="font-black text-slate-800 dark:text-slate-200">
-                  STUDY HUB OFFICIAL ACADEMIC PLATFORM • VERIFIED V2.6
-                </p>
                 <p>
                   Official Inquiries: <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">studyhub2026admin@gmail.com</span>
                 </p>

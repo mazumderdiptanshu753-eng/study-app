@@ -36,8 +36,8 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
           id: 'welcome',
           role: 'assistant',
           content: isBengali 
-            ? "হ্যালো! আমি আপনার এআই স্টাডি অ্যাসিস্ট্যান্ট। পড়া সংক্রান্ত যেকোনো প্রশ্ন আমাকে করতে পারেন।" 
-            : "Hello! I am your AI Study Assistant. Feel free to ask me any academic questions."
+            ? "নমস্কার! আমি আপনার স্টাডি মেন্টর। সিলেবাস, পড়াশোনার রুটিন বা যেকোনো বিষয়ের প্রশ্ন এখানে জিজ্ঞেস করতে পারেন।" 
+            : "Hello! I am your Academic Study Mentor. Feel free to ask any question regarding your studies or concepts."
         }
       ]);
     }
@@ -60,7 +60,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
       const newUserMsg: Message = {
         id: Date.now().toString(),
         role: 'user',
-        content: isBengali ? "আমি একটি ছবি আপলোড করেছি" : "I have uploaded an image",
+        content: isBengali ? "আমি একটি ছবি সংযুক্ত করেছি" : "I have attached an image",
         imageUrl: url
       };
       
@@ -114,7 +114,7 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: isBengali ? "দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।" : "Sorry, an error occurred. Please try again."
+        content: isBengali ? "দুঃখিত, একটি সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।" : "Sorry, an error occurred. Please try again."
       }]);
     } finally {
       setIsLoading(false);
@@ -124,15 +124,15 @@ export default function AIStudyAssistant({ theme, lang }: AIStudyAssistantProps)
   return (
     <div className={`flex flex-col h-[600px] max-h-[80vh] w-full max-w-3xl mx-auto rounded-3xl border ${theme.borderCard} overflow-hidden shadow-xl ${theme.bgCard} mt-4`}>
       <div className={`p-4 border-b ${theme.borderCard} flex items-center gap-3 bg-gradient-to-r ${theme.isDark ? 'from-slate-800 to-slate-900' : 'from-indigo-50 to-blue-50'}`}>
-        <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md`}>
-          <Sparkles className="h-5 w-5" />
+        <div className={`h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md`}>
+          <Bot className="h-5 w-5" />
         </div>
         <div>
           <h2 className={`font-bold ${theme.textHeading}`}>
-            {isBengali ? "এআই স্টাডি অ্যাসিস্ট্যান্ট" : "AI Study Assistant"}
+            {isBengali ? "স্টাডি মেন্টর ও গাইড" : "Academic Study Mentor"}
           </h2>
           <p className={`text-xs ${theme.textMuted}`}>
-            {isBengali ? "Google দ্বারা পরিচালিত, দীপ্তাংশু মজুমদার দ্বারা তৈরি" : "Powered by Google , Created by Diptanshu Mazumder"}
+            {isBengali ? "স্টাডি হাব একাডেমি • অ্যাকাডেমিক সহায়তা" : "Study Hub Academy • Academic Assistance"}
           </p>
         </div>
       </div>

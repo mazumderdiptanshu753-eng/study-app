@@ -947,14 +947,11 @@ export default function App() {
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                   </div>
                   <div className="leading-tight">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-black text-sm tracking-tight text-slate-900">
-                        STUDY HUB
-                      </span>
-                      <Sparkles className="h-3 w-3 text-amber-500" />
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase block mt-0.5">
-                      {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI SPACE"}
+                    <span className="font-black text-sm tracking-tight text-slate-900 block">
+                      STUDY HUB
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-500 tracking-wider uppercase block mt-0.5">
+                      {lang === "bn" ? "শিক্ষা ও একাডেমি পোর্টাল" : "ACADEMIC PORTAL"}
                     </span>
                   </div>
                 </div>
@@ -1184,8 +1181,8 @@ export default function App() {
                     <span className="font-black text-xs block tracking-tight text-slate-900">
                       STUDY HUB
                     </span>
-                    <span className="text-[8px] font-bold text-slate-400 block tracking-wider uppercase">
-                      {lang === "bn" ? "অধ্যয়ন ও এআই" : "LEARN & AI"}
+                    <span className="text-[8px] font-bold text-slate-500 block tracking-wider uppercase">
+                      {lang === "bn" ? "শিক্ষা পোর্টাল" : "ACADEMIC PORTAL"}
                     </span>
                   </div>
                 </button>

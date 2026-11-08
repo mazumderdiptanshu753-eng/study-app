@@ -1904,7 +1904,8 @@ async function sendOfficialOtpEmail(
   }
 
   // 2. Try Gmail SMTP / App Password if configured
-  const appPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+  const rawPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD || "";
+  const appPassword = rawPassword.replace(/\s+/g, "").trim();
   if (appPassword) {
     try {
       const transporter = nodemailer.createTransport({
@@ -1914,11 +1915,19 @@ async function sendOfficialOtpEmail(
           pass: appPassword
         }
       });
+      const plainText = `STUDY HUB - PASSWORD RECOVERY OTP\n\nDear ${studentName || "Student"},\n\nYour 6-digit One-Time Password (OTP) to recover your Study Hub account is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nFrom: Study Hub Official Administration (${fromEmail})`;
       await transporter.sendMail({
         from: `"Study Hub Official Administration" <${fromEmail}>`,
+        replyTo: fromEmail,
         to: toEmail,
         subject: subject,
-        html: htmlBody
+        text: plainText,
+        html: htmlBody,
+        headers: {
+          "X-Priority": "1",
+          "Priority": "Urgent",
+          "Importance": "high"
+        }
       });
       console.log(`[Nodemailer SMTP] OTP sent successfully to ${toEmail}`);
       return { success: true, method: "smtp" };
@@ -2067,7 +2076,8 @@ async function sendOfficialWelcomeCredentialsEmail(
   }
 
   // 2. Try Gmail SMTP / App Password if configured
-  const appPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+  const rawPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD || "";
+  const appPassword = rawPassword.replace(/\s+/g, "").trim();
   if (appPassword) {
     try {
       const transporter = nodemailer.createTransport({
@@ -2077,11 +2087,19 @@ async function sendOfficialWelcomeCredentialsEmail(
           pass: appPassword
         }
       });
+      const plainText = `WELCOME TO STUDY HUB ACADEMY!\n\nDear ${studentName || "Student"},\n\nYour account has been activated successfully.\nUser ID (Email): ${toEmail}\nPassword: ${password}\n\nPlease visit Study Hub, click LOG IN, and enter your User ID and Password to begin studying.\n\nFrom: Study Hub Official Administration (${fromEmail})`;
       await transporter.sendMail({
         from: `"Study Hub Official Administration" <${fromEmail}>`,
+        replyTo: fromEmail,
         to: toEmail,
         subject: subject,
-        html: htmlBody
+        text: plainText,
+        html: htmlBody,
+        headers: {
+          "X-Priority": "1",
+          "Priority": "Urgent",
+          "Importance": "high"
+        }
       });
       console.log(`[Nodemailer SMTP] Welcome credentials sent successfully to ${toEmail}`);
       return { success: true, method: "smtp" };

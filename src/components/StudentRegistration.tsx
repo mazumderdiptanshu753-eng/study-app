@@ -66,6 +66,8 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   const [signupTargetExam, setSignupTargetExam] = useState("Secondary / Higher Secondary");
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [createdPassword, setCreatedPassword] = useState("");
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   // Status Check & Notice state
   const [notice, setNotice] = useState<{
@@ -459,6 +461,9 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
+        if (data.password) {
+          setCreatedPassword(data.password);
+        }
         setSignupSuccess(true);
       } else {
         setNotice({
@@ -871,7 +876,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       ✅ {isBengali ? "রেজিস্ট্রেশন সম্পন্ন হয়েছে" : "Registration Successful"}
                     </span>
                     <h3 className="text-lg font-black text-emerald-950 dark:text-emerald-200">
-                      {isBengali ? "🎉 অ্যাকাউন্ট তৈরি সম্পন্ন হয়েছে!" : "🎉 Account Created Successfully!"}
+                      {isBengali ? "🎉 অ্যাকাউন্ট তৈরি ও সক্রিয় হয়েছে!" : "🎉 Account Created & Activated!"}
                     </h3>
                   </div>
 
@@ -881,14 +886,14 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
                         <Mail className="h-5 w-5" />
                       </div>
-                      <div className="space-y-1 min-w-0">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-                          {isBengali ? "ইমেইলে ক্রেডেনশিয়াল পাঠানো হয়েছে" : "Credentials Sent to Email"}
+                          {isBengali ? "ইমেইলে লগইন তথ্য পাঠানো হয়েছে" : "Credentials Dispatched to Email"}
                         </h4>
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                           {isBengali 
-                            ? `আপনার অ্যাকাউন্টের User ID ও Password স্টাডি হাবের অফিসিয়াল ইমেইল (studyhub2026admin@gmail.com) থেকে আপনার ইমেইলে পাঠিয়ে দেওয়া হয়েছে:`
-                            : `Your account User ID and Password have been securely emailed from studyhub2026admin@gmail.com to:`
+                            ? `আপনার User ID ও Password অফিসিয়াল অ্যাডমিন ইমেইল (studyhub2026admin@gmail.com) থেকে স্বয়ংক্রিয়ভাবে পাঠিয়ে দেওয়া হয়েছে:`
+                            : `Your account User ID and Password have been dispatched from studyhub2026admin@gmail.com to:`
                           }
                         </p>
                         <div className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-900/30 px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/50 break-all">
@@ -897,30 +902,75 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       </div>
                     </div>
 
-                    <div className="pt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 border-t border-slate-100 dark:border-slate-800">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span>
+                    {/* Critical Spam Notice Banner */}
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-[11px] text-amber-950 dark:text-amber-200 leading-relaxed space-y-1.5">
+                      <div className="font-black flex items-center gap-1.5 text-amber-900 dark:text-amber-300">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                        <span>{isBengali ? "ইমেইল খুঁজে পাচ্ছেন না? অনুগ্রহ করে এটি পড়ুন:" : "Cannot find the email? Please check:"}</span>
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300">
                         {isBengali 
-                          ? "অনুগ্রহ করে আপনার ইমেইল ইনবক্স বা স্প্যাম (Spam) ফোল্ডার চেক করে পাসওয়ার্ড দিয়ে লগইন করুন।" 
-                          : "Please check your inbox or Spam folder to get your password and log in."}
-                      </span>
+                          ? "গুগলের স্বয়ংক্রিয় ফিল্টারের কারণে কোনো কোনো ক্ষেত্রে প্রথম ইমেইলটি ইনবক্সের বদলে আপনার জিমেইলের 'Spam (স্প্যাম)' অথবা 'Promotions / Updates' ফোল্ডারে যেতে পারে। ইনবক্সে না পেলে অনুগ্রহ করে আপনার জিমেইলের Spam ফোল্ডারটি চেক করুন।"
+                          : "Due to mail filters, automated security messages may land in your 'Spam' or 'Promotions' folder. Please check your Spam folder if not found in Primary Inbox."}
+                      </p>
                     </div>
+
+                    {/* Immediate On-Screen Access Credentials (Failsafe) */}
+                    {createdPassword && (
+                      <div className="p-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                            {isBengali ? "তাৎক্ষণিক লগইন তথ্য (Failsafe Backup):" : "Immediate Access Credentials:"}
+                          </span>
+                          <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
+                            {isBengali ? "কপি বা সংরক্ষণ করুন" : "Save or copy now"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">User ID</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 select-all truncate block">{signupEmail.trim().toLowerCase()}</span>
+                          </div>
+                          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-1.5">
+                            <div className="min-w-0">
+                              <span className="block text-[9px] font-sans font-bold text-slate-500 uppercase">Password</span>
+                              <span className="font-black text-indigo-600 dark:text-indigo-400 select-all tracking-wider text-sm">{createdPassword}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(createdPassword);
+                                setCopiedPassword(true);
+                                setTimeout(() => setCopiedPassword(false), 2500);
+                              }}
+                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
+                              title="Copy password"
+                            >
+                              {copiedPassword ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                              <span>{copiedPassword ? (isBengali ? "কপি হয়েছে" : "Copied") : (isBengali ? "কপি" : "Copy")}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Action Button: Go to Login */}
-                  <div className="pt-2">
+                  {/* Action Buttons */}
+                  <div className="pt-2 flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        setLoginEmail(signupEmail.trim().toLowerCase());
-                        setLoginPassword("");
+                        const email = signupEmail.trim().toLowerCase();
+                        const pwd = createdPassword;
+                        setLoginEmail(email);
+                        setLoginPassword(pwd);
                         setSignupSuccess(false);
                         handleTabSwitch("login");
                       }}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                      className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
                       <LogIn className="h-4 w-4" />
-                      <span>{isBengali ? "লগইন স্ক্রিনে যান (Go to Log In) 🚀" : "Go to Log In 🚀"}</span>
+                      <span>{isBengali ? "সরাসরি লগইন করুন (Proceed to Login) 🚀" : "Proceed to Login 🚀"}</span>
                     </button>
                   </div>
                 </motion.div>
@@ -1244,22 +1294,27 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 space-y-1.5 text-center">
+                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-950 dark:text-indigo-200 space-y-2 text-center">
                       <p className="font-extrabold text-sm text-indigo-700 dark:text-indigo-300">
-                        {isBengali ? "📩 ওটিপি কোড পাঠানো হয়েছে!" : "📩 OTP Code Dispatched!"}
+                        {isBengali ? "📩 ৬-সংখ্যার ওটিপি কোড পাঠানো হয়েছে!" : "📩 6-Digit OTP Dispatched!"}
                       </p>
                       <p className="font-semibold leading-relaxed">
                         {isBengali 
-                          ? `স্টাডি হাবের অফিশিয়াল ইমেইল (studyhub2026admin@gmail.com) থেকে আপনার ইমেইল (${forgotEmail})-এ একটি ৬-সংখ্যার ওটিপি কোড পাঠানো হয়েছে।`
-                          : `An official 6-digit OTP code has been sent to ${forgotEmail} from studyhub2026admin@gmail.com.`
+                          ? `অফিশিয়াল ইমেইল (studyhub2026admin@gmail.com) থেকে আপনার ইমেইল (${forgotEmail})-এ ৬-সংখ্যার ওটিপি কোড পাঠানো হয়েছে।`
+                          : `An official 6-digit OTP code has been dispatched to ${forgotEmail} from studyhub2026admin@gmail.com.`
                         }
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                        {isBengali 
-                          ? "অনুগ্রহ করে আপনার ইনবক্স অথবা স্প্যাম (Spam) ফোল্ডার চেক করুন।"
-                          : "Please check your email inbox or spam folder."
-                        }
-                      </p>
+                      <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-[11px] font-bold text-left space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          <span>{isBengali ? "জরুরি নির্দেশনা (Important):" : "Important:"}</span>
+                        </div>
+                        <p className="font-normal text-[10.5px]">
+                          {isBengali 
+                            ? "ইনবক্সে সরাসরি না পেলে অনুগ্রহ করে আপনার জিমেইলের Spam (স্প্যাম) অথবা Promotions ফোল্ডার চেক করুন।" 
+                            : "If not visible in primary Inbox, please check your Spam or Promotions folder."}
+                        </p>
+                      </div>
                     </div>
                   )}
 
