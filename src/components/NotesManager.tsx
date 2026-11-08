@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   BookOpen, 
@@ -110,8 +110,18 @@ export default function NotesManager({
     reader.readAsDataURL(file);
   };
 
+  useEffect(() => {
+    if (role !== "Admin" && isCreating) {
+      setIsCreating(false);
+    }
+  }, [role, isCreating]);
+
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (role !== "Admin") {
+      alert(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে নোট আপলোড বা তৈরি করা সম্ভব।" : "Only admin accounts can create or upload notes.");
+      return;
+    }
     if (!title.trim() || !content.trim()) return;
     onSaveNote({
       title,
@@ -142,6 +152,10 @@ export default function NotesManager({
   };
 
   const handleImportNote = () => {
+    if (role !== "Admin") {
+      alert(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে নোট ইম্পোর্ট করা সম্ভব।" : "Only admin accounts can import notes.");
+      return;
+    }
     const input = prompt("Paste the study note sharing code here:");
     if (!input) return;
     try {
@@ -335,7 +349,7 @@ export default function NotesManager({
 
       {/* RIGHT PANEL: Note Viewer / Editor / Study mode (8 cols on md+) */}
       <motion.div variants={itemVariants} className="md:col-span-8 space-y-6">
-        {isCreating ? (
+        {isCreating && role === "Admin" ? (
           /* CREATE NOTE FORM */
           <div className="space-y-4">
             <button

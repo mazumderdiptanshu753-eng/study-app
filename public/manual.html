@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Hub - Official User Manual & Guide (ব্যবহারকারী নির্দেশিকা)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --primary-light: #e0e7ff;
+      --secondary: #06b6d4;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Hind Siliguri', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--slate-800);
+      background-color: var(--slate-100);
+      line-height: 1.65;
+      font-size: 14.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Print & PDF styling */
+    @page {
+      size: A4;
+      margin: 14mm 12mm;
+    }
+
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .manual-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .card, .callout, .step-box {
+        break-inside: avoid;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+
+    /* Navigation Bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 900;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+
+    .logo-text h1 {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+      color: var(--slate-900);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .logo-text p {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate-500);
+      margin-top: -2px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lang-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      background: white;
+      color: var(--slate-700);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .download-btn {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 800;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      color: white;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      transition: all 0.2s;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+    }
+
+    .back-btn {
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      background: white;
+      color: var(--slate-700);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      background: var(--slate-50);
+      border-color: var(--slate-300);
+    }
+
+    /* Container */
+    .manual-container {
+      max-width: 900px;
+      margin: 28px auto 60px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.06);
+      border: 1px solid var(--slate-200);
+      overflow: hidden;
+      padding: 48px;
+    }
+
+    /* Cover / Header */
+    .manual-header {
+      border-bottom: 2px solid var(--slate-100);
+      padding-bottom: 32px;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    .official-tag {
+      display: inline-block;
+      padding: 4px 16px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .manual-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--slate-900);
+      letter-spacing: -0.6px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .manual-subtitle {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--slate-600);
+      margin-bottom: 18px;
+    }
+
+    .meta-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate-500);
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--slate-200);
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-item strong {
+      color: var(--slate-800);
+    }
+
+    /* Table of Contents */
+    .toc-card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 40px;
+    }
+
+    .toc-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 10px 24px;
+    }
+
+    .toc-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+      text-decoration: none;
+      color: var(--slate-700);
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+
+    .toc-link:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateX(3px);
+    }
+
+    .toc-num {
+      background: var(--primary-light);
+      color: var(--primary);
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      font-family: 'Inter', sans-serif;
+      margin-right: 10px;
+    }
+
+    /* Section styling */
+    .manual-section {
+      margin-bottom: 44px;
+      scroll-margin-top: 90px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 2px solid var(--slate-100);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--slate-900);
+      letter-spacing: -0.3px;
+    }
+
+    /* Cards & Callouts */
+    .card {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+
+    .callout {
+      padding: 16px 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      border-left: 5px solid;
+    }
+
+    .callout-success {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+
+    .callout-info {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+
+    .callout-warning {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .callout-primary {
+      background: #eef2ff;
+      border-color: #6366f1;
+      color: #3730a3;
+    }
+
+    /* Step boxes */
+    .steps-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .step-box {
+      display: flex;
+      gap: 16px;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      shrink: 0;
+    }
+
+    .step-content h4 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 6px;
+    }
+
+    .step-content p {
+      font-size: 13.5px;
+      color: var(--slate-600);
+      line-height: 1.6;
+    }
+
+    /* Language-specific block toggles */
+    .lang-bn, .lang-en {
+      display: block;
+    }
+
+    body.view-bn-only .lang-en {
+      display: none !important;
+    }
+
+    body.view-en-only .lang-bn {
+      display: none !important;
+    }
+
+    .bilingual-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .bilingual-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .manual-container {
+        padding: 24px 18px;
+        margin: 16px 8px;
+      }
+      .manual-title {
+        font-size: 24px;
+      }
+      .toc-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13px;
+    }
+
+    .data-table th, .data-table td {
+      border: 1px solid var(--slate-200);
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .data-table th {
+      background: var(--slate-100);
+      font-weight: 800;
+      color: var(--slate-800);
+    }
+
+    .data-table tr:nth-child(even) {
+      background: var(--slate-50);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .badge-admin {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .badge-student {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+
+    .badge-instant {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    /* Key Value Grid */
+    .kv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .kv-item {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .kv-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--slate-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kv-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Footer */
+    .manual-footer {
+      border-top: 2px solid var(--slate-100);
+      padding-top: 24px;
+      margin-top: 48px;
+      text-align: center;
+      color: var(--slate-500);
+      font-size: 12px;
+    }
+
+    .manual-footer strong {
+      color: var(--slate-800);
+    }
+  </style>
+</head>
+<body class="view-bilingual">
+
+  <!-- Top Action Navigation Bar -->
+  <div class="top-bar no-print">
+    <div class="top-bar-left">
+      <a href="/" class="logo-badge">
+        <div class="logo-icon">🎓</div>
+        <div class="logo-text">
+          <h1>STUDY HUB</h1>
+          <p>Official User Manual & Documentation</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="top-actions">
+      <!-- Language toggles -->
+      <button class="lang-btn active" id="btn-bilingual" onclick="switchLang('bilingual')">🌐 উভয় ভাষা (Bilingual)</button>
+      <button class="lang-btn" id="btn-bn" onclick="switchLang('bn')">বাংলা (Bengali)</button>
+      <button class="lang-btn" id="btn-en" onclick="switchLang('en')">English</button>
+
+      <!-- Print / Download PDF -->
+      <button class="download-btn" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>পিডিএফ ডাউনলোড / প্রিন্ট (Save PDF)</span>
+      </button>
+
+      <a href="/" class="back-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 19-7-7 7-7"></path>
+          <path d="M19 12H5"></path>
+        </svg>
+        <span>অ্যাপে ফিরুন</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Document Container -->
+  <div class="manual-container">
+
+    <!-- Manual Cover Header -->
+    <header class="manual-header">
+      <div class="official-tag">STUDY HUB ACADEMIC PORTAL • OFFICIAL DOCUMENTATION</div>
+      <h1 class="manual-title">
+        <span class="lang-bn">স্টাডি হাব ব্যবহারকারী নির্দেশিকা ও গাইড</span>
+        <span class="lang-en" style="font-size: 24px; color: var(--primary); display: block; margin-top: 4px;">Study Hub Complete User Manual &amp; Operating Guide</span>
+      </h1>
+      <p class="manual-subtitle">
+        <span class="lang-bn">শিক্ষার্থী ও অ্যাডমিনের জন্য একটি সম্পূর্ণ, সহজ ও বিস্তারিত ব্যবহার সহায়িকা (v2.6)</span>
+        <span class="lang-en">Comprehensive step-by-step guide for Students and Administrators</span>
+      </p>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span>অফিসিয়াল সংস্করণ:</span>
+          <strong>v2.6 Verified</strong>
+        </div>
+        <div class="meta-item">
+          <span>প্রধান অ্যাডমিন ইমেইল:</span>
+          <strong style="color: var(--primary);">studyhub2026admin@gmail.com</strong>
+        </div>
+        <div class="meta-item">
+          <span>ডেভেলপার ও প্রকৌশলী:</span>
+          <strong>দীপ্তাংশু মজুমদার (Diptanshu Mazumder)</strong>
+        </div>
+        <div class="meta-item">
+          <span>প্রকাশের তারিখ:</span>
+          <strong>নভেম্বর ২০২৬</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- Table of Contents -->
+    <div class="toc-card no-print">
+      <div class="toc-title">
+        <span>📑 সূচিপত্র / Table of Contents</span>
+      </div>
+      <div class="toc-grid">
+        <a href="#sec-overview" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">১</span>
+            <span>প্ল্যাটফর্ম পরিচিতি ও বৈশিষ্ট্য (Overview)</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-registration" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">২</span>
+            <span>স্বয়ংক্রিয় রেজিস্ট্রেশন ও ইমেইলে ক্রেডেনশিয়াল</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-login-otp" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৩</span>
+            <span>লগইন ও ওটিপি পাসওয়ার্ড রিকভারি</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-admin-security" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৪</span>
+            <span>অ্যাডমিন অ্যাক্সেস ও সিকিউরিটি পাসকোড</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-academic-features" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৫</span>
+            <span>নোটস, এআই পিডিএফ ও লাইভ ক্লাস মডিউল</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-study-modules" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৬</span>
+            <span>চাকরি প্রস্তুতি, জিকে, স্কুল ও ইঞ্জিনিয়ারিং</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-community-ai" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৭</span>
+            <span>কমিউনিটি ফোরাম, সাপোর্ট চ্যাট ও এআই টিউটর</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-admin-panel" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৮</span>
+            <span>অ্যাডমিন কন্ট্রোল প্যানেল ও ব্যবস্থাপনা</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+        <a href="#sec-faq" class="toc-link">
+          <span style="display:flex; align-items:center;">
+            <span class="toc-num">৯</span>
+            <span>সাধারণ প্রশ্নোত্তর ও ট্রাবলশুটিং (FAQ)</span>
+          </span>
+          <span style="color: var(--slate-400);">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- SECTION 1: OVERVIEW -->
+    <section class="manual-section" id="sec-overview">
+      <div class="section-header">
+        <div class="section-icon">🌐</div>
+        <h2 class="section-title">১. প্ল্যাটফর্ম পরিচিতি ও মূল লক্ষ্য (Platform Overview)</h2>
+      </div>
+
+      <div class="bilingual-row">
+        <div class="card lang-bn">
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 8px;">বাংলা বিবরণ</h3>
+          <p>
+            <strong>স্টাডি হাব (Study Hub)</strong> হলো একটি আধুনিক, সম্পূর্ণ এবং কৃত্রিম বুদ্ধিমত্তা (AI) চালিত অল-ইন-ওয়ান শিক্ষা প্ল্যাটফর্ম। এটি মাধ্যমিক, উচ্চ মাধ্যমিক, কলেজ, বিশ্ববিদ্যালয় ভর্তি এবং বিসিএস/ব্যাংকসহ সরকারি চাকরি প্রার্থীদের পড়াশোনাকে সহজ, গোছানো ও কার্যকর করতে তৈরি করা হয়েছে।
+          </p>
+          <ul style="margin-top: 10px; margin-left: 20px; font-size: 13.5px; color: var(--slate-700);">
+            <li>ক্লাউড ভিত্তিক রিয়েল-টাইম ডাটা সিঙ্কিং (PostgreSQL ও Google Cloud)।</li>
+            <li>স্বয়ংক্রিয় এআই চালিত নোট ও রিভিশন শিট মেকার।</li>
+            <li>লাইভ ক্লাস, ভিডিও লাইব্রেরি এবং ফোরাম ডিসকাশন।</li>
+            <li>অফিসিয়াল ইমেইল দ্বারা স্বয়ংক্রিয় ক্রেডেনশিয়াল বিতরণ।</li>
+          </ul>
+        </div>
+
+        <div class="card lang-en">
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--secondary); margin-bottom: 8px;">English Overview</h3>
+          <p>
+            <strong>Study Hub</strong> is a cutting-edge, AI-powered e-learning and academic management portal. Designed for high school, college, polytechnic, university entrance, and competitive government exam aspirants (BCS, Bank, PSC, Railways).
+          </p>
+          <ul style="margin-top: 10px; margin-left: 20px; font-size: 13.5px; color: var(--slate-700);">
+            <li>High-reliability Cloud Storage with Firestore & PostgreSQL.</li>
+            <li>AI Study Assistant with instant topic breakdowns & PDF exports.</li>
+            <li>Interactive Live Video Lectures and Community Discussion Forum.</li>
+            <li>Automated welcome & credentials delivery via Official Gmail.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="kv-grid">
+        <div class="kv-item">
+          <div class="kv-label">অফিসিয়াল প্রধান অ্যাডমিন ইমেইল</div>
+          <div class="kv-value" style="font-size: 12.5px;">studyhub2026admin@gmail.com</div>
+        </div>
+        <div class="kv-item">
+          <div class="kv-label">ডিফল্ট অ্যাডমিন পাসকোড</div>
+          <div class="kv-value">7530</div>
+        </div>
+        <div class="kv-item">
+          <div class="kv-label">সাপোর্ট চ্যানেল</div>
+          <div class="kv-value" style="font-size: 12.5px;">In-App Live Chat &amp; Email</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: REGISTRATION & AUTO-ACTIVATION -->
+    <section class="manual-section" id="sec-registration">
+      <div class="section-header">
+        <div class="section-icon">⚡</div>
+        <h2 class="section-title">২. স্বয়ংক্রিয় রেজিস্ট্রেশন ও ইমেইলে ক্রেডেনশিয়াল (Instant Sign-Up)</h2>
+      </div>
+
+      <div class="callout callout-success">
+        <strong class="lang-bn">🎉 কোনো অ্যাডমিন অনুমোদনের অপেক্ষা নেই:</strong>
+        <span class="lang-bn">নতুন নিয়মানুযায়ী কোনো শিক্ষার্থী সাইন আপ করলেই সাথে সাথে তার অ্যাকাউন্ট সক্রিয় হয়ে যাবে। অ্যাডমিনের ম্যানুয়াল অ্যাপ্রুভালের কোনো প্রয়োজন নেই।</span>
+        <strong class="lang-en">🎉 Instant Auto-Approval:</strong>
+        <span class="lang-en">Students no longer have to wait for manual admin approvals. The account activates immediately upon submitting the registration form.</span>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-box">
+          <div class="step-number">১</div>
+          <div class="step-content">
+            <h4 class="lang-bn">সাইন আপ (SIGN UP) ট্যাবে যান</h4>
+            <h4 class="lang-en">Navigate to the SIGN UP Tab</h4>
+            <p class="lang-bn">স্টাডি হাবের লগইন স্ক্রিন থেকে উপরের ডানদিকের <strong>SIGN UP</strong> ট্যাবে ক্লিক করুন।</p>
+            <p class="lang-en">On the Study Hub entry screen, click on the top-right <strong>SIGN UP</strong> tab.</p>
+          </div>
+        </div>
+
+        <div class="step-box">
+          <div class="step-number">২</div>
+          <div class="step-content">
+            <h4 class="lang-bn">সঠিক তথ্য দিয়ে ফর্ম পূরণ করুন</h4>
+            <h4 class="lang-en">Fill in the Registration Details</h4>
+            <p class="lang-bn">আপনার সম্পূর্ণ নাম, সক্রিয় জিমেইল ঠিকানা (যেখানে পাসওয়ার্ড যাবে), বয়স, ফোন নম্বর, শিক্ষাপ্রতিষ্ঠানের নাম এবং টার্গেট পরীক্ষা নির্বাচন করুন।</p>
+            <p class="lang-en">Provide your Full Name, Active Gmail Address, Age, Phone number, School/College name, and select your Target Goal/Exam.</p>
+          </div>
+        </div>
+
+        <div class="step-box">
+          <div class="step-number">৩</div>
+          <div class="step-content">
+            <h4 class="lang-bn">সাবমিট করুন ও ইমেইল ইনবক্স চেক করুন</h4>
+            <h4 class="lang-en">Submit and Check Your Email Inbox</h4>
+            <p class="lang-bn">
+              <strong>"তাৎক্ষণিক অ্যাকাউন্ট তৈরি করুন 🚀"</strong> বাটনে ক্লিক করুন। সাথে সাথেই স্টাডি হাবের অফিসিয়াল ইমেইল <code>studyhub2026admin@gmail.com</code> থেকে আপনার ইমেইলে একটি সুন্দর ওয়েলকাম ইমেইল চলে যাবে যার মধ্যে আপনার <strong>User ID (আপনার ইমেইল)</strong> এবং একটি <strong>সুরক্ষিত পাসওয়ার্ড (Password)</strong> থাকবে।
+            </p>
+            <p class="lang-en">
+              Click <strong>"Register &amp; Activate Instantly 🚀"</strong>. An official email from <code>studyhub2026admin@gmail.com</code> is dispatched immediately with your Authorized User ID and Generated Password.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <strong class="lang-bn">⚠️ গুরুত্বপূর্ণ সতর্কতা:</strong>
+        <span class="lang-bn">নিরাপত্তার স্বার্থে পাসওয়ার্ড স্ক্রিনে দেখানো হয় না—শুধুমাত্র আপনার ইমেইলেই পাঠানো হয়। যদি ইনবক্সে ইমেইল দেখতে না পান, তবে দয়া করে আপনার জিমেইলের <strong>Spam (স্প্যাম)</strong> অথবা <strong>Promotions</strong> ফোল্ডারটি চেক করুন।</span>
+        <strong class="lang-en">⚠️ Security Notice:</strong>
+        <span class="lang-en">Credentials are never revealed on public screens—they are emailed exclusively to you. If not in Primary inbox, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.</span>
+      </div>
+    </section>
+
+    <!-- SECTION 3: LOGIN & FORGOT PASSWORD OTP -->
+    <section class="manual-section" id="sec-login-otp">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <h2 class="section-title">৩. লগইন ও ওটিপি পাসওয়ার্ড রিকভারি (Login &amp; Password Recovery)</h2>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 12px;" class="lang-bn">
+          🔑 শিক্ষার্থী সাধারণ লগইন প্রক্রিয়া
+        </h3>
+        <h3 style="font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 12px;" class="lang-en">
+          🔑 Student Standard Login Process
+        </h3>
+        <ol style="margin-left: 24px; font-size: 13.5px; line-height: 1.8; color: var(--slate-700);">
+          <li class="lang-bn"><strong>LOG IN</strong> ট্যাবে গিয়ে আপনার নিবন্ধিত ইমেইল ঠিকানা লিখুন।</li>
+          <li class="lang-bn">আপনার ইমেইলে প্রেরিত পাসওয়ার্ডটি লিখুন (চোখ আইকনে ক্লিক করে পাসওয়ার্ড দেখা যাবে)।</li>
+          <li class="lang-bn"><strong>"স্টাডি হাবে প্রবেশ করুন (LOG IN)"</strong> বাটনে ক্লিক করুন।</li>
+          <li class="lang-en">Navigate to <strong>LOG IN</strong> tab and enter your registered email address.</li>
+          <li class="lang-en">Enter your account password sent to your email (toggle eye icon to verify).</li>
+          <li class="lang-en">Click <strong>"LOG IN"</strong> to open your student dashboard.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 16px; font-weight: 800; color: var(--danger); margin-bottom: 12px;" class="lang-bn">
+          🔄 পাসওয়ার্ড ভুলে গেলে ওটিপি (OTP) দ্বারা উদ্ধারের নিয়ম
+        </h3>
+        <h3 style="font-size: 16px; font-weight: 800; color: var(--danger); margin-bottom: 12px;" class="lang-en">
+          🔄 Forgot Password Recovery via 6-Digit OTP
+        </h3>
+        <div class="steps-container">
+          <div class="step-box">
+            <div class="step-number">১</div>
+            <div class="step-content">
+              <p class="lang-bn">লগইন স্ক্রিনে থাকা <strong>"পাসওয়ার্ড ভুলে গেছেন? (Forgot Password?)"</strong> লিংকে ক্লিক করুন।</p>
+              <p class="lang-en">Click on <strong>"Forgot Password?"</strong> link located below the password field.</p>
+            </div>
+          </div>
+          <div class="step-box">
+            <div class="step-number">২</div>
+            <div class="step-content">
+              <p class="lang-bn">আপনার ইমেইল লিখে <strong>"ওটিপি কোড পাঠান"</strong> বাটনে চাপ দিন। অফিসিয়াল ইমেইল <code>studyhub2026admin@gmail.com</code> থেকে আপনার ইনবক্সে ৬ সংখ্যার ওটিপি কোড যাবে (মেয়াদ ১০ মিনিট)।</p>
+              <p class="lang-en">Enter your registered email and click <strong>"Send OTP Code"</strong>. A 6-digit code will arrive from <code>studyhub2026admin@gmail.com</code> (valid for 10 minutes).</p>
+            </div>
+          </div>
+          <div class="step-box">
+            <div class="step-number">৩</div>
+            <div class="step-content">
+              <p class="lang-bn">৬-সংখ্যার ওটিপি কোডটি বক্সে লিখে <strong>"যাচাই করুন"</strong> বাটনে চাপলেই স্ক্রিনে আপনার আসল পাসওয়ার্ডটি দৃশ্যমান হবে এবং আপনি সাথে সাথেই লগইন করতে পারবেন।</p>
+              <p class="lang-en">Enter the 6-digit OTP and click <strong>"Verify &amp; Reveal"</strong> to instantly reveal your account password and log in.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ADMIN ACCESS & SECURITY PASSCODE -->
+    <section class="manual-section" id="sec-admin-security">
+      <div class="section-header">
+        <div class="section-icon">👑</div>
+        <h2 class="section-title">৪. অফিসিয়াল অ্যাডমিন অ্যাক্সেস ও সিকিউরিটি পাসকোড (Admin Security)</h2>
+      </div>
+
+      <div class="callout callout-primary">
+        <strong class="lang-bn">🛡️ একমাত্র অফিসিয়াল অ্যাডমিন অ্যাকাউন্ট:</strong>
+        <span class="lang-bn">স্টাডি হাবে শুধুমাত্র <code>studyhub2026admin@gmail.com</code> হলো স্থায়ী প্রধান অ্যাডমিন (Permanent Official Admin)। অন্য কোনো ইমেইল প্রধান অ্যাডমিনের অধিকার পাবে না।</span>
+        <strong class="lang-en">🛡️ Single Permanent Admin Account:</strong>
+        <span class="lang-en">In Study Hub, only <code>studyhub2026admin@gmail.com</code> serves as the official permanent administrator.</span>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>অ্যাকাউন্ট টাইপ (Role)</th>
+            <th>ইমেইল ঠিকানা (Email)</th>
+            <th>নিরাপত্তা ব্যবস্থা (Security)</th>
+            <th>অধিকার (Permissions)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-admin">Permanent Admin</span></td>
+            <td><strong>studyhub2026admin@gmail.com</strong></td>
+            <td>পাসকোড প্রোটেক্টেড (Master Passcode: <strong>7530</strong>)</td>
+            <td>সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ, ইউজার ডিলিট/সাসপেন্ড, ক্লাস পাবলিশ, ফোরাম মডারেশন</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-student">Student</span></td>
+            <td>যেকোনো বৈধ শিক্ষার্থীর ইমেইল</td>
+            <td>অটো-জেনারেটেড পাসওয়ার্ড + ওটিপি রিকভারি</td>
+            <td>নোট পড়া, এআই টিউটর, ফোরামে প্রশ্ন করা, লাইভ ক্লাস দেখা, জিকে প্রস্তুতি</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="card">
+        <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px;" class="lang-bn">
+          🔒 অ্যাডমিন প্যানেলে প্রবেশের নিয়ম
+        </h4>
+        <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px;" class="lang-en">
+          🔒 How to Enter Admin Panel
+        </h4>
+        <p class="lang-bn">
+          লগইন স্ক্রিনে যখন <code>studyhub2026admin@gmail.com</code> টাইপ করা হবে, তখন সাধারণ পাসওয়ার্ডের জায়গায় স্বয়ংক্রিয়ভাবে একটি সুরক্ষিত <strong>"অ্যাডমিন সিকিউরিটি পাসকোড (Admin Passcode)"</strong> ফিল্ড চলে আসবে। সেখানে সঠিক পাসকোড (যেমন <code>7530</code>) দিলেই সাথে সাথে অ্যাডমিন হিসেবে পোর্টাল খুলে যাবে।
+        </p>
+        <p class="lang-en">
+          Typing <code>studyhub2026admin@gmail.com</code> in the login email field automatically activates the Master Security Passcode prompt. Providing the valid passcode (default: <code>7530</code>) grants full administrative privileges.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 5: ACADEMIC MODULES -->
+    <section class="manual-section page-break" id="sec-academic-features">
+      <div class="section-header">
+        <div class="section-icon">📚</div>
+        <h2 class="section-title">৫. নোটস, এআই পিডিএফ ও লাইভ ক্লাস মডিউল (Core Learning Modules)</h2>
+      </div>
+
+      <div class="bilingual-row">
+        <div class="card">
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 8px;">
+            📝 স্টাডি নোটস ও এআই পিডিএফ জেনারেটর
+          </h3>
+          <p class="lang-bn">
+            শিক্ষার্থীরা যেকোনো বিষয়ভিত্তিক নোট তৈরি ও সেভ করতে পারেন। এছাড়া প্ল্যাটফর্মের <strong>"AI দিয়ে নোট লিখুন"</strong> ফিচারের মাধ্যমে যেকোনো কঠিন টপিক দিয়ে এক ক্লিকে সম্পূর্ণ রিভিশন শিট, সূত্রের তালিকা এবং শর্টকার্ট নোট তৈরি করা যায় যা সরাসরি A4 সাইজের রঙিন পিডিএফে এক্সপোর্ট করা সম্ভব।
+          </p>
+          <p class="lang-en">
+            Create rich study notes or utilize the <strong>"Write with AI"</strong> generator to synthesize exam summaries, formulas, and revision outlines with 1-click A4 PDF export.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size: 16px; font-weight: 800; color: var(--secondary); margin-bottom: 8px;">
+            🎥 লাইভ ক্লাস ও ওয়েবিনার (Live Classes)
+          </h3>
+          <p class="lang-bn">
+            অ্যাডমিন বা শিক্ষকদের নেওয়া চলমান ও আসন্ন লাইভ ক্লাসগুলো সময়সূচিসহ প্রদর্শিত হয়। সরাসরি Google Meet, YouTube Live বা Zoom লিংকে ক্লিক করে শিক্ষার্থীরা লাইভ ক্লাসে অংশ নিতে পারেন।
+          </p>
+          <p class="lang-en">
+            Access upcoming and live broadcast lectures with direct links to Google Meet, YouTube Live, or Zoom. Class schedules and topic agendas are synced in real-time.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: GOVT JOB & SPECIAL SECTIONS -->
+    <section class="manual-section" id="sec-study-modules">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <h2 class="section-title">৬. বিশেষায়িত অধ্যয়ন শাখা (Specialized Academic Tracks)</h2>
+      </div>
+
+      <div class="kv-grid">
+        <div class="kv-item">
+          <div class="kv-label">🏛️ সরকারি চাকরি প্রস্তুতি (Govt Job)</div>
+          <p style="font-size: 12.5px; color: var(--slate-600); margin-top: 4px;">
+            বিসিএস (BCS), প্রাথমিক শিক্ষক নিয়োগ, ব্যাংক ও রেলওয়ে পরীক্ষার জন্য স্পেশাল গণিত শর্টকাট, বাংলা সাহিত্য ও সাধারণ জ্ঞান।
+          </p>
+        </div>
+        <div class="kv-item">
+          <div class="kv-label">🌍 সাধারণ জ্ঞান ও কারেন্ট অ্যাফেয়ার্স (GK)</div>
+          <p style="font-size: 12.5px; color: var(--slate-600); margin-top: 4px;">
+            বাংলাদেশ ও আন্তর্জাতিক বিষয়াবলি, বিজ্ঞান ও তথ্যপ্রযুক্তি এবং সাম্প্রতিক ঘটনাবলির ওপর দৈনিক আপডেট ও কুইজ।
+          </p>
+        </div>
+        <div class="kv-item">
+          <div class="kv-label">🏫 স্কুল ও কলেজ শাখা (Class 9-12)</div>
+          <p style="font-size: 12.5px; color: var(--slate-600); margin-top: 4px;">
+            মাধ্যমিক (SSC) ও উচ্চ মাধ্যমিক (HSC) বিজ্ঞান, মানবিক ও বাণিজ্য বিভাগের বিষয়ভিত্তিক সাজেশন ও সমাধান।
+          </p>
+        </div>
+        <div class="kv-item">
+          <div class="kv-label">⚙️ বি.টেক ও পলিটেকনিক ডিপ্লোমা</div>
+          <p style="font-size: 12.5px; color: var(--slate-600); margin-top: 4px;">
+            কম্পিউটার সায়েন্স, সিভিল, মেকানিক্যাল ও ইলেকট্রিক্যাল ইঞ্জিনিয়ারিংয়ের সেমিস্টার নোটস ও প্র্যাক্টিক্যাল কোড।
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: COMMUNITY & AI ASSISTANT -->
+    <section class="manual-section" id="sec-community-ai">
+      <div class="section-header">
+        <div class="section-icon">💬</div>
+        <h2 class="section-title">৭. কমিউনিটি ফোরাম ও ২৪/৭ এআই টিউটর (Community &amp; AI)</h2>
+      </div>
+
+      <div class="bilingual-row">
+        <div class="card">
+          <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px;">
+            🗣️ আলোচনা ফোরাম (Community Forum)
+          </h4>
+          <p class="lang-bn">
+            যেকোনো পড়াশোনার সমস্যা নিয়ে প্রশ্ন পোস্ট করুন। অন্যান্য সহপাঠী ও শিক্ষকরা উত্তর দেবেন। আপনিও সঠিক উত্তরে ভোট (Upvote) বা মন্তব্য করতে পারবেন।
+          </p>
+          <p class="lang-en">
+            Post academic doubts and get answers from peer students and educators. Participate with upvotes, solutions, and comments.
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 8px;">
+            🤖 এআই অধ্যয়ন সহকারী (AI Study Assistant)
+          </h4>
+          <p class="lang-bn">
+            যে কোনো জটিল সমীকরণ, প্রোগ্রামিং কোড বা ব্যাকরণ বুঝতে ২৪ ঘণ্টা সক্রিয় এআই টিউটরের সাহায্য নিন। এটি বাংলায় সহজ উদাহরণের মাধ্যমে বুঝিয়ে দেবে।
+          </p>
+          <p class="lang-en">
+            Round-the-clock intelligent academic tutor powered by modern AI to explain math theorems, science concepts, and essay frameworks.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: ADMIN PANEL -->
+    <section class="manual-section" id="sec-admin-panel">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <h2 class="section-title">৮. অ্যাডমিন কন্ট্রোল প্যানেল ও ব্যবস্থাপনা (Administration Management)</h2>
+      </div>
+
+      <div class="card">
+        <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 10px;" class="lang-bn">
+          🛠️ অ্যাডমিনদের জন্য উপলব্ধ নিয়ন্ত্রণসমূহ:
+        </h4>
+        <h4 style="font-size: 15px; font-weight: 800; color: var(--slate-900); margin-bottom: 10px;" class="lang-en">
+          🛠️ Capabilities for Administrators:
+        </h4>
+        <ul style="margin-left: 20px; font-size: 13.5px; line-height: 1.8; color: var(--slate-700);">
+          <li class="lang-bn"><strong>ইউজার ডিরেক্টরি:</strong> সমস্ত সক্রিয় শিক্ষার্থী তালিকা দেখা, সন্দেহজনক অ্যাকাউন্ট সাময়িক স্থগিত (Suspend) বা মুছে ফেলা।</li>
+          <li class="lang-bn"><strong>লাইভ ক্লাস সিডিউলিং:</strong> নতুন ক্লাসের নাম, শিক্ষক, সময় এবং স্ট্রিমিং লিঙ্ক যুক্ত করা ও স্ট্যাটাস পরিবর্তন।</li>
+          <li class="lang-bn"><strong>ব্রডকাস্ট নোটিফিকেশন:</strong> সকল শিক্ষার্থীর পোর্টালে এক ক্লিকে জরুরি বিজ্ঞপ্তি বা পরীক্ষার রুটিন পাঠানো।</li>
+          <li class="lang-bn"><strong>সিস্টেম সেটিংস ও মেইনটেন্যান্স:</strong> জরুরি কাজের সময় অ্যাপে মেইনটেন্যান্স মোড অন করা এবং অ্যাডমিন সিকিউরিটি পাসকোড পরিবর্তন করা।</li>
+          <li class="lang-en"><strong>User Directory:</strong> View all registered students, suspend suspicious users, or delete inactive profiles.</li>
+          <li class="lang-en"><strong>Live Class Management:</strong> Schedule new interactive classes, assign instructors, and update meeting links.</li>
+          <li class="lang-en"><strong>Broadcast Alerts:</strong> Dispatch urgent announcement notifications across all student devices.</li>
+          <li class="lang-en"><strong>System Maintenance &amp; Passcode:</strong> Toggle app maintenance mode and update Master Admin Passcode.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION 9: FAQ -->
+    <section class="manual-section" id="sec-faq">
+      <div class="section-header">
+        <div class="section-icon">❓</div>
+        <h2 class="section-title">৯. সাধারণ জিজ্ঞাসা ও সমাধান (Frequently Asked Questions)</h2>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-box">
+          <div class="step-number" style="background: var(--secondary);">Q1</div>
+          <div class="step-content">
+            <h4 class="lang-bn">রেজিস্ট্রেশনের পর ইমেইলে পাসওয়ার্ড না আসলে কী করব?</h4>
+            <h4 class="lang-en">What to do if the credentials email hasn't arrived?</h4>
+            <p class="lang-bn">
+              ১) আপনার ইমেইলের <strong>Spam (স্প্যাম)</strong> এবং <strong>Promotions</strong> ফোল্ডারটি ভালো করে চেক করুন।<br>
+              ২) আপনি যদি ভুল বানানে ইমেইল দিয়ে থাকেন, তবে সঠিক ইমেইল দিয়ে পুনরায় সাইন আপ করুন।<br>
+              ৩) অথবা লগইন ট্যাবে গিয়ে <strong>"পাসওয়ার্ড ভুলে গেছেন?"</strong> অপশন ব্যবহার করে ওটিপি দিয়ে পাসওয়ার্ড জেনে নিতে পারবেন।
+            </p>
+            <p class="lang-en">
+              1) Check your <strong>Spam</strong> and <strong>Promotions</strong> folder.<br>
+              2) Ensure your email spelling was 100% correct.<br>
+              3) Use the <strong>"Forgot Password?"</strong> option on login screen to retrieve your password via OTP.
+            </p>
+          </div>
+        </div>
+
+        <div class="step-box">
+          <div class="step-number" style="background: var(--secondary);">Q2</div>
+          <div class="step-content">
+            <h4 class="lang-bn">অফিশিয়াল যেকোনো প্রয়োজনে কীভাবে যোগাযোগ করব?</h4>
+            <h4 class="lang-en">How can I contact official Study Hub administration?</h4>
+            <p class="lang-bn">
+              সরাসরি অ্যাপের ভেতরের <strong>সাপোর্ট চ্যাট (Live Support)</strong> ব্যবহার করতে পারেন, অথবা সরাসরি প্রধান অ্যাডমিনের ইমেইলে যোগাযোগ করতে পারেন: <strong style="color: var(--primary);">studyhub2026admin@gmail.com</strong>।
+            </p>
+            <p class="lang-en">
+              Use the in-app <strong>Live Support Chat</strong> or email the permanent admin directly at: <strong style="color: var(--primary);">studyhub2026admin@gmail.com</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manual Footer -->
+    <footer class="manual-footer">
+      <p style="font-size: 13px; font-weight: 700; color: var(--slate-800); margin-bottom: 4px;">
+        STUDY HUB • আধুনিুক শিক্ষা ও এআই প্ল্যাটফর্ম
+      </p>
+      <p>
+        Official Email: <strong>studyhub2026admin@gmail.com</strong> • Developed by <strong>DIPTANSHU MAZUMDER</strong>
+      </p>
+      <p style="margin-top: 6px; font-size: 11px; color: var(--slate-400);">
+        © 2026 Study Hub. All rights reserved. This document can be printed or saved as PDF for educational reference.
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.body.classList.remove('view-bilingual', 'view-bn-only', 'view-en-only');
+      document.getElementById('btn-bilingual').classList.remove('active');
+      document.getElementById('btn-bn').classList.remove('active');
+      document.getElementById('btn-en').classList.remove('active');
+
+      if (lang === 'bn') {
+        document.body.classList.add('view-bn-only');
+        document.getElementById('btn-bn').classList.add('active');
+      } else if (lang === 'en') {
+        document.body.classList.add('view-en-only');
+        document.getElementById('btn-en').classList.add('active');
+      } else {
+        document.body.classList.add('view-bilingual');
+        document.getElementById('btn-bilingual').classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

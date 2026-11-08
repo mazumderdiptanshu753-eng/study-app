@@ -54,7 +54,17 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
     fetchClasses();
   }, []);
 
+  useEffect(() => {
+    if (profile?.role !== "Admin" && isCreating) {
+      setIsCreating(false);
+    }
+  }, [profile?.role, isCreating]);
+
   const handleCreate = async () => {
+    if (profile?.role !== "Admin") {
+      alert(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে লাইভ ক্লাস তৈরি করা সম্ভব।" : "Only admin accounts can create live classes.");
+      return;
+    }
     if (!title.trim() || !link.trim() || !scheduledTime) return;
     try {
       const res = await fetch("/api/live-classes", {
@@ -78,6 +88,7 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
   };
 
   const handleUpdateStatus = async (id: string, status: string) => {
+    if (profile?.role !== "Admin") return;
     try {
       const res = await fetch(`/api/live-classes/${id}`, {
         method: "PATCH",
@@ -93,6 +104,7 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
   };
 
   const handleDelete = async (id: string) => {
+    if (profile?.role !== "Admin") return;
     if (!window.confirm("Are you sure?")) return;
     try {
       const res = await fetch(`/api/live-classes/${id}`, {
@@ -240,7 +252,7 @@ export default function LiveClasses({ theme, lang, profile, onBack }: LiveClasse
 
       {/* Create Class Modal */}
       <AnimatePresence>
-        {isCreating && (
+        {profile?.role === "Admin" && isCreating && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}

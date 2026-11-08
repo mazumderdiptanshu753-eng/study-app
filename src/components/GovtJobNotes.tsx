@@ -505,6 +505,10 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert(isBengali ? "শুধুমাত্র অ্যাডমিন অ্যাকাউন্ট থেকে নোট আপলোড বা তৈরি করা সম্ভব।" : "Only admin accounts can create or upload notes.");
+      return;
+    }
     if (!newTitle.trim() || !newContent.trim()) return;
 
     try {
@@ -866,7 +870,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
         <div className="space-y-6">
           {/* Note Creation Form */}
           <AnimatePresence>
-            {isCreating && (
+            {isAdmin && isCreating && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}

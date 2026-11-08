@@ -251,7 +251,7 @@ export default function Dashboard({
                   className="flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-bold backdrop-blur-xl transition-all cursor-pointer shadow-xs"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>{lang === "bn" ? "নতুন নোট" : "Write Note"}</span>
+                  <span>{profile?.role === "Admin" ? (lang === "bn" ? "নতুন নোট" : "Write Note") : (lang === "bn" ? "নোট লাইব্রেরি" : "Notes Library")}</span>
                 </motion.button>
 
                 <motion.button
@@ -746,7 +746,11 @@ export default function Dashboard({
                     className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer transition-all active:scale-95"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
-                    <span>{lang === "bn" ? "নতুন নোট তৈরি করুন" : "Add Your First Note"}</span>
+                    <span>
+                      {profile?.role === "Admin"
+                        ? (lang === "bn" ? "নতুন নোট তৈরি করুন" : "Add Your First Note")
+                        : (lang === "bn" ? "নোট লাইব্রেরি দেখুন" : "Browse Notes Library")}
+                    </span>
                   </button>
                 </div>
               )}

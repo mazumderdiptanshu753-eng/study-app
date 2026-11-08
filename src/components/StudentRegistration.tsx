@@ -35,6 +35,7 @@ import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeConfig } from "../lib/themes";
 import { safeFetch } from "../lib/api";
 import { signInWithGoogleForGmail, getGmailAccessToken } from "../lib/googleWorkspace";
+import UserManualModal from "./UserManualModal";
 
 interface StudentRegistrationProps {
   onRegister: (profile: StudentProfile) => void;
@@ -75,7 +76,7 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
   } | null>(null);
 
   const trimmedLoginEmail = (loginEmail || "").trim().toLowerCase();
-  const isAdminLoginEmail = isPermanentAdmin(trimmedLoginEmail);
+  const isAdminLoginEmail = trimmedLoginEmail === "studyhub2026admin@gmail.com";
 
   // Clear notice when switching tabs
   const handleTabSwitch = (mode: "login" | "signup") => {
@@ -114,6 +115,8 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
     setShowAppPasswordInput(false);
     setShowForgotModal(true);
   };
+
+  const [showManualModal, setShowManualModal] = useState(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,8 +273,8 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
 
         // Passcode verified: load admin profile
         const adminProfile: StudentProfile = {
-          fullName: trimmedLoginEmail.includes("mazumder") ? "Diptanshu Mazumder (Admin)" : "Study Hub Official Admin",
-          email: trimmedLoginEmail,
+          fullName: "Study Hub Official Admin",
+          email: "studyhub2026admin@gmail.com",
           age: "24",
           institution: "Study Hub Official Administration",
           grade: "High School",
@@ -1348,9 +1351,26 @@ export default function StudentRegistration({ onRegister, lang, theme }: Student
       </AnimatePresence>
 
         {/* Security Footer */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 text-center text-[9px] font-black tracking-widest text-slate-500 uppercase leading-relaxed">
-          Developed by DIPTANSHU MAZUMDER
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 px-4 sm:px-6">
+          <button
+            type="button"
+            onClick={() => setShowManualModal(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline cursor-pointer"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>{isBengali ? "📖 ব্যবহারকারী নির্দেশিকা (User Manual PDF)" : "📖 User Manual (PDF Guide)"}</span>
+          </button>
+          <div className="text-[9px] font-black tracking-widest text-slate-500 uppercase">
+            Developed by DIPTANSHU MAZUMDER
+          </div>
         </div>
+
+        {/* User Manual Modal */}
+        <UserManualModal
+          isOpen={showManualModal}
+          onClose={() => setShowManualModal(false)}
+          lang={lang}
+        />
       </div>
     </div>
   </div>

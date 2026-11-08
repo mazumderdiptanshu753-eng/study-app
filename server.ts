@@ -1744,6 +1744,11 @@ app.delete("/api/live-classes/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.get("/manual", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "manual.html"));
+});
+
 app.get("/api/users", async (req, res) => {
   try {
     const usersList = await getUsers();
@@ -3322,8 +3327,8 @@ app.post("/api/admin/verify-passcode", async (req, res) => {
     return res.status(400).json({ valid: false, error: "ইমেইল ও পাসকোড আবশ্যক।" });
   }
   const normEmail = email.trim().toLowerCase();
-  if (!PERMANENT_ADMIN_EMAILS.includes(normEmail)) {
-    return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অ্যাডমিন অ্যাকাউন্টের জন্য এই নিরাপত্তা প্রযোজ্য।" });
+  if (normEmail !== "studyhub2026admin@gmail.com") {
+    return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অফিসিয়াল অ্যাডমিন অ্যাকাউন্টের (studyhub2026admin@gmail.com) জন্য এই বিশেষ অ্যাডমিন কোড প্রযোজ্য।" });
   }
   try {
     const settings = await getSettings();
@@ -3344,8 +3349,9 @@ app.post("/api/admin/change-passcode", async (req, res) => {
   const adminEmail = req.headers["x-admin-email"] || req.body.adminEmail;
   const { currentPasscode, newPasscode } = req.body;
 
-  if (!adminEmail || !PERMANENT_ADMIN_EMAILS.includes((adminEmail as string).trim().toLowerCase())) {
-    return res.status(403).json({ error: "অননুমোদিত অ্যাক্সেস। শুধুমাত্র প্রধান অ্যাডমিন পাসকোড পরিবর্তন করতে পারবেন।" });
+  const adminEmailNorm = ((adminEmail as string) || "").trim().toLowerCase();
+  if (adminEmailNorm !== "studyhub2026admin@gmail.com") {
+    return res.status(403).json({ error: "অননুমোদিত অ্যাক্সেস। শুধুমাত্র প্রধান অফিসিয়াল অ্যাডমিন (studyhub2026admin@gmail.com) পাসকোড পরিবর্তন করতে পারবেন।" });
   }
 
   if (!newPasscode || newPasscode.trim().length < 4) {
