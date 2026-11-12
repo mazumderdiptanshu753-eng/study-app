@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, User, Clock, Send, MessageSquare, Plus, FileText, Trash2, DownloadCloud, 
   ArrowLeft, Sparkles, Printer, Download, Calendar, CheckCircle2, 
-  AlertCircle, Award, ChevronRight
+  AlertCircle, Award, ChevronRight, GraduationCap
 } from 'lucide-react';
 import { ThemeConfig } from '../lib/themes';
 import { Language } from '../lib/translations';
@@ -505,6 +505,10 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
   const handleCreateNote = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert(isBengali ? "শুধুমাত্র অ্যাডমিন অ্যাকাউন্ট থেকে নোট আপলোড বা তৈরি করা সম্ভব।" : "Only admin accounts can create or upload notes.");
+      return;
+    }
     if (!newTitle.trim() || !newContent.trim()) return;
 
     try {
@@ -597,7 +601,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
   const handleDeletePdfNote = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(isBengali ? "আপনি কি এই এআই পিডিএফ গাইডটি মুছতে চান?" : "Are you sure you want to delete this AI PDF Study Guide?")) return;
+    if (!window.confirm(isBengali ? "আপনি কি এই পিডিএফ রিভিশন গাইডটি মুছতে চান?" : "Are you sure you want to delete this PDF Study Guide?")) return;
     try {
       const response = await fetch(`/api/ai-pdf-notes/${id}`, {
         method: 'DELETE'
@@ -695,7 +699,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                 </h1>
                 <p className={`text-sm ${theme.textMuted}`}>
                   {isBengali 
-                    ? `স্মার্ট এআই এবং শিক্ষকদের দ্বারা প্রস্তুতকৃত ${activeSubjectName} এর প্রিমিয়াম গাইডলাইন ও স্টাডি মেটেরিয়ালস` 
+                    ? `অভিজ্ঞ শিক্ষক ও বিশেষজ্ঞদের দ্বারা প্রস্তুতকৃত ${activeSubjectName} এর প্রিমিয়াম গাইডলাইন ও স্টাডি মেটেরিয়ালস` 
                     : `Premium study guides and handwritten notes compiled for ${activeSubjectName}`}
                 </p>
               </div>
@@ -713,7 +717,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
         </div>
       </div>
 
-      {/* Internal Navigation Tabs (AI Guides vs Handwritten Notes) */}
+      {/* Internal Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
           onClick={() => setSubTab("ai_pdf")}
@@ -723,8 +727,8 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
               : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
         >
-          <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
-          {isBengali ? "এআই-উৎপাদিত প্রিমিয়াম পিডিএফ গাইড" : "AI Premium PDF Guides"}
+          <BookOpen className="h-4 w-4 text-indigo-600" />
+          {isBengali ? "স্পেশাল রিভিশন গাইড (PDF)" : "Curated PDF Revision Guides"}
         </button>
         <button
           onClick={() => setSubTab("handwritten")}
@@ -757,44 +761,46 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
                 </h4>
                 <p className={`text-xs ${theme.textMuted} mt-1 leading-relaxed max-w-xl`}>
                   {isBengali 
-                    ? `আমাদের প্রিমিয়াম এআই ইঞ্জিন প্রতি মাসে প্রতিটি বিষয়ের উপর ১টি করে নতুন স্পেশাল পিডিএফ গাইড সংকলন করে। পরবর্তী মাসিক গাইড পেতে ${daysLeft} দিন বাকি।` 
-                    : `Our AI Engine publishes exactly 1 brand-new, high-yield comprehensive PDF study guide per subject every month. Next publication is scheduled in ${daysLeft} days.`}
+                    ? `আমাদের একাডেমি প্রতি মাসে প্রতিটি বিষয়ের উপর ১টি করে নতুন স্পেশাল রিভিশন গাইড সংকলন করে। পরবর্তী মাসিক গাইড প্রস্তুত হতে ${daysLeft} দিন বাকি।` 
+                    : `Our academic team compiles 1 brand-new, comprehensive PDF revision guide per subject every month. Next publication is scheduled in ${daysLeft} days.`}
                 </p>
               </div>
             </div>
             
-            <button
-              onClick={handleGeneratePdf}
-              disabled={isGenerating}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-semibold transition-all shadow-md active:scale-95 disabled:opacity-50 ${theme.primaryBtn}`}
-            >
-              {isGenerating ? (
-                <>
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {isBengali ? "এআই লিখছে..." : "Generating Note..."}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 text-amber-200 animate-pulse" />
-                  {isBengali ? "নতুন এআই গাইড তৈরি করুন" : "Generate Monthly PDF"}
-                </>
-              )}
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleGeneratePdf}
+                disabled={isGenerating}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-semibold transition-all shadow-md active:scale-95 disabled:opacity-50 ${theme.primaryBtn}`}
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {isBengali ? "সংকলন হচ্ছে..." : "Compiling Guide..."}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 text-white" />
+                    {isBengali ? "নতুন রিভিশন গাইড সংকলন করুন" : "Compile New Guide"}
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* AI Notes List */}
+          {/* PDF Notes List */}
           {aiLoading ? (
             <div className="flex justify-center p-12">
               <div className="h-8 w-8 rounded-full border-4 border-teal-500/30 border-t-teal-500 animate-spin"></div>
             </div>
           ) : aiPdfNotes.length === 0 ? (
             <div className={`text-center py-16 ${theme.bgCard} rounded-2xl border ${theme.borderCard}`}>
-              <Sparkles className={`h-12 w-12 mx-auto text-amber-500 opacity-60 mb-3 animate-pulse`} />
+              <BookOpen className={`h-12 w-12 mx-auto text-indigo-400 opacity-60 mb-3`} />
               <p className={`text-sm font-bold ${theme.textHeading}`}>
-                {isBengali ? "কোনো এআই পিডিএফ গাইড পাওয়া যায়নি।" : "No AI PDF study guides compiled yet."}
+                {isBengali ? "এখনো কোনো রিভিশন গাইড সংকলিত হয়নি।" : "No PDF study guides compiled yet."}
               </p>
               <p className={`text-xs ${theme.textMuted} mt-1 max-w-sm mx-auto`}>
-                {isBengali ? "উপরের বাটনে ক্লিক করে প্রথম এআই প্রিমিয়াম গাইডটি তাত্ক্ষণিকভাবে তৈরি করে নিন!" : "Click the button above to dynamically generate your first high-yield study material."}
+                {isBengali ? "অ্যাডমিন কর্তৃক নতুন সংস্করণ প্রস্তুত করা হলে এখানে প্রদর্শিত হবে।" : "Guides will appear here once published by the academic administrator."}
               </p>
             </div>
           ) : (
@@ -866,7 +872,7 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
         <div className="space-y-6">
           {/* Note Creation Form */}
           <AnimatePresence>
-            {isCreating && (
+            {isAdmin && isCreating && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -1139,8 +1145,8 @@ export default function GovtJobNotes({ theme, lang, profile, initialSubject, onB
 
                   <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-sans text-slate-500 font-bold">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-500" />
-                      <span>{isBengali ? "এআই লার্নিং সিস্টেম দ্বারা সংকলিত" : "Generated via StudyHub AI Engine"}</span>
+                      <GraduationCap className="h-4 w-4 text-indigo-600" />
+                      <span>{isBengali ? "স্টাডি হাব একাডেমি দ্বারা সংকলিত" : "Published by StudyHub Academy"}</span>
                     </div>
                     <div>
                       {isBengali ? "প্রকাশকাল: " : "Published: "} {new Date(selectedPdf.timestamp).toLocaleDateString()}

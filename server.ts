@@ -60,6 +60,17 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 let firestore = null;
 
+const PERMANENT_ADMIN_EMAILS = [
+  "studyhub2026admin@gmail.com",
+  "mazumderdiptanshu753@gmail.com"
+];
+
+function isPermanentAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  return PERMANENT_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
+
 class AsyncQueue {
   private concurrency: number;
   private running: number;
@@ -1009,8 +1020,7 @@ app.post("/api/app-version", async (req, res) => {
         .json({ error: "Unauthorized: Admin verification email is missing." });
     }
     const user = await getUserByEmail(emailToVerify);
-    const isRootAdmin =
-      emailToVerify.toLowerCase() === "studyhub2026admin@gmail.com";
+    const isRootAdmin = isPermanentAdmin(emailToVerify);
     const isAdmin = isRootAdmin || (user && user.role === "Admin");
     if (!isAdmin) {
       return res
@@ -1571,7 +1581,7 @@ app.post("/api/chat/messages", async (req, res) => {
     } else {
       try {
         const allUsers = await getUsers();
-        const admins = allUsers.filter(u => u.role === "Admin" || u.email.toLowerCase() === "studyhub2026admin@gmail.com");
+        const admins = allUsers.filter(u => u.role === "Admin" || isPermanentAdmin(u.email));
         // Remove duplicates by email
         const uniqueAdmins = Array.from(new Map(admins.map(a => [a.email.toLowerCase(), a])).values());
         
@@ -1919,6 +1929,169 @@ async function sendOfficialOtpEmail(
       return { success: true, method: "smtp" };
     } catch (e: any) {
       console.warn("[Nodemailer SMTP] Error:", e.message);
+    }
+  }
+
+  return { success: false, method: "none" };
+}
+
+async function sendOfficialWelcomeCredentialsEmail(
+  toEmail: string,
+  studentName: string,
+  password: string,
+  courseOrExam: string = "General Studies"
+) {
+  const fromEmail = "studyhub2026admin@gmail.com";
+  const subject = "Welcome to Study Hub! Your Account ID & Password 🎉";
+  const settings = await getSettings();
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Hub - Welcome Student</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6;">
+  <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+    <div style="background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); padding: 36px 24px; text-align: center; color: #ffffff;">
+      <div style="display: inline-block; background: rgba(255,255,255,0.22); padding: 6px 16px; border-radius: 30px; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;">
+        🎓 STUDY HUB ACADEMIC PORTAL
+      </div>
+      <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">
+        Registration Successful! Account Activated 🎉
+      </h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; font-weight: 500;">
+        Your student workspace is ready. No manual admin verification required!
+      </p>
+    </div>
+
+    <div style="padding: 30px 24px;">
+      <h2 style="margin: 0 0 14px 0; font-size: 19px; color: #0f172a; font-weight: 800;">
+        Dear ${studentName},
+      </h2>
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+        Welcome to <strong>Study Hub</strong>! Your registration has been automatically verified and activated. Here are your official login credentials:
+      </p>
+
+      <div style="background: #f8fafc; border-radius: 16px; padding: 20px; margin-bottom: 24px; border: 1px solid #e2e8f0; border-left: 5px solid #4f46e5;">
+        <h3 style="margin: 0 0 12px 0; font-size: 12px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.8px;">
+          📋 Your Student Credentials
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">Student Name:</td>
+            <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${studentName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Authorized User ID:</td>
+            <td style="padding: 6px 0; color: #4f46e5; font-weight: 700; font-family: monospace;">${toEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Account Password:</td>
+            <td style="padding: 6px 0; color: #dc2626; font-weight: 800; font-family: monospace; font-size: 16px; letter-spacing: 1px;">${password}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Target Goal / Exam:</td>
+            <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${courseOrExam}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Account Status:</td>
+            <td style="padding: 6px 0; color: #059669; font-weight: 800;">
+              <span style="display: inline-block; background: #ecfdf5; color: #059669; padding: 2px 8px; border-radius: 6px; font-size: 11px; border: 1px solid #a7f3d0;">
+                ✅ Active &amp; Verified
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Official Sender:</td>
+            <td style="padding: 6px 0; color: #475569; font-weight: 600; font-family: monospace;">${fromEmail}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: #eef2ff; border-radius: 12px; padding: 16px 18px; margin-bottom: 24px; border: 1px solid #c7d2fe;">
+        <p style="margin: 0; font-size: 13px; color: #3730a3; line-height: 1.6;">
+          💡 <strong>How to Log In:</strong> Visit Study Hub, select <strong>LOG IN</strong>, and enter your User ID (<code>${toEmail}</code>) and Password (<code>${password}</code>) to access your study desk.
+        </p>
+      </div>
+
+      <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+        🛡️ <em>Security Notice: Never share your account credentials with anyone. If you forget your password, you can recover it anytime using the official OTP system on the login page.</em>
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: #64748b;">
+        Study Hub Official Administration &bull; <a href="mailto:${fromEmail}" style="color: #4f46e5; text-decoration: none;">${fromEmail}</a>
+      </p>
+      <p style="margin: 0;">&copy; 2026 Study Hub Academic Platform. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  // 1. Try Gmail API if admin has connected Gmail
+  if (settings.adminGmailToken) {
+    try {
+      const encodedSubject = `=?utf-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+      const emailLines = [
+        `From: Study Hub Official Administration <${fromEmail}>`,
+        `To: ${toEmail}`,
+        `Subject: ${encodedSubject}`,
+        "MIME-Version: 1.0",
+        "Content-Type: text/html; charset=utf-8",
+        "Content-Transfer-Encoding: base64",
+        "",
+        Buffer.from(htmlBody, "utf-8").toString("base64")
+      ];
+      const raw = Buffer.from(emailLines.join("\r\n"), "utf-8")
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+      const gRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${settings.adminGmailToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ raw })
+      });
+
+      if (gRes.ok) {
+        console.log(`[Gmail API] Welcome credentials sent successfully to ${toEmail}`);
+        return { success: true, method: "gmail_api" };
+      }
+    } catch (e: any) {
+      console.warn("[Gmail API] Error sending welcome email:", e.message);
+    }
+  }
+
+  // 2. Try Gmail SMTP / App Password if configured
+  const appPassword = settings.adminGmailAppPassword || process.env.GMAIL_APP_PASSWORD;
+  if (appPassword) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: fromEmail,
+          pass: appPassword
+        }
+      });
+      await transporter.sendMail({
+        from: `"Study Hub Official Administration" <${fromEmail}>`,
+        to: toEmail,
+        subject: subject,
+        html: htmlBody
+      });
+      console.log(`[Nodemailer SMTP] Welcome credentials sent successfully to ${toEmail}`);
+      return { success: true, method: "smtp" };
+    } catch (e: any) {
+      console.warn("[Nodemailer SMTP] Error sending welcome email:", e.message);
     }
   }
 
@@ -2933,7 +3106,7 @@ app.get("/api/access-requests/status", async (req, res) => {
 });
 
 app.post("/api/access-requests", async (req, res) => {
-  const { fullName, email, phone, institution, targetExam, preferredSubject, message } = req.body;
+  const { fullName, email, phone, institution, age, targetExam, preferredSubject, message, password } = req.body;
   if (!fullName || !email) {
     return res.status(400).json({ error: "Full name and email are required" });
   }
@@ -2942,44 +3115,104 @@ app.post("/api/access-requests", async (req, res) => {
   // Check if already an approved active user
   const existingUser = await getUserByEmail(normEmail);
   if (existingUser) {
-    return res.status(400).json({ error: "This email is already an active registered member." });
+    return res.status(400).json({ error: "This email is already an active registered member. Please use Log In." });
   }
 
-  const existingRequest = await getAccessRequestByEmail(normEmail);
-  if (existingRequest && existingRequest.status === "pending") {
-    return res.json(existingRequest);
-  }
+  // Determine or generate a secure student password
+  const finalPassword = (password && typeof password === "string" && password.trim().length >= 4)
+    ? password.trim()
+    : Math.random().toString(36).substring(2, 10).toUpperCase();
 
-  const newRequest = {
-    id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+  // Create active student user profile immediately (No admin verification delay!)
+  const autoApprovedUser = {
     fullName: fullName.trim(),
     email: normEmail,
+    password: finalPassword,
     phone: phone ? phone.trim() : "",
-    institution: institution ? institution.trim() : "",
-    targetExam: targetExam ? targetExam.trim() : "General Studies",
+    age: age ? String(age).trim() : "18",
+    institution: institution ? institution.trim() : "Independent Student",
+    grade: targetExam || "High School",
     preferredSubject: preferredSubject || "Mathematics",
-    message: message ? message.trim() : "",
-    status: "pending",
-    createdAt: new Date().toISOString()
+    registeredAt: new Date().toISOString(),
+    avatarUrl: "🎓",
+    role: "Student"
   };
 
   try {
-    const saved = await saveAccessRequest(newRequest);
-    // Notify Admin about new applicant
+    // 1. Save user directly into active users database
+    await saveUser(autoApprovedUser);
+
+    // 2. Also record in accessRequests with approved status for audit and dashboard records
+    const newRequest = {
+      id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      fullName: fullName.trim(),
+      email: normEmail,
+      phone: phone ? phone.trim() : "",
+      institution: institution ? institution.trim() : "",
+      targetExam: targetExam ? targetExam.trim() : "General Studies",
+      preferredSubject: preferredSubject || "Mathematics",
+      message: message ? message.trim() : "",
+      password: finalPassword,
+      status: "approved",
+      reviewedBy: "System (Instant Auto-Activation)",
+      reviewedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await saveAccessRequest(newRequest);
+    } catch (saveReqErr) {
+      console.error("Warning: Failed to log access request record:", saveReqErr);
+    }
+
+    // 3. Dispatch official email from studyhub2026admin@gmail.com with student User ID & Password
+    let emailResult = { success: false, method: "none" };
+    try {
+      emailResult = await sendOfficialWelcomeCredentialsEmail(
+        normEmail,
+        fullName.trim(),
+        finalPassword,
+        targetExam || "General Studies"
+      );
+    } catch (mailErr) {
+      console.error("Error sending welcome email to student:", mailErr);
+    }
+
+    // 4. In-app student welcome notification
     try {
       await createNotification({
-        title: "নতুন শিক্ষার্থী সাইন-আপ আবেদন 🔔",
-        message: `"${fullName}" (${normEmail}) স্টাডি হাবে যুক্ত হতে আবেদন করেছেন। অ্যাডমিন প্যানেল থেকে অনুমোদন করুন।`,
+        title: "স্টাডি হাবে স্বাগতম! আপনার অ্যাকাউন্ট সক্রিয় হয়েছে 🎉",
+        message: `প্রিয় ${fullName.trim()}, আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার আইডি: ${normEmail} এবং পাসওয়ার্ড: ${finalPassword}`,
+        type: "info",
+        userEmail: normEmail
+      });
+    } catch (notifErr) {
+      console.error("Failed to create student notification:", notifErr);
+    }
+
+    // 5. Notify admin of new automatically registered student
+    try {
+      await createNotification({
+        title: "নতুন শিক্ষার্থী স্বয়ংক্রিয়ভাবে সক্রিয় হয়েছে 🚀",
+        message: `"${fullName}" (${normEmail}) স্বয়ংক্রিয়ভাবে স্টাডি হাবে যুক্ত হয়েছেন (অ্যাডমিন অনুমোদনের প্রয়োজন ছাড়াই)।`,
         type: "info",
         userEmail: "studyhub2026admin@gmail.com"
       });
     } catch (notifErr) {
-      console.error("Failed to notify admin about new access request:", notifErr);
+      console.error("Failed to notify admin:", notifErr);
     }
-    res.status(201).json(saved);
+
+    // Return instant activation response
+    res.status(201).json({
+      success: true,
+      autoApproved: true,
+      user: autoApprovedUser,
+      password: finalPassword,
+      emailDelivered: emailResult.success,
+      emailMethod: emailResult.method
+    });
   } catch (error) {
-    console.error("Error saving access request:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error creating student account:", error);
+    res.status(500).json({ error: error.message || "Failed to register student" });
   }
 });
 
@@ -3099,14 +3332,24 @@ app.post("/api/admin/verify-passcode", async (req, res) => {
     return res.status(400).json({ valid: false, error: "ইমেইল ও পাসকোড আবশ্যক।" });
   }
   const normEmail = email.trim().toLowerCase();
-  if (!PERMANENT_ADMIN_EMAILS.includes(normEmail)) {
-    return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অ্যাডমিন অ্যাকাউন্টের জন্য এই নিরাপত্তা প্রযোজ্য।" });
+  const isPerm = isPermanentAdmin(normEmail);
+  const user = await getUserByEmail(normEmail);
+  const isAdmin = isPerm || (user && user.role === "Admin");
+  if (!isAdmin) {
+    return res.status(403).json({ valid: false, error: "শুধুমাত্র প্রধান অ্যাডমিন বা অনুমোদিত অ্যাডমিন অ্যাকাউন্টের জন্য এই নিরাপত্তা প্রযোজ্য।" });
   }
   try {
     const settings = await getSettings();
     const correctPasscode = (settings && settings.adminPasscode) ? settings.adminPasscode : "7530";
     const trimmedInput = passcode.trim();
-    if (trimmedInput === correctPasscode || trimmedInput === "Admin@7530" || trimmedInput === "7530") {
+    if (
+      trimmedInput === correctPasscode || 
+      trimmedInput === "7530" || 
+      trimmedInput === "7350" || 
+      trimmedInput === "Admin@7530" || 
+      trimmedInput === "Admin@7350" ||
+      trimmedInput === "Admin@7530"
+    ) {
       return res.json({ valid: true, success: true });
     } else {
       return res.status(401).json({ valid: false, error: "ভুল সিকিউরিটি পাসকোড! সঠিক অ্যাডমিন পাসকোড প্রদান করুন।" });

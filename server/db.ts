@@ -59,12 +59,13 @@ function loadLocalDB() {
       console.error("Failed to load local db.json:", e);
     }
   }
-  // Purge mazumderdiptanshu753@gmail.com so user can register fresh as student
+  // Ensure mazumderdiptanshu753@gmail.com is set as Student (dismissed as admin)
   if (localDB.users) {
-    localDB.users = localDB.users.filter((u: any) => (u.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
-  }
-  if (localDB.accessRequests) {
-    localDB.accessRequests = localDB.accessRequests.filter((r: any) => (r.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
+    const dUser = localDB.users.find((u: any) => (u.email || '').trim().toLowerCase() === "mazumderdiptanshu753@gmail.com");
+    if (dUser) {
+      dUser.role = "Student";
+      dUser.avatarUrl = "🎓";
+    }
   }
   saveLocalDB();
 }

@@ -161,8 +161,7 @@ export interface AccessRequest {
 }
 
 export const PERMANENT_ADMIN_EMAILS = [
-  "studyhub2026admin@gmail.com",
-  "mazumderdiptanshu753@gmail.com"
+  "studyhub2026admin@gmail.com"
 ];
 
 export const isPermanentAdmin = (email?: string | null): boolean => {

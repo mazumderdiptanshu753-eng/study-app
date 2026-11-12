@@ -138,10 +138,21 @@ export default function VideoPortal({ profile, lang, theme, onVideosCountChange 
     }
   }, [videos]);
 
+  useEffect(() => {
+    if (role !== "Admin" && isAddingVideo) {
+      setIsAddingVideo(false);
+    }
+  }, [role, isAddingVideo]);
+
   // Add new video (Admin Only - Backend)
   const handleAddVideoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    if (role !== "Admin") {
+      setErrorMessage(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে ভিডিও লেকচার আপলোড করা সম্ভব।" : "Only admin accounts can upload video lessons.");
+      return;
+    }
 
     if (!newTitle.trim() || !newDescription.trim() || !newUrl.trim()) {
       setErrorMessage(lang === "bn" ? "দয়া করে সবগুলো ঘর পূরণ করুন।" : "Please fill out all required fields.");

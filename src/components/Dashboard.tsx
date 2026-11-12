@@ -18,7 +18,9 @@ import {
   FileText,
   BookMarked,
   ArrowUpRight,
-  MessageCircle
+  MessageCircle,
+  HelpCircle,
+  Radio
 } from "lucide-react";
 import { StudyNote, UserStats, StudentProfile } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
@@ -65,8 +67,8 @@ export default function Dashboard({
       bn: "প্রতি ২৫ মিনিট সক্রিয়ভাবে পড়ার পর ৫ মিনিটের জন্য একটি ছোট বিরতি নিন।"
     },
     {
-      en: "Don't just read; summarize and explain it aloud or use Study Hub's AI.",
-      bn: "শুধু মুখস্থ করবেন না; নিজের ভাষায় সারসংক্ষেপ করুন বা স্টাডি হাবের এআই ব্যবহার করুন।"
+      en: "Don't just read; summarize key formulas and explain concepts in your own words.",
+      bn: "শুধু মুখস্থ করবেন না; নিজের ভাষায় নোট করুন ও নিয়মিত অনুশীলন করুন।"
     },
     {
       en: "Study hard, stay curious, and track your progress daily in Workspace.",
@@ -117,30 +119,26 @@ export default function Dashboard({
       {/* 🌟 Top Hero Welcome & Motivation Bento Card (ওপরের হিরো কার্ড) */}
       <motion.div 
         variants={itemVariants}
-        whileHover={{ scale: 1.005 }}
+        whileHover={{ scale: 1.002 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className="space-y-4"
       >
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/30 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white p-6 sm:p-9 shadow-[0_20px_50px_rgba(99,102,241,0.25)] backdrop-blur-2xl">
-          {/* Background Ambient Floating Glow Orbs */}
-          <div className="absolute -top-12 -right-12 w-72 h-72 bg-gradient-to-br from-white/30 to-pink-300/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
-          <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-gradient-to-tr from-cyan-400/20 to-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-9 shadow-lg backdrop-blur-xl">
+          {/* Subtle ambient lighting */}
+          <div className="absolute -top-16 -right-16 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Left side: Greetings + Student Info + Streak */}
+            {/* Left side: Greetings + Student Info */}
             <div className="space-y-4 max-w-2xl">
               <div className="flex flex-wrap items-center gap-2.5">
-                <motion.span 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-xs font-black backdrop-blur-xl shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 border border-white/15 text-white text-xs font-bold">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
                   <span>{getGreeting()}, {profile?.fullName || (lang === "bn" ? "শিক্ষার্থী" : "Student")}!</span>
-                </motion.span>
+                </span>
                 
                 {profile?.role === "Admin" && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-300 text-slate-950 text-2xs font-black uppercase tracking-wider shadow-md">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-2xs font-black uppercase tracking-wider">
                     👑 ADMIN
                   </span>
                 )}
@@ -150,19 +148,19 @@ export default function Dashboard({
                 <motion.h1 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white drop-shadow-md leading-tight"
+                  className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight"
                 >
-                  {lang === "bn" ? "স্টাডি হাবে স্বাগতম!" : "Welcome to STUDY HUB!"}
+                  {lang === "bn" ? "স্টাডি হাব অফিশিয়াল একাডেমিতে স্বাগতম" : "Welcome to Study Hub Academy"}
                 </motion.h1>
                 <motion.p 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="text-xs sm:text-sm text-indigo-100 font-bold mt-1.5 leading-relaxed"
+                  className="text-xs sm:text-sm text-slate-300 font-medium mt-2 leading-relaxed"
                 >
                   {lang === "bn"
-                    ? "পশ্চিমবঙ্গ বোর্ড, উচ্চ মাধ্যমিক, পলিটেকনিক ও সরকারি চাকরির সর্বাঙ্গীন প্রস্তুতি পোর্টাল।"
-                    : "Your all-in-one preparation portal for School Boards, Higher Secondary, Technical Studies & Govt Exams."}
+                    ? "পশ্চিমবঙ্গ মধ্যশিক্ষা পর্ষদ, উচ্চ মাধ্যমিক, পলিটেকনিক ও সরকারি চাকরির সুসংগঠিত শিক্ষা পোর্টাল।"
+                    : "Comprehensive educational platform for Secondary, Higher Secondary, Polytechnic & Competitive Exams."}
                 </motion.p>
               </div>
 
@@ -240,8 +238,8 @@ export default function Dashboard({
                   onClick={() => setShowSolveModal(true)}
                   className="flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-bold backdrop-blur-xl transition-all cursor-pointer shadow-xs"
                 >
-                  <Cpu className="w-3.5 h-3.5 text-cyan-300" />
-                  <span>{lang === "bn" ? "এআই সলভ" : "AI Solver"}</span>
+                  <HelpCircle className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>{lang === "bn" ? "সংশয় সমাধান" : "Doubt Solver"}</span>
                 </motion.button>
 
                 <motion.button
@@ -251,7 +249,7 @@ export default function Dashboard({
                   className="flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-bold backdrop-blur-xl transition-all cursor-pointer shadow-xs"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>{lang === "bn" ? "নতুন নোট" : "Write Note"}</span>
+                  <span>{profile?.role === "Admin" ? (lang === "bn" ? "নতুন নোট" : "Write Note") : (lang === "bn" ? "নোট লাইব্রেরি" : "Notes Library")}</span>
                 </motion.button>
 
                 <motion.button
@@ -260,7 +258,7 @@ export default function Dashboard({
                   onClick={() => onNavigate("liveClasses")}
                   className="flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-bold backdrop-blur-xl transition-all cursor-pointer shadow-xs"
                 >
-                  <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping mr-0.5" />
+                  <Radio className="w-3.5 h-3.5 text-rose-300" />
                   <span>{lang === "bn" ? "লাইভ ক্লাস" : "Live Class"}</span>
                 </motion.button>
               </div>
@@ -565,7 +563,7 @@ export default function Dashboard({
               </div>
               
               <div className="p-3.5 bg-white/15 border border-white/25 rounded-2xl backdrop-blur-xs">
-                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{lang === "bn" ? "ডাউট এআই সমাধান" : "AI Doubts Solved"}</span>
+                <span className="text-[10px] font-black text-indigo-100 block uppercase tracking-wider">{lang === "bn" ? "সমাধানকৃত প্রশ্ন" : "Doubts Clarified"}</span>
                 <span className="text-2xl font-black font-mono tabular-nums text-amber-300 block mt-1">{stats.doubtsSolved || 14}</span>
               </div>
 
@@ -581,11 +579,11 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* AI Tools Suite (Calculator & AI Solver) */}
+          {/* Digital Study Tools Suite (Calculator & Doubt Solver) */}
           <div className="space-y-4">
             <h3 className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-2 px-1">
-              <Cpu className="h-4 w-4 text-emerald-500" />
-              <span>{lang === "bn" ? "এআই ও ডিজিটাল টুলস" : "AI & Digital Tools"}</span>
+              <Laptop className="h-4 w-4 text-emerald-500" />
+              <span>{lang === "bn" ? "ডিজিটাল সহায়ক টুলস" : "Digital Study Tools"}</span>
             </h3>
 
             {/* Scientific Calculator */}
@@ -599,13 +597,13 @@ export default function Dashboard({
                     <h4 className="font-black text-slate-900 dark:text-white text-sm">
                       {lang === "bn" ? "বৈজ্ঞানিক ক্যালকুলেটর" : "Scientific Calculator"}
                     </h4>
-                    <span className="text-[10px] font-bold text-slate-400">Trig, Log & Functions</span>
+                    <span className="text-[10px] font-bold text-slate-400">Trig, Log & Formulas</span>
                   </div>
                 </div>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
                 {lang === "bn" 
-                  ? "ত্রিকোণমিতি, লগারিদম এবং জটিল সমীকরণ হিসাবের মাল্টি-ফাংশন ক্যালকুলেটর।" 
+                  ? "ত্রিকোণমিতি, লগারিদম এবং সমীকরণ হিসাবের মাল্টি-ফাংশন ক্যালকুলেটর।" 
                   : "Solve trigonometric angles, log bases, roots and advanced algebraic expressions."}
               </p>
               <button
@@ -613,36 +611,36 @@ export default function Dashboard({
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
               >
                 <Maximize2 className="h-3.5 w-3.5" />
-                <span>{lang === "bn" ? "ক্যালকুলেটর চালু করুন" : "Launch Calculator"}</span>
+                <span>{lang === "bn" ? "ক্যালকুলেটর খুলুন" : "Open Calculator"}</span>
               </button>
             </div>
 
-            {/* AI Math Solver Launch Card */}
+            {/* Math Doubt Clarification Launch Card */}
             <div className="rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                    <Sparkles className="h-5 w-5" />
+                    <HelpCircle className="h-5 w-5" />
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 dark:text-white text-sm">
-                      {lang === "bn" ? "এআই ডাউট সলভার ৩.০" : "AI Doubt Solver 3.0"}
+                      {lang === "bn" ? "সংশয় সমাধান ও অঙ্ক প্র্যাকটিস" : "Doubt Solving & Practice"}
                     </h4>
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Powered by Gemini AI</span>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Step-by-step Explanations</span>
                   </div>
                 </div>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-4 leading-relaxed">
                 {lang === "bn" 
-                  ? "যেকোনো জটিল প্রশ্নের ছবি বা টেক্সট দিন, পেয়ে যাবেন ধাপে ধাপে বিস্তারিত সমাধান।" 
+                  ? "যেকোনো কঠিন প্রশ্ন বা অঙ্ক না বুঝলে টাইপ করুন বা ছবি আপলোড করুন; পেয়ে যাবেন ধাপে ধাপে সহজ সমাধান।" 
                   : "Upload homework questions or type doubts to get comprehensive step-by-step guidance."}
               </p>
               <button
                 onClick={() => setShowSolveModal(true)}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-98 cursor-pointer"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>{lang === "bn" ? "এআই ইঞ্জিন চালু করুন" : "Launch AI Solver"}</span>
+                <HelpCircle className="h-3.5 w-3.5" />
+                <span>{lang === "bn" ? "সমাধান ডেস্ক খুলুন" : "Open Doubt Solver"}</span>
               </button>
             </div>
           </div>
@@ -686,7 +684,7 @@ export default function Dashboard({
                   <span>{lang === "bn" ? "সম্প্রতি সংরক্ষিত নোটসমূহ" : "Recent Notes Library"}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                  {lang === "bn" ? "ক্লাস নোট, এআই সামারি ও ফ্ল্যাশকার্ড পর্যালোচনা করুন।" : "Review handwritten notes or create new study summaries."}
+                  {lang === "bn" ? "ক্লাস নোট, প্রয়োজনীয় সূত্র ও রিভিশন ফ্ল্যাশকার্ড পর্যালোচনা করুন।" : "Review class notes, key formulas, and revision flashcards."}
                 </p>
               </div>
               <button
@@ -728,7 +726,7 @@ export default function Dashboard({
                   <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     <span className="flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500" />
-                      <span>{lang === "bn" ? "বিস্তারিত ও এআই সারাংশ" : "Read Details & AI Summary"}</span>
+                      <span>{lang === "bn" ? "সম্পূর্ণ নোট ও সারসংক্ষেপ" : "Read Full Note & Summary"}</span>
                     </span>
                     <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
@@ -746,7 +744,11 @@ export default function Dashboard({
                     className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer transition-all active:scale-95"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
-                    <span>{lang === "bn" ? "নতুন নোট তৈরি করুন" : "Add Your First Note"}</span>
+                    <span>
+                      {profile?.role === "Admin"
+                        ? (lang === "bn" ? "নতুন নোট তৈরি করুন" : "Add Your First Note")
+                        : (lang === "bn" ? "নোট লাইব্রেরি দেখুন" : "Browse Notes Library")}
+                    </span>
                   </button>
                 </div>
               )}

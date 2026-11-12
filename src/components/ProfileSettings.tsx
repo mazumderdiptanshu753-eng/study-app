@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Save, X, LogOut, Cpu } from "lucide-react";
+import { Save, X, LogOut, Cpu, Trash2 } from "lucide-react";
 import { StudentProfile } from "../types";
 import { Language, TRANSLATIONS } from "../lib/translations";
 import { ThemeId, THEMES } from "../lib/themes";
@@ -13,6 +13,7 @@ interface ProfileSettingsProps {
   themeId: ThemeId;
   onThemeChange: (newThemeId: ThemeId) => void;
   onLogout: () => void;
+  onDeleteAccount?: () => void;
   lang: Language;
   currentVersion?: string;
   latestVersion?: string;
@@ -29,6 +30,7 @@ export default function ProfileSettings({
   themeId,
   onThemeChange,
   onLogout,
+  onDeleteAccount,
   lang,
   currentVersion = "2.6.6",
   latestVersion
@@ -229,6 +231,16 @@ export default function ProfileSettings({
           <LogOut className="h-4 w-4" />
           {lang === "bn" ? "লগ আউট" : "Log Out"}
         </button>
+
+        {onDeleteAccount && (
+          <button
+            onClick={onDeleteAccount}
+            className="py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-black border border-rose-600/30 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 transition-all cursor-pointer active:scale-95"
+          >
+            <Trash2 className="h-4 w-4" />
+            {lang === "bn" ? "অ্যাকাউন্ট ডিলিট করুন" : "Delete Account"}
+          </button>
+        )}
       </div>
     </motion.div>
   );
