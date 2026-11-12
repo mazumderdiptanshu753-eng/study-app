@@ -58,7 +58,6 @@ import ProfileSettings from "./components/ProfileSettings";
 import ServerWakeOverlay from "./components/ServerWakeOverlay";
 import AppUpdateOverlay from "./components/AppUpdateOverlay";
 import OfflineIndicator from "./components/OfflineIndicator";
-import UserManualModal from "./components/UserManualModal";
 import { StudyNote, UserStats, Subject, GradeLevel, StudentProfile, isPermanentAdmin } from "./types";
 import { Language, TRANSLATIONS } from "./lib/translations";
 import { ThemeId, THEMES } from "./lib/themes";
@@ -77,7 +76,6 @@ export default function App() {
   const theme = THEMES[themeId];
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isManualOpen, setIsManualOpen] = useState(false);
 
   const t = TRANSLATIONS[lang];
 
@@ -601,10 +599,6 @@ export default function App() {
   // Save or update manually written note or AI updated fields (PG Database + Local Storage)
   const handleSaveNote = async (noteData: Omit<StudyNote, "id" | "timestamp"> & { id?: string; timestamp?: string }) => {
     const isNew = !noteData.id;
-    if (isNew && profile?.role !== "Admin") {
-      alert(lang === "bn" ? "শুধুমাত্র অফিসিয়াল এডমিন নতুন নোট যোগ করতে পারেন।" : "Only Admins can add new study notes.");
-      return;
-    }
     const noteId = noteData.id || `note-${Date.now()}`;
     const timestamp = noteData.timestamp || new Date().toISOString();
     
@@ -641,10 +635,6 @@ export default function App() {
 
   // Delete note from database and local storage
   const handleDeleteNote = async (id: string) => {
-    if (profile?.role !== "Admin") {
-      alert(lang === "bn" ? "শুধুমাত্র অফিসিয়াল এডমিন নোট ডিলিট করতে পারেন।" : "Only Admins can delete study notes.");
-      return;
-    }
     // Update local state and storage
     setNotes(prev => prev.filter(n => n.id !== id));
     if (selectedNote?.id === id) {
@@ -947,11 +937,14 @@ export default function App() {
                     <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                   </div>
                   <div className="leading-tight">
-                    <span className="font-black text-sm tracking-tight text-slate-900 block">
-                      STUDY HUB
-                    </span>
-                    <span className="text-[9px] font-bold text-slate-500 tracking-wider uppercase block mt-0.5">
-                      {lang === "bn" ? "শিক্ষা ও একাডেমি পোর্টাল" : "ACADEMIC PORTAL"}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-sm tracking-tight text-slate-900">
+                        STUDY HUB
+                      </span>
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase block mt-0.5">
+                      {lang === "bn" ? "অধ্যয়ন ও এআই হাব" : "LEARN & AI SPACE"}
                     </span>
                   </div>
                 </div>
@@ -1149,21 +1142,6 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-
-                {/* User Manual Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsManualOpen(true)}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl border border-indigo-200/70 hover:bg-indigo-50/60 text-indigo-700 font-bold text-[11px] transition cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    <span>{lang === "bn" ? "ব্যবহারকারী নির্দেশিকা" : "User Manual"}</span>
-                  </span>
-                  <span className="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-black">
-                    PDF
-                  </span>
-                </button>
               </div>
             </aside>
           )}
@@ -1181,8 +1159,8 @@ export default function App() {
                     <span className="font-black text-xs block tracking-tight text-slate-900">
                       STUDY HUB
                     </span>
-                    <span className="text-[8px] font-bold text-slate-500 block tracking-wider uppercase">
-                      {lang === "bn" ? "শিক্ষা পোর্টাল" : "ACADEMIC PORTAL"}
+                    <span className="text-[8px] font-bold text-slate-400 block tracking-wider uppercase">
+                      {lang === "bn" ? "অধ্যয়ন ও এআই" : "LEARN & AI"}
                     </span>
                   </div>
                 </button>
@@ -1197,15 +1175,6 @@ export default function App() {
                     title={lang === "bn" ? "সার্চ করুন" : "Global Search"}
                   >
                     <Search className="w-3.5 h-3.5 text-indigo-500" />
-                  </button>
-
-                  {/* User Manual Mobile Trigger */}
-                  <button
-                    onClick={() => setIsManualOpen(true)}
-                    className="flex items-center justify-center h-8 w-8 rounded-xl bg-white border border-indigo-200/80 text-indigo-600 transition-all cursor-pointer active:scale-95 shadow-3xs"
-                    title={lang === "bn" ? "ব্যবহারকারী নির্দেশিকা (PDF)" : "User Manual (PDF)"}
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
                   </button>
 
                   {/* Language Toggle */}
@@ -1548,13 +1517,6 @@ export default function App() {
             setSelectedNote(null);
           }
         }}
-      />
-
-      {/* User Manual Modal */}
-      <UserManualModal
-        isOpen={isManualOpen}
-        onClose={() => setIsManualOpen(false)}
-        lang={lang}
       />
 
     </motion.div>

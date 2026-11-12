@@ -198,9 +198,9 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               duration: 0.6,
               scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-2 rounded-full bg-indigo-500/10 text-indigo-700 text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-xs border border-indigo-500/20"
+            className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-2 rounded-full bg-emerald-500/15 text-emerald-700 text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-xs border border-emerald-500/30"
           >
-            <GraduationCap className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-indigo-600" />
+            <Sparkles className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 animate-spin" style={{ animationDuration: "12s" }} />
             {t.welcomeSubtitle}
           </motion.div>
           
@@ -237,8 +237,8 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
               className="text-slate-600 text-xs sm:text-base max-w-md sm:max-w-xl font-medium leading-relaxed px-2 sm:px-0"
             >
               {lang === "bn" 
-                ? "শ্রেণি ও প্রতিযোগিতামূলক পরীক্ষার জন্য গোছানো স্টাডি নোটস, সারসংক্ষেপ, প্র্যাকটিস প্রশ্ন ও ভিডিও লেকচার।"
-                : "Organized study notes, syllabus roadmaps, practice questions, and structured video lectures for your academic goals."}
+                ? "আমরা অধ্যয়নের নোটগুলি সংগঠিত করি, তাৎক্ষণিকভাবে এআই-চালিত সারাংশ, পিডিএফ নোট এবং ভিডিও লেকচার তৈরি করি।"
+                : "We organize study notes, instantly generated AI-powered summaries, pdf notes and video lectures"}
             </motion.p>
           </div>
 
@@ -423,9 +423,9 @@ export default function WelcomePage({ onStart, lang, onLanguageChange, theme }: 
             >
               <div className="flex items-center gap-1.5 mb-1.5">
                 <div className="h-5 w-5 rounded-lg bg-teal-500/15 flex items-center justify-center text-teal-600">
-                  <BookOpen className="h-3 w-3" />
+                  <Sparkles className="h-3 w-3 animate-pulse" />
                 </div>
-                <span className="text-[8px] font-extrabold tracking-wider text-teal-700 uppercase">Math Solver</span>
+                <span className="text-[8px] font-extrabold tracking-wider text-teal-700 uppercase">AI Solver</span>
               </div>
               <div className="font-mono text-[8.5px] leading-tight text-slate-600 space-y-0.5 select-none">
                 <div className="text-teal-700 font-bold">f(x) = ∫ x² dx</div>

@@ -229,8 +229,8 @@ export default function TechnicalStudies({
     {
       role: "model",
       text: lang === "bn" 
-        ? "স্বাগতম! বি.টেক ও ডিপ্লোমা পাঠ্যক্রমের প্রোগ্রামিং, সার্কিট বিশ্লেষণ, মেকানিক্স বা যেকোনো বিষয়ভিত্তিক সমস্যা নিয়ে প্রশ্ন করতে পারেন।"
-        : "Hello Engineer! Technical Study Desk is ready. Ask me anything about programming, algorithms, electrical circuit calculations, structural concrete, or manufacturing design."
+        ? "হ্যালো প্রকৌশলী! আমি আপনার বি.টেক ও ডিপ্লোমা এআই ল্যাব অ্যাসিস্ট্যান্ট। কোডিং, সার্কিট বিশ্লেষণ, থার্মোডাইনামিক্স বা যেকোনো জটিল বৈজ্ঞানিক বিষয়ের প্রশ্ন এখানে জিজ্ঞেস করতে পারেন।"
+        : "Hello Engineer! I am your AI Lab & Technical Assistant. Ask me anything about programming, algorithms, electrical circuit calculations, structural concrete, or manufacturing design."
     }
   ]);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -672,7 +672,7 @@ export default function TechnicalStudies({
       if (data.reply) {
         setAiChatHistory(prev => [...prev, { role: "model", text: data.reply }]);
       } else {
-        setAiChatHistory(prev => [...prev, { role: "model", text: lang === "bn" ? "দুঃখিত, সার্ভার সংযোগে সমস্যা হচ্ছে। একটু পরে আবার চেষ্টা করুন।" : "Sorry, the technical service encountered an issue. Please try again later." }]);
+        setAiChatHistory(prev => [...prev, { role: "model", text: lang === "bn" ? "দুঃখিত, এআই সার্ভার উত্তর দিতে পারছে না। পরে আবার চেষ্টা করুন।" : "Sorry, the AI service encountered an issue. Please try again later." }]);
       }
     } catch (e: any) {
       console.error("AI error:", e);
@@ -714,8 +714,8 @@ export default function TechnicalStudies({
                 ? "৩ বছর মেয়াদী পলিটেকনিক ডিপ্লোমা শিক্ষার্থীদের জন্য সেমিস্টার সিলেবাস, প্রিভিয়াস ইয়ারের প্রশ্ন ও ল্যাব।"
                 : "Official 3-year polytechnic diploma semesters syllabus, previous years' questions, lecture notes & simulation tools.")
               : (lang === "bn"
-                ? "বি.টেক (B.Tech) ৪ বছরের সেমিস্টার সিলেবাস, ল্যাব ম্যানুয়াল ও ইঞ্জিনিয়ারিং ক্যালকুলেটর।"
-                : "Comprehensive academic curriculum, Lab Manuals, calculators & semester resources for 4-year B.Tech students.")
+                ? "বি.টেক (B.Tech) ৪ বছরের সেমিস্টার সিলেবাস, এআই ল্যাব এবং ইঞ্জিনিয়ারিং ক্যালকুলেটর।"
+                : "Comprehensive academic curriculum, AI Lab, calculators & semester resources for 4-year B.Tech students.")
             }
           </p>
         </div>
@@ -819,7 +819,7 @@ export default function TechnicalStudies({
           { id: "syllabus", nameEn: "Syllabus & Roadmap", nameBn: "সিলেবাস ও সেমিস্টার" },
           { id: "simulator", nameEn: "Digital Gate Simulator", nameBn: "লজিক গেট সিমুলেটর" },
           { id: "calculator", nameEn: "Electrical AC/DC Solver", nameBn: "ইলেকট্রিক্যাল সলভার" },
-          { id: "aiAssistant", nameEn: "Engineering Lab Guide", nameBn: "ল্যাব ও কনসেপ্ট গাইড" },
+          { id: "aiAssistant", nameEn: "AI Lab Companion", nameBn: "এআই ল্যাব সহকারী" },
           { id: "uploads", nameEn: "Technical Resources", nameBn: "প্রশ্নপত্র ও লেকচার নোট" }
         ].filter((tab) => {
           if (course === "diploma") {
@@ -1461,8 +1461,8 @@ export default function TechnicalStudies({
             >
               <div className="border-b border-slate-100 pb-2">
                 <h3 className={`text-base font-black ${theme.textHeading} flex items-center gap-1.5`}>
-                  <BookOpen className="h-5 w-5 text-indigo-600" />
-                  {lang === "bn" ? "প্রকৌশলী ও ল্যাব হেল্পডেস্ক" : "Engineering & Lab Guide"}
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  {lang === "bn" ? "প্রকৌশলী ও ল্যাব এআই অ্যাসিস্ট্যান্ট" : "Engineering & Lab AI Assistant"}
                 </h3>
                 <p className="text-[11px] text-slate-500 font-bold">
                   {lang === "bn" 
@@ -1497,7 +1497,7 @@ export default function TechnicalStudies({
                   <div className="flex justify-start">
                     <div className="bg-white border border-indigo-100 rounded-2xl rounded-tl-none p-4 text-xs font-semibold text-slate-500 flex items-center gap-2">
                       <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-                      <span>{lang === "bn" ? "বিশ্লেষণ করা হচ্ছে..." : "Preparing solution..."}</span>
+                      <span>{lang === "bn" ? "এআই চিন্তা করছে..." : "Generating response..."}</span>
                     </div>
                   </div>
                 )}

@@ -59,14 +59,12 @@ function loadLocalDB() {
       console.error("Failed to load local db.json:", e);
     }
   }
-  // Ensure mazumderdiptanshu753@gmail.com is set as regular Student
+  // Purge mazumderdiptanshu753@gmail.com so user can register fresh as student
   if (localDB.users) {
-    localDB.users.forEach((u: any) => {
-      if ((u.email || '').trim().toLowerCase() === "mazumderdiptanshu753@gmail.com") {
-        u.role = "Student";
-        if (u.avatarUrl === "👑") u.avatarUrl = "🎓";
-      }
-    });
+    localDB.users = localDB.users.filter((u: any) => (u.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
+  }
+  if (localDB.accessRequests) {
+    localDB.accessRequests = localDB.accessRequests.filter((r: any) => (r.email || '').trim().toLowerCase() !== "mazumderdiptanshu753@gmail.com");
   }
   saveLocalDB();
 }
@@ -200,7 +198,7 @@ export async function syncFromFirestore(): Promise<void> {
     let firestoreEmpty = true;
     for (const col of collections) {
       try {
-        let items: any[] = [];
+        const items: any[] = [];
         if (firestoreDb) {
           const snapshot = await firestoreDb.collection(col.name).get();
           snapshot.forEach(doc => items.push(doc.data()));
@@ -212,14 +210,6 @@ export async function syncFromFirestore(): Promise<void> {
 
         if (items.length > 0) {
           firestoreEmpty = false;
-          if (col.key === "users") {
-            items = items.map((u: any) => {
-              if ((u?.email || '').trim().toLowerCase() === "mazumderdiptanshu753@gmail.com") {
-                return { ...u, role: "Student", avatarUrl: u.avatarUrl === "👑" ? "🎓" : (u.avatarUrl || "🎓") };
-              }
-              return u;
-            });
-          }
           localDB[col.key] = items;
           console.log(`Synced ${items.length} items for ${col.name} from Firestore.`);
         }
@@ -650,7 +640,7 @@ export async function getUsers(): Promise<any[]> {
     userList = [...(localDB.users || [])];
   }
 
-  // Ensure only official studyhub2026admin is permanent admin
+  // Ensure both permanent admins are always present with Admin role
   for (const admin of PERMANENT_ADMINS) {
     const existing = userList.find((u: any) => (u.email || '').trim().toLowerCase() === admin.email);
     if (!existing) {
@@ -659,13 +649,6 @@ export async function getUsers(): Promise<any[]> {
       existing.role = "Admin";
       existing.avatarUrl = "👑";
       existing.isSuspended = false;
-    }
-  }
-
-  for (const u of userList) {
-    if ((u.email || '').trim().toLowerCase() === "mazumderdiptanshu753@gmail.com") {
-      u.role = "Student";
-      if (u.avatarUrl === "👑") u.avatarUrl = "🎓";
     }
   }
 

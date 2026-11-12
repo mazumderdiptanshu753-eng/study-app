@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   BookOpen, 
@@ -110,18 +110,8 @@ export default function NotesManager({
     reader.readAsDataURL(file);
   };
 
-  useEffect(() => {
-    if (role !== "Admin" && isCreating) {
-      setIsCreating(false);
-    }
-  }, [role, isCreating]);
-
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (role !== "Admin") {
-      alert(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে নোট আপলোড বা তৈরি করা সম্ভব।" : "Only admin accounts can create or upload notes.");
-      return;
-    }
     if (!title.trim() || !content.trim()) return;
     onSaveNote({
       title,
@@ -152,10 +142,6 @@ export default function NotesManager({
   };
 
   const handleImportNote = () => {
-    if (role !== "Admin") {
-      alert(lang === "bn" ? "শুধুমাত্র এডমিন অ্যাকাউন্ট থেকে নোট ইম্পোর্ট করা সম্ভব।" : "Only admin accounts can import notes.");
-      return;
-    }
     const input = prompt("Paste the study note sharing code here:");
     if (!input) return;
     try {
@@ -349,7 +335,7 @@ export default function NotesManager({
 
       {/* RIGHT PANEL: Note Viewer / Editor / Study mode (8 cols on md+) */}
       <motion.div variants={itemVariants} className="md:col-span-8 space-y-6">
-        {isCreating && role === "Admin" ? (
+        {isCreating ? (
           /* CREATE NOTE FORM */
           <div className="space-y-4">
             <button
@@ -412,7 +398,7 @@ export default function NotesManager({
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={8}
-                  placeholder={lang === "bn" ? "এখানে আপনার পাঠ্যবইয়ের অধ্যায়, লেকচার পয়েন্ট বা গণিতের সূত্রাবলী লিখুন যাতে স্বয়ংক্রিয়ভাবে মূল পয়েন্ট, কুইজ এবং ফ্ল্যাশকার্ড সংকলন করা যায়।" : "Write or paste textbook chapters, lecture notes, or key formulas to generate structured summaries, flashcards, and practice quiz questions."}
+                  placeholder={lang === "bn" ? "এখানে আপনার পাঠ্যবইয়ের সংজ্ঞা, লেকচার নোট বা গণিতের সূত্রাবলী পেস্ট করুন যাতে জেমিনি এআই আপনার জন্য সারাংশ, কুইজ এবং ফ্ল্যাশকার্ড তৈরি করতে পারে।" : "Paste textbook definitions, lecture key summaries, equations, or code logs here so Gemini can construct summaries, study cards, and practice questions for you."}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/30 p-3.5 text-sm text-slate-800 placeholder-slate-400 outline-hidden focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100"
                 ></textarea>
               </div>
@@ -540,8 +526,8 @@ export default function NotesManager({
                       : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
-                  <BookOpen className="h-3 w-3" />
-                  {lang === "bn" ? "অধ্যায় সারসংক্ষেপ" : "Study Summary"}
+                  <Sparkles className="h-3 w-3 text-amber-500 fill-amber-300" />
+                  {lang === "bn" ? "এআই সারাংশ" : "AI Summary"}
                 </button>
                 <button
                   onClick={() => setActiveStudyTab("flashcards")}
@@ -648,8 +634,8 @@ export default function NotesManager({
               <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 p-6 shadow-xs space-y-5">
                 <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
                   <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-indigo-600" />
-                    {lang === "bn" ? "অধ্যায় সারসংক্ষেপ ও প্রধান পয়েন্ট" : "Key Concepts & Study Summary"}
+                    <Sparkles className="h-5 w-5 text-amber-500" />
+                    {lang === "bn" ? "জেমিনি এআই সারাংশ ইঞ্জিন" : "Gemini AI Summary Engine"}
                   </h3>
                   {!selectedNote.summaryPoints && (
                     <span className="text-2xs text-slate-500">
@@ -703,15 +689,15 @@ export default function NotesManager({
                 ) : (
                   <div className="py-10 text-center space-y-4">
                     <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-                      {lang === "bn" ? "পরীক্ষার দ্রুত রিভিশনের জন্য এই নোটের মূল বিষয়বস্তু ও পয়েন্ট সারসংক্ষেপ প্রস্তুত করুন।" : "Compile concise chapter summaries and key takeaway points for quick exam revision."}
+                      {lang === "bn" ? "জেমিনি এআই মডেল ব্যবহার করে তাৎক্ষণিকভাবে এই নোটের সংক্ষিপ্ত সারাংশ তৈরি করুন।" : "Construct concise key study notes summaries instantly using Gemini AI models."}
                     </p>
                     <button
                       onClick={() => onTriggerSummary(selectedNote)}
                       id="btn-generate-summary"
-                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 shadow-sm cursor-pointer"
+                      className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 shadow-sm cursor-pointer"
                     >
-                      <BookOpen className="h-3.5 w-3.5" />
-                      {lang === "bn" ? "নোটের সারসংক্ষেপ প্রস্তুত করুন" : "Summarize Note"}
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {lang === "bn" ? "নোটের সারাংশ তৈরি করুন" : "Summarize Note"}
                     </button>
                   </div>
                 )}

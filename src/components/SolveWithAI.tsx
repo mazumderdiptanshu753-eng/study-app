@@ -66,21 +66,21 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
 
   const isBengali = lang === "bn";
   const t = {
-    title: isBengali ? "সংশয় সমাধান ও অঙ্ক প্র্যাকটিস" : "Doubt Solving & Practice Desk",
+    title: isBengali ? "এআই ৭.০ (AI 7.0)" : "AI 7.0",
     subtitle: isBengali 
-      ? "স্টাডি হাব একাডেমি • ধাপে ধাপে সহজ ভাষায় সমাধান" 
-      : "Study Hub Academy • Step-by-Step Academic Guidance",
+      ? "Google দ্বারা পরিচালিত, দীপ্তাংশু মজুমদার দ্বারা তৈরি" 
+      : "Powered by Google , Created by Diptanshu Mazumder",
     placeholder: isBengali 
-      ? "আপনার সমস্যা বা প্রশ্নটি এখানে লিখুন..." 
+      ? "আপনার সমস্যা বা প্রশ্নটি এখানে টাইপ করুন..." 
       : "Ask your question or describe your problem...",
-    solving: isBengali ? "সমাধান প্রস্তুত হচ্ছে..." : "Preparing explanation...",
-    coreConceptLabel: isBengali ? "মূল সূত্র / বিষয়বস্তু:" : "Core Concept / Formula:",
-    stepsLabel: isBengali ? "ধাপে ধাপে বিস্তারিত সমাধান:" : "Step-by-Step Solution:",
+    solving: isBengali ? "চিন্তা করছে..." : "Thinking...",
+    coreConceptLabel: isBengali ? "মূল ধারণা / তত্ত্ব:" : "Core Concept:",
+    stepsLabel: isBengali ? "ধাপে ধাপে সমাধান:" : "Step-by-Step Solution:",
     finalAnswerLabel: isBengali ? "চূড়ান্ত উত্তর:" : "Final Answer:",
-    errorLabel: isBengali ? "সমাধান তৈরি করতে সমস্যা হয়েছে।" : "Unable to compile solution. Please try again.",
+    errorLabel: isBengali ? "সমাধান তৈরি করতে ব্যর্থ হয়েছে।" : "Failed to generate solution.",
     tip: isBengali 
-      ? "পরামর্শ: গণিত, পদার্থবিদ্যা, রসায়ন বা যেকোনো বিষয়ের প্রশ্নের ছবি বা টেক্সট পাঠিয়ে সমাধান দেখে নিন!" 
-      : "Tip: Send a picture or type questions from Math, Physics, Chemistry, or any subject to view detailed solutions!",
+      ? "পরামর্শ: এটি গণিত, বিজ্ঞান, ইতিহাস, বা যেকোনো বিষয়ের প্রশ্নের উত্তর সুন্দরভাবে ব্যাখ্যা করতে পারে!" 
+      : "Tip: It can thoroughly explain questions from Math, Science, History, and more!",
   };
 
   useEffect(() => {
@@ -90,8 +90,8 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
           id: 'welcome',
           role: 'assistant',
           content: isBengali 
-            ? "নমস্কার! পড়াশোনার যেকোনো কঠিন অঙ্ক বা বিষয়ের প্রশ্ন না বুঝলে এখানে লিখে জানান অথবা ছবি তুলে পাঠান। ধাপে ধাপে সহজ ভাষায় সমাধান বুঝিয়ে দেওয়া হবে।" 
-            : "Hello! If you have any homework doubt, math problem, or subject question, write it here or upload a picture to get step-by-step clear explanations."
+            ? "হ্যালো! আমি এআই ৭.০। যেকোনো কঠিন প্রশ্ন, সমস্যা বা সমীকরণ টাইপ বা আপলোড করুন এবং ১০০% নির্ভুল ধাপে ধাপে সমাধান বুঝে নিন।" 
+            : "Hello! I am the AI 7.0. Type or upload any complex question or problem for 100% accurate step-by-step solutions."
         }
       ]);
     }
@@ -331,8 +331,8 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
       {/* Header */}
       <div className={`p-4 border-b ${theme.borderCard} flex items-center justify-between bg-gradient-to-r ${theme.isDark ? "from-slate-800 to-slate-900" : "from-emerald-50 to-teal-50"}`}>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-md">
-            <HelpCircle className="h-5 w-5" />
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
+            <Sparkles className="h-5 w-5" />
           </div>
           <div>
             <h2 className={`font-bold ${theme.textHeading}`}>
@@ -366,7 +366,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
             >
               {!isUser && (
                 <div className={`h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-1`}>
-                  <BookOpen className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 </div>
               )}
               
@@ -415,7 +415,7 @@ export default function SolveWithAI({ lang, theme, onClose }: SolveWithAIProps) 
             className="flex items-start gap-3 justify-start"
           >
             <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-1">
-              <BookOpen className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" />
             </div>
             <div className={`px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-tl-none border shadow-sm flex items-center gap-2 ${theme.isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />

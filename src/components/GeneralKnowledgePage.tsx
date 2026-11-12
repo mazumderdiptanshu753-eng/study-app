@@ -172,7 +172,7 @@ export default function GeneralKnowledgePage({ theme, lang, onBack, profile }: G
             {activeTab === "pyqs" && <PreviousYearQuestions lang={lang} theme={theme} />}
             {activeTab === "gk" && <GeneralKnowledge lang={lang} theme={theme} />}
             {activeTab === "important" && <ImportantQuestions lang={lang} theme={theme} />}
-            {activeTab === "upload" && profile?.role === "Admin" && (
+            {activeTab === "upload" && (
               <div className={`rounded-2xl border ${theme.borderCard} ${theme.bgCard} p-4 sm:p-6 shadow-sm`}>
                 <h3 className={`font-extrabold ${theme.textHeading} text-base sm:text-lg mb-2 flex items-center gap-2`}>
                   <Upload className={`h-5 w-5 ${theme.primaryText}`} />

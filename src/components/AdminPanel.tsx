@@ -59,8 +59,8 @@ export default function AdminPanel({ lang, users: propUsers, onToggleAdminRole, 
       grade: "High School",
       preferredSubject: "Mathematics",
       registeredAt: "2026-11-06T12:50:08.577Z",
-      avatarUrl: "🎓",
-      role: "Student"
+      avatarUrl: "👑",
+      role: "Admin"
     },
     {
       fullName: "Anwit Chaki",

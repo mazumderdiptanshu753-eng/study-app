@@ -161,12 +161,13 @@ export interface AccessRequest {
 }
 
 export const PERMANENT_ADMIN_EMAILS = [
-  "studyhub2026admin@gmail.com"
+  "studyhub2026admin@gmail.com",
+  "mazumderdiptanshu753@gmail.com"
 ];
 
 export const isPermanentAdmin = (email?: string | null): boolean => {
   if (!email) return false;
-  return email.trim().toLowerCase() === "studyhub2026admin@gmail.com";
+  return PERMANENT_ADMIN_EMAILS.includes(email.trim().toLowerCase());
 };
 
 
